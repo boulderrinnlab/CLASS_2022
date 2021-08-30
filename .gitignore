@@ -56,7 +56,7 @@ vignettes/*.pdf
 *_rslurm*
 *.chain
 *.bed*
-*data*
+data*
 *.txt
 *.csv
 *.gz
