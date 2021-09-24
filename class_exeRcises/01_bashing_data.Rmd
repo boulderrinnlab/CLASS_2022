@@ -182,19 +182,23 @@ the search key in a file. If there is a match then you can return just about any
 in the file. If you have ever done Vlookup in Xcel it maybe familiar in that sense. 
 But the reality it is so simple, elegnat and powerful we will use GREP a lot in class.
 
-Let's download and play with the encode .TSV file.
+Let's download and play with the encode .TSV file. This is a file of ENCODE data we will learn more about soon. For now just think of it as a file
 
-This is a file of ENCODE data we will learn more about soon. For now just think of it as a file
+[Download here](https://www.dropbox.com/s/ij798is442fyt3h/encode_awk_lessons.tsv?dl=0)
 
+Transfer this file to a directory and navigate there with your terminal.
+
+
+Now let's take a look at the file with 'cat' 
 ```
-cat data/encode_awk_lessons.tsv
+cat encode_awk_lessons.tsv
 ```
 
 Cat will print all items in a file and sometimes they are very long. So there are other unix commands to get the head and tail of a file while specificying how many lines you want:
 
 ```
-head -1 test.txt
-tail -1 test.txt
+head -1 encode_awk_lessons.tsv
+tail -1 encode_awk_lessons.tsv
 ```
 
 Yikes ok, so you see all the "/" that means it is tab deliminated. We would see
@@ -203,8 +207,6 @@ commas if it was a .csv.
 So this is not very readable. Let's use GREP to get what we want. Let's say we are 
 interested in all the samples that start with POL for POL II or POLR2A, there are 
 many ways to spell but we can search for anything that starts with POL.
-
-
 
 ```
 grep -ia 'pol' encode_awk_lessons.tsv | wc -l
@@ -227,8 +229,9 @@ So let's print the grep standard output to a file using ' > '
 Let's take a look at these 11 matches.
 
 ```
-grep -i 'pol' data/encode_awk_lessons.tsv > grep_out.txt
+grep -i 'pol' encode_awk_lessons.tsv > grep_out.txt
 ls
+wc -l grep_out.txt
 cat grep_out.txt
 ```
 
@@ -236,10 +239,8 @@ So we see a new file was printed, but let's open in xcel for ease.
 
 Ok, so this is a great example of how to be careful with grep. We loosened the 
 search a bit too much and it turns out some of those weird encode acessions had pol 
-in the string! But we do see the samples we want are "POLR2A" -- let's revamp our
+in the string (e.g., ENCFF744POL)! But we do see the samples we want are "POLR2A" -- let's revamp our
 grep.
-
-
 
 ```
 grep -w 'POLR2A' encode_awk_lessons.tsv > grep_out.txt
@@ -266,8 +267,11 @@ awk -F $'\t' '{if ($6 == "POLR2A") print $0;}' encode_awk_lessons.tsv | wc -l
 
 The syntax for awk is:
 awk -options 'selection _criteria {action }' input-file > output-file
+*The options here is -F (for field separator in file being operated on)
+*the $'\t' says the file is a tab separated file. the "$" is to set the variable tab separated('\t')
 
-so here we see the selection criteria is an if statement that if column 6 ($6)
+
+This awk command performs: the selection criteria is an if statement that if column 6 ($6)
 is equal to (exactly ==) the "POLR2A" term. print $0 means to print the lines that
 match these arguments and ; means end. Then, somewhat counter intuitive we put the
 file we want to operate on and then > output file. 
@@ -278,19 +282,16 @@ why grep is better suited for this kind of thing. Let's now use awk to acomplish
 the goal of seeing how many unique DBPs are in this file.
 
 First let's make a file with just the names of DBPs.
-
-
+* note there are many ways to do the same thing in awk.
+* discuss what this syntax is:
 ```
-awk 'BEGIN {FS="\t"}; {print $6}' encode_awk_lessons.tsv
+awk 'BEGIN {FS="\t"}; {print $6}' encode_awk_lessons.tsv > DBP.txt
+cat DBP.txt
+
+? How many DBPs are we going to study?
 ```
-Here we see one of many ways to wrtie the same thing in AWK. The awk arguements
-are encapsulated in the ' ' statement(s) inside { }. It is good practice to tell
-awk what type of deliminator there are betweeen columns. This being done in the first
-statement BEGIN means start with this statement {FS = "\t"}; this is saying the 
-Field Seperator (FS) is a tab deliminated file "\t". The semicolon ends this argument.
 
-
-The next statement is using the funciton print to "print" the column of choice.
+The statement above is using the function print to "print" the column of choice.
 In this case we are choosing column 6 as it has the names of all the DBPs.
 
 The final argument after the awk instructions is the file in which to perform the
@@ -320,13 +321,6 @@ Let's print this out to a file:
 awk 'BEGIN {FS="\t"}; {print $6}' encode_awk_lessons.tsv > dbp.tsv
 ```
 
-Let's use awk, grep and pipes to make a new file from the .tsv. Very similar to
-above, but now showing the power of awk in doing many things for you at once!
-
-```
-awk 'BEGIN {FS="\t"}; {print $1,$2,$3}' encode_awk_lessons.tsv > test.txt
-```
-What happened here? How could you test if it was the right file output?
 
 
 ->O<-->O<-->O<-->O<-->O<-->O<-->O<-->O<-
@@ -334,7 +328,7 @@ for loops in BASH
 ->O<-->O<-->O<-->O<-->O<-->O<-->O<-->O<-
 
 ```
-for x in $(seq 1 42); do echo BCHM5631 is great $x; done
+for x in $(seq 1 42); do echo bash is cool $x; done
 ```
 
 For loops are probably one of the most fundemental aspects of computing. It allows 
@@ -468,7 +462,7 @@ in another but if they ever need to connect you will want them in the same forma
 
 one line with sed and golden -- can also use in a for loop to replace many files.
 
-
+*Note you have changed the encode_awk_lessons.tsv file forever -- there is no undo in bash 
 ```
 for f in $(cat encode_awk_lessons.tsv)
 do
@@ -485,6 +479,12 @@ like find and replace.
 *********************
 EXCERCISE
 *********************
+
+Use what you learned above to make a .tsv file of the Experiment ID, Accession ID and Target DNA binding protein being (hint it maybe easiest to find the header information first)
+
+
+
+
 
 
 _________________________ Bonus Bash Fun _________________________ 
