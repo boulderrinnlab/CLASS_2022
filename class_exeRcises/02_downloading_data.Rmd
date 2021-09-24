@@ -318,3 +318,37 @@ md5sum -c md5sums.txt > md5sums_status.txt
 
 Congratulations -- all of ENCODE is now available ! Next we will continue
 practicing BASH/unix in the .TSV file we downloaded earlier. Please don't download the 1000+ URLS we got from encode today :)
+
+
+*********************
+EXCERCISE
+*********************
+Write a shell script that will download 3 fastq files from encode portal and check the md5sums.
+Some hints:
+
+A shell script is a list of commands you submit to fiji using the SLURM language. So we will send the
+curl or wget to get the files from encode as you did above. Then have fiji check the md5sums after they download. A shell script is just a set of commands in one file ending in .sh (you can make with nano)
+
+This requires a shebang on the first line:
+#!/bin/sh
+Command 1
+command 2 etc...
+
+Once you have your commands in the .sh file you need to make it executable:
+
+```
+chmod u+x filename.sh
+```
+
+To run your shell script you will use 
+
+```
+./filename.sh
+```
+
+Thats it go have fun !
+
+
+Go select 3 data sets of your interest in the encode portal (any cell type etc etc)
+You want to end up with three fastq.gz files (hint use screen session and)
+Then run the md5sum ()
