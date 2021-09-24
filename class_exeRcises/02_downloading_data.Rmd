@@ -182,18 +182,20 @@ if the URL has been changed to a new one it will be sent forward to the new
 location
 
 
-Ok now let's use this command to batch download data
+Ok now let's use this command to batch download data 
+(note the files will download in directory you are currently in -- good to use 'pwd')
 ```
 xargs -L 1 curl -O -J -L < files_test.txt
 ```
 
-# What do you get in your directory?
+If you just realized you are downloading a ton of data you can stop this process anytime with:
+ctrl-c
 
-This can be done many different ways and we chose an example that examplifies
-how the computer thinks (xargs) and the importance (in BASH) of standard input 
-and standard output and how this information can be passed along.
 
-#This could also be done with wget
+What do you get in your directory?
+
+
+Sometimes if curl doesn't work wget will -- it's just good to have options
 
 ```
 man wget
@@ -274,27 +276,19 @@ The syntax for this is md5sum# " two spaces " and file.
 For example:
 
 ```
-4b3e7dc77448bc4971367a3b40196cc0  ENCFF434BJG.fastq.gz
+55d41585faf7c7ba270bcf6b6366259a  ENCFF162ADN.fastq.gz
 ```
 
-First we need the file accession number which is embedded in the URL above
+We can go back to the encode portal and find md5sum (not in downloaded info)
 
-Paste these into md5sums.txt
-```
-ENCFF212GYT.fastq.gz
-ENCFF434BJG.fastq.gz
-```
-
-Now we need the md5sum values from ENCODE website by searching these accession in
-portal.
+Let's check if this data file is properly downloaded:
+-Navigate to the data directory in CLASS_2022
+-run the md5sum check:
 
 ```
-4b3e7dc77448bc4971367a3b40196cc0
-14fcf34bf1846ba82c4341838bc6e1b4
+md5sum ENCFF162ADN.fastq.gz
 ```
-
-paste in the two md5sums from the ENCODE website --- with two spaces ----, 
-ctrl x and enter now we have a file with two md5sums.
+The result should be: 55d41585faf7c7ba270bcf6b6366259a
 
 # Note this approach is not very useful for 1,000+ fastq files being downloaded in
 full class data set. In the design file lecture we will use BASH and ENCODE API to
@@ -303,27 +297,24 @@ files. So don't worry we will get there in a way that doesn't involve cutting
 and pasting :) We are simply exploring the importance of these basic principles
 of data science. 
 
+Let's make a list of checksums and files. syntax again is md5sum -- two spaces -- file_name
+In the data directory lets test the 3 fastq files are not corrupted.
+
+```
+nano md5sums.txt
+#paste in:
+55d41585faf7c7ba270bcf6b6366259a  ENCFF162ADN.fastq.gz
+34e772e69e41f9418d12ad568d1d50be  ENCFF210PXS.fastq.gz
+0d427ced85cca73d2e313c1146fa9033  ENCFF525AYL.fastq.gz
+```
+
+Now we will use the -c flag to indicate we want to check a list of md5sums so synatx is:
+md5sum -c file_name.txt
+
+Let's run it:
 ```
 md5sum -c md5sums.txt > md5sums_status.txt
-# we will talk more about the > and printing files in next lecture
-cat md5sums_status.txt
 ```
-
-Typically this works out alright and if you want to just see if the number of
-matched md5sum checks is same as number of files you can add: " | wc -l ""
-this will read the standard output from the md5sum -- using the pipe " |"
-kinda similar to xargs the pipe passes information from the left argument to
-the right, which is wc (word count and -l means lines) this will tell you how
-many lines of matched md5sums were found -- check the number is not less than
-files downloaded.
-
-```
-md5sum -c md5sums.txt | wc -l
-```
-
-We will go over the pipe and lots of other basic bash commands in the next lecutre.
-
-For now:
 
 Congratulations -- all of ENCODE is now available ! Next we will continue
-practicing BASH/unix in the .TSV file we downloaded earlier.
+practicing BASH/unix in the .TSV file we downloaded earlier. Please don't download the 1000+ URLS we got from encode today :)
