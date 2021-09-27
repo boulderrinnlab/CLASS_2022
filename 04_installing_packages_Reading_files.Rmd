@@ -1,0 +1,260 @@
+
+---
+title: "R-eading_installing_files_for_R"
+author: "JR"
+date: "9/27/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = FALSE)
+library(GenomicRanges)
+library(rtracklayer)
+library(tidyverse)
+library(ggpubr)
+library(Gviz)
+source("util/_setup.R")
+source("util/intersect_functions.R")
+source("util/plotting_functions.R")
+```
+
+Welcome to RStudio-viz! Let's take a little tour.
+
+First we need to learn how to install packages. Let's find out what version of R we are using.
+
+Simply type version in the console.
+
+Now we will use Install.packages() for most packages. This will install any packages in CRAN repository. Let's try one.
+
+```{r}
+?install.packages
+install.packages("tidyverse")
+```
+
+Cool we have our first package installed.
+
+However sometimes we ned to install from Bioconductor and need to use BiocManager::install
+```{R}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager", version = '3.10')
+BiocManager::install("GenomicRanges")
+```
+
+Now try installing the packages listed above. Just paste in the name above into 
+the install packages R function. Some packages like GenomicRanges are from Bioconductor and those will
+need to be installed with the BiocManager::install function.
+
+------------------------- Reading_files -------------------------------------
+
+Now let's use an example data file we will produce and how we can use R to do
+some quick analyses (e.g. how much space do exons take in the human genome?).
+
+
+Let's get started reading in a file "../../data/number_of_peaks_per_dbp.csv".
+
+
+***
+All the files needed for this exeRcise can be downloaded here https://www.dropbox.com/sh/76etjxl10v2hcuc/AAAIk9a6aMhw8CvUtKlFnMn6a?dl=0
+***
+
+
+Let's start by reading a file that has all the DBPs we are investigating as a .csv file.
+```{r}
+peaks_per_dbp <- read_csv("../data/number_of_peaks_per_dbp.csv")
+# Now we have an object in the environment that is called peaks_per_dbp -- click to look!
+# or we can take a peak with head
+head(peaks_per_dbp)
+
+# This is a tibble or data frame object you can think of like excel sheet for now
+# More on Tibble here:
+# https://tibble.tidyverse.org/
+```
+
+```{R}
+# Let's get more infomration about these peaks with table
+
+table(peaks_per_dbp$dbp)
+# Not very useful in this case because there is only one entry for each DBP
+
+summary(peaks_per_dbp$num_peaks)
+# Ok this is super helpful - we see the quartiles for each of the categories
+
+```
+
+# Now let's do some investigation to see which of these genes has the largest
+# or smallest number of peaks
+
+```{r}
+# We can take a shortcut using 'summary' to find out the smallest and largest
+summary(peaks_per_dbp$num_peaks)
+
+# Now we will use filter which will allow us to do much more.
+peaks_per_dbp$num_peaks > 40000
+# We see this produces the T and F for each DBP and we can see 2 DBPs (but we don't know the name :(
+
+#To solve this we can use filter and set a variable using <-
+max_peaks <- dplyr::filter(peaks_per_dbp, num_peaks > 40000)
+```
+
+# Let's see what else we can do with filter
+```{r}
+?filter
+#Let's filter on a couple of factors
+max_peaks <- dplyr::filter(peaks_per_dbp, num_peaks > 30000, total_peak_length == 133310967)
+```
+
+
+# Let's find the DBP(s) with the fewest peaks (we saw in summary it was 263)
+```{r}
+min_peaks <- filter(peaks_per_dbp, num_peaks < 264)
+```
+
+# Let's find the number of peaks for a specific gene say POLR2A
+```{r}
+gene_pol2 <- filter(peaks_per_dbp, dbp == "POLR2A")
+```
+
+
+# Now let's make a new column in the file table
+```{r}
+peaks_per_dbp$newcol <- "What?"
+```
+
+# Now let's assign a number to each DBP in another new column
+```{R}
+peaks_per_dbp$id <- 1:nrow(peaks_per_dbp)
+```
+
+# Now let's [INDEX] data to the console using []
+# Basic indexing syntax
+# More on R indexing https://stats.idre.ucla.edu/r/modules/subsetting-data/
+```{r}
+peaks_per_dbp[1:5, 1]
+```
+
+# Let's remove a column using indexing
+```{R}
+peaks_per_dbp <- peaks_per_dbp[,-4]
+```
+
+
+# Now let's make a plot of the data. First a histogram of number of peaks for each DBP
+```{r}
+?hist
+hist(peaks_per_dbp$num_peaks, breaks = 40)
+```
+
+# Now let's plot the number of peaks versus peak width.
+```{r}
+plot(x = peaks_per_dbp$num_peaks, y = peaks_per_dbp$total_peak_length)
+```
+
+# Now let's dig into the data file to subset it into the genes we are interested in.
+```{r}
+### First let's make a list of genes we want. 
+# To make a vector of characters we use the c() function
+genes <- c("POLR2A","POLR2B", "SUPT5H")
+```
+
+### So our first argument is to filter file, then we call grepl to match the terms
+### grepl is called then the genes above are called and collapsed by |
+### This collapse is making the names in to a regexp (very cool and more later)
+### Then where we want to search in peaks_per_dbp$dbp index. 
+
+### In other words: grepl is searching for the regex of genes as input into $dbp
+### grep is making a list of terms to filter the file.
+### First let's see if we searched by the character names of these genes
+
+It's worth noting that things can be accomplished in many different ways in R.
+Here we'll get to the same subset of row entries two different ways. 
+
+```{r}
+# First we'll use grep to demonstrate how multiple character 
+# strings can be searched at once. And how you can 
+# index the rows (or colunms) of a data.frame using a logical vector
+# Grepl will give us a logical vector instead of the index of the matching characters.
+?grepl
+pattern_to_search <- paste0(genes, collapse = "|")
+table(grepl(pattern_to_search, peaks_per_dbp$dbp))
+ppdbp_subset <- peaks_per_dbp[grepl(pattern_to_search, peaks_per_dbp$dbp),]
+# Another way we can do this is with filter as we saw before
+# Here we're introducing also the %in% command -- which is quite useful.
+peaks_per_dbp$dbp %in% genes
+ppdbp_subset <- dplyr::filter(peaks_per_dbp, dbp %in% genes)
+# Finally one last way that we can achieve the same thing is
+# by setting row names (we already have column names) and
+# indexing directly by using the name of the DBP.
+peaks_per_dbp <- peaks_per_dbp %>%
+  column_to_rownames(var = "dbp")
+ppdbp_subset <- peaks_per_dbp[genes,]
+```
+
+# In addition to editing columns by indexing with the dollar sign
+# you can change a column the tidyverse way by using the mutate function.
+
+```{r}
+### Let's take a look at the data.frame real quick
+head(peaks_per_dbp)
+### The total peak length is quite long, let's make it in Millions
+### NOTE: PIPE "%>%"
+# The pipe will put evaluate first what's on the left hand side of the pipe
+# and place it as the first argument of the function on the right hand side.
+peaks_per_dbp <- peaks_per_dbp %>%
+  dplyr::mutate(tpl_m = total_peak_length / 1000000)
+### Cool now we have a new column that is much easier to read for total length.
+### Lets see if we can write over the previous column instead of removing it
+### we can just set the new col to the old col name
+peaks_per_dbp <- peaks_per_dbp %>% 
+  mutate(total_peak_length = total_peak_length / 1000000) 
+head(peaks_per_dbp)
+hist(peaks_per_dbp$total_peak_length)
+### Sweet we can mutate and just overide columns -- but we can also perform a FUN!
+### NOTE IFELSE! A NESTED IFELSE at that!!
+### Let's give it a go:
+peaks_per_dbp <- peaks_per_dbp %>% 
+  mutate(peak_genome_coverage = ifelse(total_peak_length < 1, "small",
+                          ifelse(total_peak_length < 30, "medium", "large")))
+peaks_per_dbp$peak_genome_coverage
+### Very nice we can see we have three categories of legnths now. This is common
+### to want to take a continious variable such as gene expression levels and
+### define them as "categorical" or high medium low. 
+### Let's take a look
+table(peaks_per_dbp$peak_genome_coverage)
+# R represents categorical variables with factors (which represent each unique character
+# as a number under the hood). This makes it possible to run regressions and plot
+# character data. We'll get more practice with factors later. One thing to note now
+# is that categories that have a natural ordering to them like small, med, large
+# can be properly ordered with the levels parameter. They will be represented by 
+# 1, 2, and 3 respectively. Without the levels argument, the factor levels would be 
+# in alphanumeric ordering.
+peaks_per_dbp <- peaks_per_dbp %>%
+  mutate(peak_genome_coverage = factor(peak_genome_coverage, levels = c("small", "medium", "large")))
+peaks_per_dbp$peak_genome_coverage
+head(as.character(peaks_per_dbp$peak_genome_coverage))
+head(as.numeric(peaks_per_dbp$peak_genome_coverage))
+table(as.numeric(peaks_per_dbp$peak_genome_coverage))
+plot(peaks_per_dbp$peak_genome_coverage, peaks_per_dbp$num_peaks)
+# Notice that the plot function is pretty sophisticated. It figured out that 
+# we have a factor variable with a numeric y-axis and decided to make a box and whisker plot.
+# What if we wanted not just to plot this, but find out the average total_peak_length
+# by category? R is really made for these types of questions and we'll learn how 
+# to do this type of thing in upcoming classes.
+```
+
+END Lesson
+© 2021 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Docs
+Contact GitHub
+Pricing
+API
+Training
+Blog
+About
+Loading complete
