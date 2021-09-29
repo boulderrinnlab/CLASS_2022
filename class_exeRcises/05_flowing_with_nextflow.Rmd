@@ -59,7 +59,7 @@ it is at: v20.10.0
 Step 2: Add nextflow to $PATH
 ********************************
 
-The path is a default place the computer will look for commands. Imagine you
+The $PATH is a default place the computer will look for commands. Imagine you
 had to tell Bash where the ls command is?
 
 /usr/bin/ls to list files instead of just ls
@@ -94,29 +94,22 @@ PATH=$PATH:~/bin
 ```
 
 This will change the PATH environment variable during this session only,
-but we want this to be added to the environment variable each time that 
-we start a shell session. Therefore, we can add it to the configuration file
-that is run each time you login to a shell session.
+but now we want this in the profile that is loaded at each login 
 
 ```{bash}
 nano .profile
-# Add the line
 PATH=$PATH:~/bin
-# Then save this. 
-# This file is loaded each time your terminal starts up.
-# Therefore, it is not currently loaded
-# To load this in the current session
 source ~/.profile
+```
 
-# Now check that nextflow can be run without refering to it's location
+
+Now check that nextflow can be run without referring to it's location
+```{BASH}
+
 nextflow -version
 ```
 
-Sweet, that's it. We've successfully installed nextflow.
-
-
-Alright we have nextflow installed and we never have to worry about fiji finding
-the commands again!
+Sweet, that's it. We've successfully installed nextflow, added to $APTH and can use from anywhere now!
 
 
 ****************
@@ -132,9 +125,6 @@ by default. Simply run:
 nextflow pull nf-core/chipseq
 ```
 
-Next flow takes care of managing all the packages that need to be installed and 
-the versions that were installed etc. So this container is 100% reproducible.
-
 If you want a specific version you can use the flag to call that version.
 At the time of this document chipseq is at 1.2.1. 
 
@@ -148,38 +138,52 @@ This means that if you want to run an older version, you can just indicate that 
 you're running that pipeline and it will install that version if it's not 
 already installed.
 
+*********************
+Step 4: Think about your directory structure
+*********************
+
+We have set up the class with the following directory structure -- let's make your directory nice and tidy.
+We will run our first test ChIP in the work directory.
+
+```{BASH}
+cd /scratch/Shares/rinnclass/your_folder.
+mkdir results
+mkdir work
+mkdir analysis
+
+cd work
+```
+
+
 
 *********************
-Step 4: Config_FILE
+Step 4: Input files.
 *********************
 
-Ok so we have next flow and the Chip seeker pipeline on our server. Since Nextflow
-is system agnostic and it can be run on many different system types, 
-we need to tell nextflow how to run on fiji.
+The NF_CORE ChIPseq pipeline requires a few input files.
 
-To this end we need to make a nextflow.config file. Here next flow will look for the:
+1) Config file:  tells next flow how to talk to Fiji
+2) shell script: info on what resources can be used on Fiji & where input files are for pipeline
+3) 
 
-executor : here we see it is slurm (as we will describe more below). It stands
-for Simple Linux Utility for Resource Management. Basically a simple job scheduler.
 
-queue : there is a long and short queue (<24h), they describe themselves that one queue
-is short or faster, and the other is longer. 
 
-memory : your telling fiji or your server, computer etc how much RAM or memory to
-use for the nextflow process. This is something to think about and consult with your IT team.
-You don't want to over load the server or your computer!
+
+Now we need to tell nextflow how to run on fiji by giving some instructions via config_file.
+
+executor : what language does Fiji speak (Next flow speaks many languages like C3PO)
+SLURM is a simple job scheduler.
+
+queue : there is a long and short queue (<24h)
+
+memory : This sets RAM or memory SLURM can use to communicate with next flow (usual doesn't need much)
 
 maxforks : this tells nextflow how many processes can be run in parallel. Let's 
 say you had 10 fastq files to run through a pipeline you can speed up the process
 of running 10 tasks in parallel!
 
-Here is all this put together in a simple few lines that schedules how nextflow
-will communicate with your machine and how to move forward with it's core processes.
 
-10 processes simulanteously -- so if you have 10000 fastqs it will process 10 BWA
-alignments at a time. 
 
-# Let's start to setup our first nextflow run
 
 ```{bash}
 cd /scratch/Shares/rinnclass/<name>/
