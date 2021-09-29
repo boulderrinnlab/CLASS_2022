@@ -1,24 +1,22 @@
 ---
 title: "Nextflow"
 author: "JR"
-date: "9/27/2021"
+date: "9/29/2021"
 output: html_document
 ---
 
-Today we will install nextflow and install the nf-core/chip-seq pipeline. This way we can
-run hundreds of ChIP-seq files simultaneously through, alignments, qc, peak calling
--- all the stuff you would ever want (even bigwig files for browsing raw data).
+Today we will install nextflow and install the nf-core/chip-seq pipeline. Briefly, Nextflow
+is a taks manager that will send thousands of tasks (some in parallel) to fiji. NF_CORE has
+developed pipelines for ChIPseq, RNAseq, ATACseq and pretty much anything with seq. We need 
+to install Nextflow on fiji so they can communicate. Ultimately we will use nextflow to task
+manage the NF_CORE pipeline that will run ChiP seq from genome alignment to calling peaks to
+providing all the QC needed for publication. 
 
 Nextflow has amazing documentation and a good place to start is here:
-
 https://www.nextflow.io/docs/latest/getstarted.html
 
-You can go over what is included in the pipeline (everything you need :) here:
 
-https://nf-co.re/chipseq
-
-Scroll down to the bottom of the link above and see that you will already get
-a lot of results!
+Let's install Nextflow into our bin directory
  
 
 ****************
@@ -26,8 +24,7 @@ Step 1 Install:
 ****************
 
 Nextflow will install itself with this simple commmand below. However, you will
-want to think about where to install it. When you know where you want it (usually
-home directory or fairly high level up).
+want to think about where to install it. 
 
 A reasonable place to install it is in a "bin" directory within your home directory
 
@@ -36,9 +33,12 @@ A reasonable place to install it is in a "bin" directory within your home direct
 Alrighty, give it a go:
 
 ```{bash}
-# If you'd like to put it in your bin directory
-# make one if you don't have one
 cd ~
+ls -lah
+cd bin
+
+# if you don't see a bin directory make one using the commands below. 
+
 mkdir bin
 cd bin
 
@@ -62,40 +62,34 @@ Step 2: Add nextflow to $PATH
 The path is a default place the computer will look for commands. Imagine you
 had to tell Bash where the ls command is?
 
-By the way, how to you tell where the ls command is?
-
-If you didn't have the PATH environment variable you would have to type something like this
-
 /usr/bin/ls to list files instead of just ls
 
 So that path is an important aspect of unix/bash that you will never really hear
-about until it becomes a bug :) Just to be safe let's add nextflow to our $PATH
+about until it becomes a bug :) 
+
+Let's put nextflow in our path (just as ls, cd etc are) so we can call it from anywhere on fiji.
 
 ```{bash}
 
 echo $PATH
+# we can make it easier to read with TRANSFORM (tr) a powerful bash command to
+# repalce and find text.
+
 echo $PATH | tr ":" "\n"
 # kinda hard to read with : seperated file
-# we can make it easier to read with TRANSFORM (tr) a powerful bash command to
-# repalce and find text. 
-# echo is just going to print out the $PATH variable and pipe to transform to
-# take the : and make it a new line (\n) --- ahhh so much nicer to read!
-
-# Now let's add it to our .profile file which will load each time you login to the terminal
-~/.profile
-
 ```
 
 
-Luckily, we don't need to add each individual program to the PATH,
-rather we can now just add your new bin file to the PATH.
+Now let's add it to our .profile file which will load each time you login to the terminal
+```{R}
+cd ~/.profile
+```
 
+To append a directory to PATH, we just need to overwrite the path variable
+To assign a variable in bash the assignment operator is the equals sign. 
+When referring to the contents saved in an environment variable, the $ is used
 ```{bash}
-# To append a directory to PATH, we just need to overwrite the path variable
-# To assign a variable in bash the assignment operator is the equals sign. 
-# When assigning a variable you just write the variable name.
-# Typically environment variables in bash are written as all caps with no special characters
-# When referring to the contents saved in an environment variable, the $ is used
+
 PATH=$PATH:~/bin
 ```
 
