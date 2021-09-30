@@ -11,14 +11,14 @@ First we need to know how to run jobs, check on them and most importantly cancel
 
 
 *******************************************
-Step 6:Running and Checking on slurm jobs
+Running and Checking on slurm jobs
 *******************************************
 
 First thing we want to do is "run" a .sh file. Since we set this up in SBATCH we
 simply type:
 
 Don't run yet though
-```
+```{BASH}
 sbatch run.sh
 ```
 This will have sbatch send the scripts in the run.sh file to slurm to run them. 
@@ -26,7 +26,7 @@ This will have sbatch send the scripts in the run.sh file to slurm to run them.
 
 --- what jobs are you running? You often want to see what job is running how long it is taking and other aspects. To that end we can use 'squeue' to see what is running
 
-```
+```{BASH}
 squeue -u identikey
 ```
 
@@ -40,15 +40,15 @@ Let's say you accidently hit the run button and want to cancel immediately.
 
 'scancel' is the command
 
-```
-squeue -u identikey
-scancel jobid
-scancel -u identikey #cancels all running jobs
+```{BASH}
+squeue -u identikey # lists all jobs you are currently running
+scancel jobid #cancels a single job
+scancel -u identikey #cancels all running jobs (with nextflow pipelines this is commonly used)
 ```
 
 --- canceling multiple jobs:
 
-```
+```{BASH}
 squeue -u identikey | grep commonjobid# | awk '{print $1}' | xargs -n 1 scancel
 
 squeue -u jori2700  | grep 591 | awk '{print $1}' | xargs -n 1 scancel
@@ -60,10 +60,6 @@ Grep finds all your job id matches, then awk prints them, xargs is then going
 to perform scancel on the output of awk, the -n is telling xargs how many arguments will follow. In this case just 1 -- scancel.
 
 Voila your jobs are gone :)
-
-
-
-
 
 
 ******************************************
