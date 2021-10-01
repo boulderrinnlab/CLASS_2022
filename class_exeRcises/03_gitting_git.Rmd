@@ -20,7 +20,7 @@ with Fiji. Once this relationship is established, you don't need to do this agai
 
 Navigate to your home directory on fiji ~/IDENTIKEY
 
-```
+```{bash}
 cd ~
 ls -lah
 ```
@@ -29,7 +29,7 @@ Note that there is a .ssh folder that you can place these unique keys to let
 servers communicate securely. We can check to see if a key already exists.
 If it doesn't we will generate one with the with ssh-keygen command.
 
-```
+```{bash}
 cd .ssh
 ls -lah
 # If it exists already, you can check out the public key using cat
@@ -40,7 +40,7 @@ cat id_rsa.pub
 This will reveal the public ssh key for fiji. If we don't have a key in this file already,
 let's create one:
 
-```
+```{bash}
 ssh-keygen -t rsa
 ```
 
@@ -51,8 +51,7 @@ Now let's got to your github website. You will need to sign into your github acc
 
 On the top right there is a drop down
 menu. Click on "Settings". Now you will see on the left side there is a list of
-options. Click on "SSH and GPG Keys" There already be some keys in there or blank.
-Either way click "Add new key" on top right (green button). Paste in the new
+options. Click on "SSH and GPG Keys" > "Add new key" on top right (green button). Paste in the new
 public SSH key we just generated.
 
 You may also want to go to your local computer shell .ssh folder (same place).
@@ -100,7 +99,7 @@ On the CLASS_2021 GitHub site, click the Code dropdown, select SSH
 as your method on connecting and then click the clipboard icon which will
 copy the url to your clipboard. You can then paste it here.
 
-```
+```{bash}
 git clone <paste-ssh-link>
 ```
 Voila you are connected to our CLASS_2021 git repository.
@@ -114,7 +113,7 @@ While in class, I'll make a change to the git and then have you update
 your local repository with those changes
 using the git pull command.
 
-```
+```{bash}
 git pull
 ```
 
@@ -138,7 +137,7 @@ You can have as many branches as you want, so in order to avoid conflicts in thi
 we'll give you each a branch! Using `git checkout -b` allows you to switch branches,
 but it will also create a branch with that name if one doesn't exist.
 
-```
+```{bash}
 git checkout -b <your-name>
 ```
 
