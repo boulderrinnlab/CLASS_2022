@@ -14,9 +14,9 @@ library(GenomicRanges)
 library(tidyverse)
 library(Gviz)
 library(IRanges)
-source("util/_setup.R")
-source("util/intersect_functions.R")
-source("util/plotting_functions.R")
+source("../util/_setup.R")
+source("../util/intersect_functions.R")
+source("../util/plotting_functions.R")
 ```
 
 Goal: to understand the basic usage of Iranges and Granges. These are core to almost
@@ -182,10 +182,10 @@ gr
 # but we don't have any values for the Y chromosome :) let's add some.
 
 # let's add genome:
-
+gr@seqnames
 genome(gr) <- c("hg38")
 gr
-# now we have a genome, chromsome and strand associated with each feature - that 
+# now we have a genome, chromosome and strand associated with each feature - that 
 # will stay associated no matter how we intersect etc different GRanges.
 ```
 
@@ -204,11 +204,19 @@ peaks2 <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2B_
 # now we can use the findOverlaps function to see what overlaps!
 
 ov <- findOverlaps(peaks1, peaks2)
-ov <- intersect(peaks1,peaks2)
+# ov <- intersect(peaks1,peaks2)
 summary(ov)
-summary(peaks1)
+
+table(table(ov@from))
+table(table(ov@to))
+
+summary(width(peaks1))
+summary(width(peaks2))
 summary(peaks2)
 ?findOverlaps
+
+
+Valr bed_glyph 
 ```
 
 
