@@ -229,8 +229,15 @@ summary(width(peaks2))
 ```
 
 We can get more information from then results of findOverlaps. Let's look at envrionment variable. Note:
-@from
-@to
+@from : peaks from query file indexed into subject file
+@to: peaks from subject file indexed into query file.
+
+@from ---------       -----  -----
+
+@to  * * *       *                    *
+
+@from = 1 1 1
+@to = 1 2 3 
 
 ```{r}
 
@@ -240,8 +247,7 @@ table(table(ov@to))
 
 ```
 
-Sometimes we just want to get information on how many peaks overlapped and we can do this with
-countOverlaps / part of the findOverlaps function.
+We can look at how overlaps are reported using: countOverlaps
 
 ```{r}
 
@@ -278,7 +284,7 @@ Then find the percentage of overlaps in each replicate
 If you want to take it a step furhter find the overlaps between the overlaps in replicates.
 Or in other words the overlap between two differnt DBPs "consensus peaks"
 
-Hint: rtracklayer::export
+Hint: assignment operator (<-) after findOverlaps
 
 
 
