@@ -189,8 +189,9 @@ solution if you are going to be generating a lot of data is to use "S3 storage"
 on the AWS console. This is really cheap storage for a lot of data that you can
 make public or keep private. You can grab the BigWig files for today here:
 
+Track Hub
 
-Track Hub: http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&hubUrl=https://bchm563classbucket.s3.amazonaws.com/trackhub/hub.txt
+http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&hubUrl=https://bchm5631sp2020.s3.amazonaws.com/trackhub/hub.txt
 
 
 ChIP BigWig ASH2L rep 1,2
