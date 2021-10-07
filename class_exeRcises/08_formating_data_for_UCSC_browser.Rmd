@@ -190,6 +190,9 @@ on the AWS console. This is really cheap storage for a lot of data that you can
 make public or keep private. You can grab the BigWig files for today here:
 
 
+Track Hub: http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&hubUrl=https://bchm563classbucket.s3.amazonaws.com/trackhub/hub.txt
+
+
 ChIP BigWig ASH2L rep 1,2
 https://class2021.s3.us-east-2.amazonaws.com/ASH2L_R1.mLb.clN.bigWig
 https://class2021.s3.us-east-2.amazonaws.com/ASH2L_R2.mLb.clN.bigWig
