@@ -15,7 +15,6 @@ source("util/intersect_functions.R")
 ```
 
 
-
 The goal today is to learn more about our "peak files" data formatting (typical first steps)
 
 The NF_CORE pipeline gave us a bunch of "peak files" that contain
@@ -76,7 +75,9 @@ we want to remove these as UCSC doesn't recognize them (and they are typically i
 ```{r}
 
 # First make a list of file names.
-###########
+
+
+
 fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/peaks", full.names = T)
 names(fl) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/peaks/|_peaks.broadPeak", "", fl)
 ?read.table

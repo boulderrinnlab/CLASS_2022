@@ -203,27 +203,82 @@ peaks2 <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2B_
  
 # now we can use the findOverlaps function to see what overlaps!
 
+?findOverlaps
+
 ov <- findOverlaps(peaks1, peaks2)
-# ov <- intersect(peaks1,peaks2)
+```
+
+for findOverlaps it is important to remember: the first file is query and second is the subject. 
+Thus returns how many peak2 overlaps there were in peaks1.
+
+Let's take a look at the overlaps.
+```{r}
 summary(ov)
+
+# Huh 11,000 overlaps -- let's see what we stared with
+
+summary(peaks1)
+summary(peaks2)
+
+# How did we get more than 10,255 peak overlaps (min number of peaks in peaks1?
+
+# let's see with iranges "width function"
+summary(width(peaks1))
+summary(width(peaks2))
+
+```
+
+We can get more information from then results of findOverlaps. Let's look at envrionment variable. Note:
+@from
+@to
+
+```{r}
+
+table(table(ov@from))
+
+table(table(ov@to))
+
+```
+
+Sometimes we just want to get information on how many peaks overlapped and we can do this with
+countOverlaps / part of the findOverlaps function.
+
+```{r}
+
+ov2 <-countOverlaps(peaks1, peaks2)
+table(ov2)
+summary(ov2)
+```
+
+
+Note if we hadn't used Granges intersect won't work as there are 23 lists of ranges per chromosome.
+```{R}
+
+ov <- intersect(peaks1,peaks2)
 
 table(table(ov@from))
 table(table(ov@to))
 
-summary(width(peaks1))
-summary(width(peaks2))
-summary(peaks2)
-?findOverlaps
-
-
-Valr bed_glyph 
 ```
 
 
 
+*********************
+EXCERCISE
+*********************
 
 
+Pick two DBPs in the peaks directory
+/scratch/Shares/rinnclass/data/peaks
 
+Each DBP has two replicates -- find the overlaps between replicates.
+
+Then find the percentage of overlaps in each replicate 
+
+If you want to take it a step furhter find the overlaps between the overlaps in replicates.
+Or in other words the overlap between two differnt DBPs "consensus peaks"
+
+Hint: rtracklayer::export
 
 
 
