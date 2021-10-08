@@ -111,77 +111,61 @@ gencode_gr_length <- data.frame("gene_id" = gencode_gr@elementMetadata$gene_id,
                            "start" = gencode_gr@ranges@start,
                            "width" = gencode_gr@ranges@width)
                            
-
-### Ok so now we have a new data frame with the information we want from gencode_gr
-## Note we see that we can index the RANGES for each gene with @ranges "level"
-## in there we can get the start and width (thus infer the stop).
+```
 
 
+Ok so now we have a new data frame with the information we want from gencode_gr
+Note we see that we can index the RANGES for each gene with @ranges "level"
 
-### Let's look at the width for mRNA genes
-### We are introducing a new R base function "filter" it does as it seems.
-?filter
-# Notice filter is used in a few different libraries and maybe an issue if you
-# use the unintended version. We want : Globally add filters to an EnsDb databas
-# lets put it to use and make an mrna_df
+Let's look at the width for mRNA genes
+```{R}
 
 mrna_df <- filter(gencode_gr_length, gene_type == "protein_coding", type == "gene")
+
+# we can easily plot a histogram of mRNA gene widths.
+
 hist(log10(mrna_df$width), breaks = 60)
-# We filterned our gencode_gr_length variable by "gene_type" setting it to only
-#"protein_coding" specified by Gencode in $gene_type (take a look at other gene types)
-# We see that most of the widths are 0.5 - 1 MB large, what about lncRNA?
+
+# same for lncRNAs
 
 lncrna_df <- filter(gencode_gr_length, gene_type == "lncRNA", type == "gene")
+
 hist(log10(lncrna_df$width), breaks = 60)
-### Huh it looks like lncRNAs cover half the space of mRNAs!
-### notice there are 240K and 250K lncRNA and mRNA values.
-### certainly there are not that many genes in the genome. So what is happening
-### these widths are associated with different properties of each gene 
-### (e.g., TSS = 1 and gene body maybe 0.5 to 1 MB)
-### This is why "ranges are so cool" it can have many annotations associated
-### with a single gene type. 
 
-## Now let's go find the widths associated with gene-lenght. 
+```
 
+Now let's go find the widths associated with gene-length.
+```{R}
 
-### What can the metadata tell us about the human genome? Let's see
 table(gencode_gr@elementMetadata$type)
 
 ## cool this tell us a lot about the genome with one line! How many genes are
-## in the human genome? How many genes have non-cannonical start codons?
 
-## Now let's go find the length of genes. Notice we pipe into a "empty data frame"
-## then FILTER @elementMetadata%type to only "gene". then we ask what is the max
-## width of all genes in the genome (lncRNA, mRNA etc)
+```
+
+let's find the longest gene in the genome!
+```{R} 
 
 genes_of_interest <- gencode_gr %>%
   as.data.frame() %>%
   filter(type == "gene",
          width == max(width))
 
-## Here is another way to do the same thing, but we index into gencode_gr directly
-## using [ ] then within these brackets we specify what we want to index:
-## gencode_gr$type and set it ( == ) to "gene"
-## then we use our new gencode genes that were essentially "filtered" into 
-## longest_gene_index, we grab gencode_genes (our filtered list by indexing)
-## pipe this to the "width function" in Iranges
-?width
-## the width function is piped to "which.max" base R function that finds max length
-?which.max
-## in the end longest_gene_index will have one value of the longest genes in genome
-  
+# let's take a look at what information we have for this gene:
+
+genes_of_interest
+         
+```
+
+Here is another way to do the same thing, but we index into gencode_gr directly
+the width function is piped to "which.max" base R function that finds max length
+
+```{R}
+
 gencode_genes <- gencode_gr[gencode_gr$type == "gene"]
 longest_gene_index <- gencode_genes %>%
   width() %>%
   which.max()
-
-
-## Let's try some deeper indexing.
-## we have gencode genes filtered to genes, take a look at this in the environment
-## we still have all the metadata associated with genes. We can now use our 
-## longest_gene_index to call out the one gene that is the longest
-gencode_genes$gene_name[longest_gene_index]
-width(gencode_genes[longest_gene_index])
 
 ## We immediately see that RBFOX1 is the longest gene in the human genome.
 ## How would you find the smallest gene?
