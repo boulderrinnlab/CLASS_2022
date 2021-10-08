@@ -39,81 +39,70 @@ Worse we also should think about the strand. So GRanges works similar to Iranges
 just having the advantage of indexing chromosome and strand to the start and stop.
 
 
-### Let's go explore the human geneome annotations from GENCODE.
-#### We will do this by importing a GTF file of these annotaitons.
-#### A GTF file is similar in a way to a .bed file with start stop of features
-#### and other associated metadata that is described here:
-###https://uswest.ensembl.org/info/website/upload/gff.html
+#### Let's go explore the human geneome annotations from GENCODE.
+We will do this by importing a GTF file of these annotaitons.
+A GTF file is similar in a way to a .bed file with start stop of features
+and other associated metadata that is described here:
+
+https://uswest.ensembl.org/info/website/upload/gff.html
 
 
 ## Ok enough background let's start exploring the features of the human genome!
 ```{r}
 
-# rtracklayer::import is the way to import a GTF into a GRanges (see above)
 gencode_gr <- rtracklayer::import("data/gencode.v32.annotation.gtf")
 
-# ok wow this is a lot of inofrmaiton, mostly partiioned by the @ and $ symbol
-# Let's start with "indexing" this file with $values.
-# There are lots of these in @elementMetadata (e.g., gene_id, gene_name)
-### gene_id is a key category as it is a unique identifier for every gene, where
-### as gene_id is a character value but still unique. 
+# we used rtracklayer::import to turn the annotations into start and stops (Iranges) w/ chr (Granges)
 
 ```
 
-### Now let's look at the gene_id indexable part of this GRanges
+Now let's look at the gene_id indexable part of this GRanges
 ```{r}
 
-#### Let's start to explore the genome annotations:
-
-#### First seqnamaes gets us information on levels of categories of ranges.
-#### Let's find out more using R help menu -- simply add ?OBJECT
 ?seqnames
-
-#### gencode_gr is being accessed by seqnames indexed by @seqnames in gencode_gr
-#### we can pass this information along to head with a "pipe" in R %>%
-#### Think of the arrow pointing the information forward. Later we will see %in%
-#### and %over% etc. These are handy pipes to push information forwrard and in the
-#### later case with specified logical operators.
   
 seqnames(gencode_gr) %>% head()
-#### ok so we can see at a highlevel seqnames provides us with the "levels"
-#### which in this case is the chromosome.
 
-#### adding summary and table to see values inside the seqnames.
-table(seqnames(gencode_gr)) %>% summary()
-table(seqnames(gencode_gr)) %>% head()
-#### This is telling us how many features are associated with each chromosome.
-#### This includes number of exons, start, stop and other information. Notice
-#### @elemnentMetadata has the individual features above that INDEXABLE! by 
-####  @elemnentMetadata$X (where X is the genome feature of interest)
-### Ok so we got back the sum of Ranges (length of features on each chromosome)
-### Note we see the Mitochondrial ([25] index) has very few features as expected
+# we can see that "levels" are the chromosome names and are a meta-level
+```
 
-### Now let's dig in a little deeper
-table(gencode_gr@elementMetadata$gene_id) %>% head()
-## we first indexed to elementMetadata throuhg the @ (the environment gives this)
-## then we went into the gene id column of that metadata via @elementMetadata$geneid.
+let's get more info with table to summary using tidy verse %>%
+```{R}
+table(seqnames(gencode_gr)) %>% 
+  summary()
+# this tells us how many features there are in the genome.
+
+table(seqnames(gencode_gr)) %>%
+  head()
+# This is telling us how many features are associated with each chromosome.
+
+# Let's find out how many features the mitochondrial chr has (25th level)
+table(seqnames(gencode_gr))[25] 
+
+# Let's look in the environment at what is in @metadata that we can index into with $
+
+```
+
+Now let's dig in a little deeper
+
+```{R}
+table(gencode_gr@elementMetadata$gene_id) %>% 
+  head()
+# This tell us how many features are associated with each gene id.
 
 # Let's see what we get with gene_name
 table(gencode_gr@elementMetadata$gene_name)
-# Ok a bit better with gene names in ENSEMBLE ID and the number of isoforms of 
-# that geneid.
+
+# it's basically memorization of what is a gene name or gene id 
+
 ```
-### Excercise go look at different aspects of $index in @elementMetadata. Also
-try indexing with [] in combination and or seperately to find specific values.
 
-
-## Data frame organization and analysis. Often we don't want all the GENCODE data
-## so we can make out own. 
+#TODO
+Let's analyze some of the features of our genome!
 
 ```{r}
-## For this let's determine the length of genes in the genome and see if there is
-## a difference for long noncoding RNA genes and mRNA genes. 
-### let's organize the data frame first
 
-
-#table(gencode_gr_length$type)
-#table(gencode_gr_length$gene_type)
+#let's organize the data frame first and put it into a data frame.
 
 gencode_gr_length <- data.frame("gene_id" = gencode_gr@elementMetadata$gene_id,
                            "gene_name" = gencode_gr@elementMetadata$gene_name,
