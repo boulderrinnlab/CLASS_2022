@@ -146,15 +146,15 @@ table(gencode_gr@elementMetadata$type)
 let's find the longest gene in the genome!
 ```{R} 
 
-genes_of_interest <- gencode_gr %>%
+longest_gene <- gencode_gr %>%
   as.data.frame() %>%
   filter(type == "gene",
          width == max(width))
 
 # let's take a look at what information we have for this gene:
 
-genes_of_interest
-         
+longest_gene
+
 ```
 
 Here is another way to do the same thing, but we index into gencode_gr directly
@@ -162,13 +162,8 @@ the width function is piped to "which.max" base R function that finds max length
 
 ```{R}
 
-gencode_genes <- gencode_gr[gencode_gr$type == "gene"]
-longest_gene_index <- gencode_genes %>%
-  width() %>%
-  which.max()
 
-## We immediately see that RBFOX1 is the longest gene in the human genome.
-## How would you find the smallest gene?
+
 
 
 # Now let's find the total amount of the genome covered by exons.
