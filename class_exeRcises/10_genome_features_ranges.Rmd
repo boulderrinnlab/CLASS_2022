@@ -146,10 +146,35 @@ table(gencode_gr@elementMetadata$type)
 let's find the longest gene in the genome!
 ```{R} 
 
-longest_gene <- gencode_gr %>%
+# Let's see the range of gene sizes
+
+summary(width(gencode_gr))
+
+# Let's turn gencode_gr into a data.frame and filter to only genes.
+
+gencode_df <- gencode_gr %>%
   as.data.frame() %>%
-  filter(type == "gene",
-         width == max(width))
+  filter(type == "gene")
+
+# Note the difference in observations goes from millions to ~60K
+
+
+# Let's find the smallest genes
+gencode_df %>% 
+  arrange(width) %>%
+  head()
+
+# Now let's find the Largest genes
+gencode_df %>%
+  arrange(-width) %>%
+  head()
+
+
+# We can also store the longest gene as an object
+
+longest_gene <- gencode_df %>%
+  filter(width == max(width))
+
 
 # let's take a look at what information we have for this gene:
 
@@ -157,26 +182,18 @@ longest_gene
 
 ```
 
-Here is another way to do the same thing, but we index into gencode_gr directly
-the width function is piped to "which.max" base R function that finds max length
+Now let's find the total amount of the genome covered by exons.
+We start by defining total_exon_length of all exons in genome.
 
+# we need to use reduce to collapse all the exons that overlap into the longest exon
+# Exon 1.1  _____________
+# Exon 1.2      _____________
+# reduce    _________________
+# intersect     _________
+
+
+Ok let's find out what % of genome is exons!
 ```{R}
-
-
-
-
-
-# Now let's find the total amount of the genome covered by exons.
-# We start by defining total_exon_length of all exons in genome.
-# We use indexing to get what we want - inside gencode_gr, we want to access
-# the $type index and set it to ( == ) only exons as there is more info $type
-# how many other catagories are there in $type? what are they (hint:summary)
-# Next we use the base Iranges "reduce" object. 
-?reduce
-# we see this is used by Iranges and Granges and base R. In this case we may have
-# two versions of the same exon (say short and long version). We want to reduce
-# this to a single exon. In this case we will merge to the longest exon. ? How
-# would we reduce to the smallest exon represented?
 
 total_exon_length <- gencode_gr[gencode_gr$type == "exon"] %>%
   GenomicRanges::reduce() %>% 
@@ -190,35 +207,122 @@ summary(total_exon_length)
 total_exon_length/3.2e9
 # Boom we can see the human genome is about 4% exons!
 
-
-
-
 ```
 
 
 
-### FIND OVERLAPS: who has ever wanted to find the overlaps of their data with
-### a feature of the human genome? Let's load in a chip-seq peak file and find
-### the overlaps at promoter regions.
+Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq.
+This is probably one of the most commonly used functions in genome sciences!
 
 ```{r}
 ### Let's import POLR2A Chip-seq files from k562 ENCODE project.
 
 pol2_chip <- rtracklayer::import("data/POLR2A_consensus_peaks_filter.bed")
+```
 
-# We'll need to define the promoters 
+#TODO
+We'll need to define the promoters using the handy promoters function in GRanges
+```{R}
+?promoters
+
+# let's add 3Kb upstream and downstream from the TSS to define "promoters"
 gencode_promoters <- promoters(gencode_gr[gencode_gr$type == "gene"], 
                                upstream = 3e3, 
                                downstream = 3e3)
-# ?promoters
-# Thing to think about how does this function know which is upstream and downstream
+
+
+length(gencode_promoters)
+
+```
+
+
+#TODO Understand these numbers
+Now we have promoter ranges and peak ranges let's use findOverlaps function
+
+
+
+Reality is:
+
+ 1     2     3 
+12831   464     4 
+> 12831+464+464+4+4+4
+[1] 13771
+```{R}
+
 promoter_overlaps <- findOverlaps(pol2_chip, gencode_promoters)
-# Note @from @to
+# Note @from (subject) @to (query)
 
 
+# sometimes it's easier to view these things in data frames
+promoter_overlaps_df <- data.frame(pol2_index = promoter_overlaps@from,
+                                   promoter_index = promoter_overlaps@to)
+
+overlapping_pol2 <- pol2_chip[promoter_overlaps_df$pol2_index] %>% as.data.frame()
+overlapping_promoters <- gencode_promoters[promoter_overlaps_df$promoter_index] %>% as.data.frame()
+
+promoter_overlaps_df$promoter_gene_id <- overlapping_promoters$gene_id
+promoter_overlaps_df$promoter_gene_name <- overlapping_promoters$gene_name
+promoter_overlaps_df$peak_name <- overlapping_pol2$name
+
+
+length(unique(promoter_overlaps_df$peak_name))
+length(unique(promoter_overlaps_df$promoter_gene_id))
+overlapping_pol2
+#Let's see how many peaks there were in pol2_chip
 length(pol2_chip)
-length(unique(promoter_overlaps@from))
-       
+# ok so there are 10,000 or so peaks
+
+
+# Let's take a look at this object
+promoter_overlaps
+
+# It looks like the first peak in Pol 2 overlaps promoter with index 32
+# let's verify that
+pol2_chip[1]
+gencode_promoters[32]
+
+# Peak 1 is pretty broad
+width(pol2_chip[1])
+
+# It overlaps 3 promoters. Let's look at another
+gencode_promoters[52]
+
+# That's looking at the data by hand
+# How do access these values in the overlaps object?
+# @ can access a field of an object in R
+# In this case @from -- gives up the pol2 peak index
+# @to is the promoter index
+# If we want to figure out how many promoters each peak overlaps we can use table
+table(promoter_overlaps@from)[1:3]
+
+length(table(promoter_overlaps@from))
+# Peak 1 overlaps 3 promoters, peak 2 overlaps 2 promoters
+
+table(table(promoter_overlaps@from))
+
+head(promoter_overlaps@from)
+
+table(table(promoter_overlaps@to))
+# let's find how many promoter overlaps there were
+length(promoter_overlaps@from)
+length(unique(promoter_overlaps@from)) 
+
+# this tell us how many peaks overlapped promoters
+# There are 13,771 peaks that overlapped promoters
+# There are 7,738 peaks that overlap promoters
+# Thus roughly each promoter had two peaks overlap
+
+
+# Let's look at the query file (promoters)
+
+length(promoter_overlaps@to)
+# So we see that 13,771 promoters that overlapped peaks?
+
+
+length(unique(promoter_overlaps@to)) #how many promoters ov polII peaks
+
+
+# Now we can calculate the percentage of peaks that overlapped promoters
 percent_promoter_overlap <- length(unique(promoter_overlaps@from))/length(pol2_chip)
 ```
 
