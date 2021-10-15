@@ -85,8 +85,10 @@ create_consensus_peaks <- function(broadpeakfilepath = "data/test_work/all_peak_
     y <-  unlist(strsplit(x, "/"))[[11]]
     unlist(strsplit(y, "_"))[[1]]
   })
+  # This is regex to grab the DBP name (TF_name) from the file list
   
   unique_tf <- unique(tf_name)
+  # we have replicate names so this will reduce to unique DBPs
   
   consensus_peaks <- list()
   # This for loop will iterate over all dna binding proteins.
