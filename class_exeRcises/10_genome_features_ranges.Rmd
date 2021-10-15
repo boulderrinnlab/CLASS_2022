@@ -1,7 +1,7 @@
 ---
 title: "Genome Features as Ranges"
 author: "JR"
-date: "10/6/2021"
+date: "10/15/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -342,16 +342,14 @@ See this is a bit confusing, we have:
 
 So we have 472 promoters that had more than one overlap (464 + 8) !!
 
-
 # How do we make sense of this
 
 So 7,738 overlapping peaks resulted in 13,771 overlaps with promoters.
-This is because some peaks overlapped more than one 
+This is because some peaks overlapped more than one promoter. And a total
+of 13,299 promoters were overlapped.
 
 
-
-## DOUBLE CHECK
-
+Let's make some data frames to better understand what is happening
 ```{R}
 
 # Let's look at all the peak overlaps (13,771) in two different data frames:
