@@ -13,43 +13,16 @@ library(GenomicRanges)
 source("util/intersect_functions.R")
 ```
 
-
 First we are going to go over a "function" in R. This is a really nice feature of 
-defining a function for R that you may run frequently. For example we have over 
-1,000 peak files we have to import into R using the function below. 
+defining a function for R that you may run frequently. 
 
-We need a few minimum aspects in defining a function:
--note we use #' markdown for a function.
+We have used many of R's built in base functions that require parameters too.For example,table and summary we used before requires a parameter of an object to summarize etc.But the cool part is you can make your own functions just like these base R funcitons. 
 
-@description: describes the function
-@param is a paramater that the function needs. 
-
-We have used many of R's built in base functions that require paramters too.
-
-
-R has many built in functions such as mutate that needs parameters. For example,
-table and summary we used before requires a parameter of an object to summarize etc.
-But the cool part is you can make your own functions just like these base R funcitons. 
-
-
-How and why would we write a function in R?
-
-If you're finding yourself doing the same set of tasks over and over and over, this
-can be wrapped into function. We saw an example of this in bash with the what-time-is-it.sh
-script.
-
-Now, let's see what it looks like in R. We know what a function is from math -- it takes
-inputs and maps it to outputs.
-
+Now, let's see what it looks like in R. A common function in life is math -- it takes inputs and maps it to outputs.
 ```{r}
-# This function has two parameters, and we have to let R know
-# that we want to be able to change the values of x and y.
-# f(x) = x * y
-# We also have to decide on a name for the function, we will call it 'fun'
-fun <- function(x, y) { }
-# Inside the curly braces is where we'll put the operations that the
-# function will carry out.
-# Then finally we will have the function return a value
+# This function has two parameters, and we have to let R know (x & y)
+# function is inside { }, then we need a 'return' to get the answer
+
 fun <- function(x, y) {
   ans <- x * y
   return(ans)
@@ -59,7 +32,6 @@ fun(2,-4)
 
 When creating a function, you can also add documentation about what that function 
 does and the data types and expectationn for the the parameters it takes.
-
 ```{r}
 #' A function to multiply two numbers
 #'
@@ -74,19 +46,10 @@ fun <- function(x, y) {
 }
 ```
 
-
-Note that if you were creating an R package (All the libraries/packages we load into R
-were created by grad students like yourself!).
-
-Thus, the formatting above the function will compile into the nice documentation 
-that you see in the help viewer pane (? fun-name).
-
-For the purposes of this class project's organization, we'll put most of the functions
-that we use in multiple analysis RMarkdown files, into the `../util` directory. 
+This formatting above the function will compile into the nice documentation 
+that you see in the help viewer pane (? fun-name). For the purposes of this class project's organization, we'll put most of the functions that we use in multiple analysis RMarkdown files, into the `../util` directory. 
 
 Now let's look at the functions involved in creating consensus peaks.
-
-
 ```{r}
 #' intersect replicates into a "consensus peak list" 
 #' 
@@ -100,17 +63,105 @@ Now let's look at the functions involved in creating consensus peaks.
 #' # We're going to iterate over all the files to make it work. 
 ```
 
-
 The only parameter for teh create_consensus_peaks is the file path to the peak files: 
-
 /scratch/Shares/rinnclass/data/peaks
 
 So basically we are making a new R function (it's in util already under create_consensus_peaks).
-Below we will go through each step of the function that occcurs in between { }. 
+
+Below we will go through each step of the function that occcurs in between { }.
 
 
-You can check out Util folder 
+```{R}
+create_consensus_peaks <- function(broadpeakfilepath = "data/test_work/all_peak_files") {
+  
 
+  fl <- list.files(broadpeakfilepath, 
+                   full.names=TRUE)
+  # making a list of file names as we did in 08.Rmd
+  fl <- fl[grep("peaks.broadPeak", fl)]
+  # making sure we only get files that are .broadPeak
+  
+  tf_name <- sapply(fl, function(x){
+    y <-  unlist(strsplit(x, "/"))[[11]]
+    unlist(strsplit(y, "_"))[[1]]
+  })
+  
+  unique_tf <- unique(tf_name)
+  
+  consensus_peaks <- list()
+  # This for loop will iterate over all dna binding proteins.
+  for(i in 1:length(unique_tf)) {
+    
+    # load all the peak files corresponding to this dna binding proteins.
+    tf <- unique_tf[i]
+    tf_index <- grep(tf, tf_name)
+    tf_files <- fl[tf_index]
+    
+    peak_list <- c()
+    for(j in 1:length(tf_files)) {
+      # See the read peaks function to know what subfunctions are called.
+      peak_list <- c(peak_list, read_peaks(tf_files[j]))
+    }
+    
+    canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
+    for(i in 1:length(peak_list)) {
+      peak_list[[i]] <-peak_list[[i]][which(seqnames(peak_list[[i]]) %in% canonical_chr)]
+    }
+    
+    final_peakset <- intersect_peaks(peak_list = peak_list)
+    if(length(final_peakset) > 0) {
+      final_peakset$name <- paste0(tf, "_", 1:length(final_peakset))
+    }
+    
+    consensus_peaks <- c(consensus_peaks, list(final_peakset))
+    names(consensus_peaks)[length(consensus_peaks)] <- tf
+  }
+  return(consensus_peaks)
+}
+
+# TODO: refactor
+read_peaks <- function(broad_peak_file, filter_to_canonical_chr = TRUE) {
+  # A broad peak file is just a tab separated file 
+  dat <- read.table(broad_peak_file, sep = "\t")
+  if(filter_to_canonical_chr == TRUE) {
+    dat <- dat[dat$V1 %in% c(paste0("chr", 1:22), "chrM", "chrX", "chrY"),]
+  }
+  gr <- GRanges(seqnames = dat$V1,
+                ranges = IRanges(start=dat$V2,end=dat$V3))
+  return(gr)
+}
+# This is the function that will be doing the core of the work here. 
+# When two peaks intercept, we will take their outer boundaries to be the new
+# peak -- using the reduce function.
+intersect_peaks <- function(peak_list) {
+  combined_peaks <- peak_list[[1]]
+  for(i in 2:length(peak_list)) {
+    suppressWarnings(pl_ov <- findOverlaps(combined_peaks, peak_list[[i]]))
+    pl1 <- combined_peaks[unique(pl_ov@from)]
+    pl2 <- peak_list[[i]][unique(pl_ov@to)]
+    suppressWarnings(combined_peaks <- GenomicRanges::reduce(union(pl1, pl2)))
+  }
+  return(combined_peaks)
+}
+```
+
+Exercise : Create a function to:
+
+Format .broadPeak files for UCSC and put into Util folder
+
+Hint you have already done most of the work :)
+
+
+
+
+
+
+
+
+
+
+
+Here is some more markdown to go over what is happening with this function.
 ```{r}
 create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclass/data/peaks") {
   
@@ -276,9 +327,5 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
   }
   return(consensus_peaks)
 }
-# Okay, let's run this function now. 
-# Note that the filepath is set as a default parameter.
-peaks <- create_consensus_peaks()
-#Excercise: 
-peaks["ADNP"]
+
 ```
