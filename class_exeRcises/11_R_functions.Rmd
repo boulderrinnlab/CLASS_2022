@@ -46,6 +46,9 @@ fun <- function(x, y) {
   ans <- x * y
   return(ans)
 }
+
+
+## Note that the output is un-named and the ans object only has scope within the function.
 ```
 
 This formatting above the function will compile into the nice documentation 
@@ -67,6 +70,37 @@ Now let's look at the functions involved in creating consensus peaks.
 
 
 
+```{r}
+
+ peak_list <- c()
+    for(j in 1:length(tf_files)) {
+      # See the read peaks function to know what subfunctions are called.
+      peak_list <- c(peak_list, read_peaks(tf_files[j]))
+    }
+
+intersect_peaks <- function(peak_list) {
+  combined_peaks <- peak_list[[1]]
+  for(i in 2:length(peak_list)) {
+    suppressWarnings(pl_ov <- findOverlaps(combined_peaks, peak_list[[i]]))
+    pl1 <- combined_peaks[unique(pl_ov@from)]
+    pl2 <- peak_list[[i]][unique(pl_ov@to)]
+    suppressWarnings(combined_peaks <- GenomicRanges::reduce(union(pl1, pl2)))
+  }
+  return(combined_peaks)
+}
+
+
+```
+
+
+
+
+
+
+
+
+
+
 Let's go over a customfunction we already wrote. The goal of this function is to take
 replicate ChIPseq .broadPeak files and find all the peaks that overlap. Then reduce them.
 
@@ -75,7 +109,7 @@ Below we will go through each step of the create_consensus_peaks function that o
 
 # Normally, we would just run the function with this filepath below.
 
-consensus_peaks <- create_consensus_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
+consensus_peaks <- create_consensus_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise/")
 
 # Simple as that we get all overlapping peaks
 
@@ -157,14 +191,13 @@ The for loop will populate this list with each peak file for a give DBP.
     # note TF name has all the indexing for each replicate
     tf_files <- fl[tf_index]
 
-```
+}
+# Cool, so we have made a tf_files list that has the peak file path and tf_index of where that is in tf_name.
 
-Cool, so we have made a tf_files list that has the peak file path and tf_index of where that is in tf_name.
+# Now we need to make a peak list of all the .broadPeak files associated with each DBP (tf_name)
+# We will use tf_files since it has the direct file path to the peak files.
 
-Now we need to make a peak list of all the .broadPeak files associated with each DBP (tf_name)
-We will use tf_files since it has the direct file path to the peak files.
 
-```{R}
     peak_list <- c()
     for(j in 1:length(tf_files)) {
       # See the read peaks function to know what subfunctions are called.
@@ -174,31 +207,13 @@ We will use tf_files since it has the direct file path to the peak files.
 
 
 
-READ PEAKS:
-  
-  # read_peaks <- function(broad_peak_file, filter_to_canonical_chr = TRUE) {
-   dat <- read.table(broadpeakfilepath, sep = "\t")
-  # if(filter_to_canonical_chr == TRUE) {
-   # dat <- dat[dat$V1 %in% c(paste0("chr", 1:22), "chrM", "chrX", "chrY"),]
-  # }
-  # gr <- GRanges(seqnames = dat$V1,
-                # ranges = IRanges(start=dat$V2,end=dat$V3))
-  # return(gr)
-}
-```
+# Let's filter to normal chromosome entries for ease moving forward (similar to what we did 08)
 
-
-Let's filter to normal chromosome entries for ease moving forward (similar to what we did 08)
-```{R}
     canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
     for(i in 1:length(peak_list)) {
       peak_list[[i]] <-peak_list[[i]][which(seqnames(peak_list[[i]]) %in% canonical_chr)]
     }
     
-```
-
-
-```{R}
   
     final_peakset <- intersect_peaks(peak_list = peak_list)
     if(length(final_peakset) > 0) {
@@ -208,8 +223,6 @@ Let's filter to normal chromosome entries for ease moving forward (similar to wh
     consensus_peaks <- c(consensus_peaks, list(final_peakset))
     names(consensus_peaks)[length(consensus_peaks)] <- tf
   }
-  return(consensus_peaks)
-}
 
 # TODO: refactor
 read_peaks <- function(broad_peak_file, filter_to_canonical_chr = TRUE) {
@@ -427,3 +440,10 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
 }
 
 ```
+
+
+```{r}
+
+hmmm <- read_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise/CTCF_R1_peaks.broadPeak")
+```
+
