@@ -86,7 +86,7 @@ We would assign the function name like this below
 
 ```{R}
 
-create_consensus_peaks <- function(broadpeakfilepath = "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
+create_consensus_peaks <- function(broadpeakfilepath = "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise/")
 {
   
   # FUNCTION GOES IN HERE
@@ -123,15 +123,21 @@ broadpeakfilepath <- paste0("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/
   })
   
   # Basically we just took the file names and extracted the name of DBP in "tf_name" object
+  # note strsplit is indexed to [[1]] this takes the right side of the split and [0] the left side
   
 ```
 
-We have replicate peak files so this 'unique' function will reduce to unique DBPs
+We have replicate peak files so we will make an index for each unique DBP to group replicates by.  
+First let's filter files that don't have replicates.
 ```{R}
-  
-  unique_tf <- unique(tf_name)
-  # Note CTCF had 8 replicates
-  # Also note only one replicate for DMAP1 (to see what happens -- will funciton error?)
+
+
+# This is a handy use of table to get individual names and filter to get those with more than 1 file.
+  tf_df <- data.frame(table(tf_name)) %>%
+    filter(Freq > 1)
+
+# Now let's make a list of unique DBP names (unique_tf)
+    unique_tf <- as.character(tf_df$tf_name)
 
 ```
 
@@ -142,24 +148,58 @@ The for loop will populate this list with each peak file for a give DBP.
 ```{R}
   
   consensus_peaks <- list()
-  # This for loop will iterate over all indidual peak files for a given DBP name (unique_tf).
+  # This for loop will iterate over all individual peak files for a given DBP name (unique_tf).
   for(i in 1:length(unique_tf)) {
     tf <- unique_tf[i]
+    print(tf)
+    # This will allow us to keep track of what is happening in counsel.
     tf_index <- grep(tf, tf_name)
     # note TF name has all the indexing for each replicate
     tf_files <- fl[tf_index]
-    
+
+```
+
+Cool, so we have made a tf_files list that has the peak file path and tf_index of where that is in tf_name.
+
+Now we need to make a peak list of all the .broadPeak files associated with each DBP (tf_name)
+We will use tf_files since it has the direct file path to the peak files.
+
+```{R}
     peak_list <- c()
     for(j in 1:length(tf_files)) {
       # See the read peaks function to know what subfunctions are called.
       peak_list <- c(peak_list, read_peaks(tf_files[j]))
     }
-    
+
+
+
+
+READ PEAKS:
+  
+  # read_peaks <- function(broad_peak_file, filter_to_canonical_chr = TRUE) {
+   dat <- read.table(broadpeakfilepath, sep = "\t")
+  # if(filter_to_canonical_chr == TRUE) {
+   # dat <- dat[dat$V1 %in% c(paste0("chr", 1:22), "chrM", "chrX", "chrY"),]
+  # }
+  # gr <- GRanges(seqnames = dat$V1,
+                # ranges = IRanges(start=dat$V2,end=dat$V3))
+  # return(gr)
+}
+```
+
+
+Let's filter to normal chromosome entries for ease moving forward (similar to what we did 08)
+```{R}
     canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
     for(i in 1:length(peak_list)) {
       peak_list[[i]] <-peak_list[[i]][which(seqnames(peak_list[[i]]) %in% canonical_chr)]
     }
     
+```
+
+
+```{R}
+  
     final_peakset <- intersect_peaks(peak_list = peak_list)
     if(length(final_peakset) > 0) {
       final_peakset$name <- paste0(tf, "_", 1:length(final_peakset))
