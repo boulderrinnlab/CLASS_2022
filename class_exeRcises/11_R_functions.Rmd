@@ -95,13 +95,20 @@ create_consensus_peaks <- function(broadpeakfilepath = "/Shares/rinn_class/data/
   
 ```
 
+Since the only parameter needed is the boradpeakfilepath we will set that and move along the function.
+These are new R functions being used:
 
+'function(x)' a genertic function that will be used to work on x in str_extract
+'str_extract' (that extracts the information of character vector of file names) this will be set to y.
+strsplit
 ```{R}
-  broadpeakfilepath <- paste0("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
+
+broadpeakfilepath <- paste0("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
 
   fl <- list.files(broadpeakfilepath, 
                    full.names=TRUE)
   # making a list of file names as we did in 08.Rmd
+  
   fl <- fl[grep("peaks.broadPeak", fl)]
   # making sure we only get files that are .broadPeak using grep
   
@@ -109,28 +116,37 @@ create_consensus_peaks <- function(broadpeakfilepath = "/Shares/rinn_class/data/
     y <-  str_extract(x, "([^\\/]+$)")
     unlist(strsplit(y, "_"))[[1]]
     
+    # This is regex to grab the DBP name (TF_name) from the file list
+    # Let's look up the regex in regex-translator (https://regexr.com/3cr6f)   
     
 
   })
   
-  # This is regex to grab the DBP name (TF_name) from the file list
-  # Let's look up the regex in regex-translator (https://regexr.com/3cr6f)
+  # Basically we just took the file names and extracted the name of DBP in "tf_name" object
   
 ```
 
-
+We have replicate peak files so this 'unique' function will reduce to unique DBPs
 ```{R}
   
   unique_tf <- unique(tf_name)
-  # we have replicate names so this will reduce to unique DBPs
+  # Note CTCF had 8 replicates
+  # Also note only one replicate for DMAP1 (to see what happens -- will funciton error?)
+
+```
+
+
+Now we are getting into a major for loop that will read each unique DBP (unique_tf)
+We start by making an empty list with 'list()'
+The for loop will populate this list with each peak file for a give DBP.
+```{R}
   
   consensus_peaks <- list()
-  # This for loop will iterate over all dna binding proteins.
+  # This for loop will iterate over all indidual peak files for a given DBP name (unique_tf).
   for(i in 1:length(unique_tf)) {
-    
-    # load all the peak files corresponding to this dna binding proteins.
     tf <- unique_tf[i]
     tf_index <- grep(tf, tf_name)
+    # note TF name has all the indexing for each replicate
     tf_files <- fl[tf_index]
     
     peak_list <- c()
