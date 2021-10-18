@@ -380,4 +380,12 @@ length(unique(promoter_overlaps_df$promoter_gene_id))
 
 ```
 
-Now let's move to working with Gencode and genomic ranges on our data set!
+*********************
+EXCERCISE
+*********************
+
+
+What happens if we shrink the promoter windows? Some standards are 2Kb upstream 1kb down stream. 
+Some could be as small as 1Kb upstream 500Kb downstream. Try two different promter window sizes and record
+@from and @to values as well as unique peaks. 
+
