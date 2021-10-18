@@ -1,8 +1,10 @@
 ---
 title: "11_R_functions"
 author: "JR"
-date: "10/11/2021"
+date: "10/18/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -10,7 +12,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("util/intersect_functions.R")
+source("../util/intersect_functions.R")
 ```
 
 First we are going to go over a "function" in R. This is a really nice feature of 
@@ -63,29 +65,61 @@ Now let's look at the functions involved in creating consensus peaks.
 #' # We're going to iterate over all the files to make it work. 
 ```
 
-The only parameter for teh create_consensus_peaks is the file path to the peak files: 
-/scratch/Shares/rinnclass/data/peaks
 
-So basically we are making a new R function (it's in util already under create_consensus_peaks).
 
-Below we will go through each step of the function that occcurs in between { }.
+Let's go over a customfunction we already wrote. The goal of this function is to take
+replicate ChIPseq .broadPeak files and find all the peaks that overlap. Then reduce them.
+
+Below we will go through each step of the create_consensus_peaks function that occurs in between { }.
+```{R}
+
+# Normally, we would just run the function with this filepath below.
+
+consensus_peaks <- create_consensus_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
+
+# Simple as that we get all overlapping peaks
+
+```
+
+Now if we were going to make a new function (HINT THIS IS KEY FOR EXERCISE)!!
+We would assign the function name like this below
+
+```{R}
+
+create_consensus_peaks <- function(broadpeakfilepath = "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
+{
+  
+  # FUNCTION GOES IN HERE
+  
+  }
+  
+```
 
 
 ```{R}
-create_consensus_peaks <- function(broadpeakfilepath = "data/test_work/all_peak_files") {
-  
+  broadpeakfilepath <- paste0("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
 
   fl <- list.files(broadpeakfilepath, 
                    full.names=TRUE)
   # making a list of file names as we did in 08.Rmd
   fl <- fl[grep("peaks.broadPeak", fl)]
-  # making sure we only get files that are .broadPeak
+  # making sure we only get files that are .broadPeak using grep
   
   tf_name <- sapply(fl, function(x){
-    y <-  unlist(strsplit(x, "/"))[[11]]
+    y <-  str_extract(x, "([^\\/]+$)")
     unlist(strsplit(y, "_"))[[1]]
+    
+    
+
   })
+  
   # This is regex to grab the DBP name (TF_name) from the file list
+  # Let's look up the regex in regex-translator (https://regexr.com/3cr6f)
+  
+```
+
+
+```{R}
   
   unique_tf <- unique(tf_name)
   # we have replicate names so this will reduce to unique DBPs
@@ -147,11 +181,17 @@ intersect_peaks <- function(peak_list) {
 }
 ```
 
-Exercise : Create a function to:
+*********************
+EXCERCISE
+*********************
+
+Create a function to:
 
 Format .broadPeak files for UCSC and put into Util folder
 
 Hint you have already done most of the work :)
+
+You can call it whatevr you want and set parameters etc.
 
 
 
