@@ -36,6 +36,7 @@ vignettes/*.pdf
 *.knit.md
 
 # R Environment Variables
+.broadPeak
 .Renviron
 .Rproj.user
 .Rhistory
