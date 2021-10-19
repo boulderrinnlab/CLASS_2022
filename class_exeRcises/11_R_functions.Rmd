@@ -108,8 +108,8 @@ Let's make a function to find which DBPs have peak files. sapply requires a func
   })
 ```
 
-Ok let's make this into a real function that is re-usable "import_peaks" and name file by DBP
 
+let's make this into a real function that is re-usable "import_peaks" and name file by DBP
 ```{R}
 
 # estbalishing the function using "function()"
@@ -145,12 +145,11 @@ import_peaks <- function(consensus_file_path = "/Shares/rinn_class/data/CLASS_20
 
 Let's use import_peaks function but assign the local output to global output!
 ```{R}
-peak_lists <- import_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
+peak_list <- import_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
 ```
  
- Let's add import peaks to util using this header:
+ Let's add import peaks to util using this header (can take out all the markdown above too):
 ```{R}
-
 
 #' import peak .bed files as a list
 #' 
@@ -162,22 +161,86 @@ peak_lists <- import_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/a
 
 Cool now we have a function to import peak files as a GRanges.
 We can now use this to find overlaps using another function "intersect peaks"
+Let's take a look at our "intersect_peaks" function. 
+
+
+Here we will use the peak_list we generated above and push it into this function to find overlaps.
+```{r}
+
+intersect_peaks <- function(peak_list) {
+  combined_peaks <- peak_list[[1]]
+  for(i in 2:length(peak_list)) {
+    suppressWarnings(pl_ov <- findOverlaps(combined_peaks, peak_list[[i]]))
+    pl1 <- combined_peaks[unique(pl_ov@from)]
+    pl2 <- peak_list[[i]][unique(pl_ov@to)]
+    suppressWarnings(combined_peaks <- GenomicRanges::reduce(union(pl1, pl2)))
+  }
+  return(combined_peaks)
+}
+
+# Now that we have this function in this environment session we can just run it:
+
+overlaps <- intersect_peaks(peak_list)
+
+ov_df <- overlaps %>% as.data.frame()
+
+```
+
+
+The above functions are all part of another function we will get to soon:
+create_consensus_peaks. This overall function to find overlaps between all 560 
+replicates will use:
+
+import_peaks
+intersect_peaks 
+read_peaks
+
+We did the first two alredy (in concept) now let's look at read_peaks
+```{r}
+read_peaks <- function(broad_peak_file, filter_to_canonical_chr = TRUE) {
+  dat <- read.table(broad_peak_file, sep = "\t")
+  if(filter_to_canonical_chr == TRUE) {
+    dat <- dat[dat$V1 %in% c(paste0("chr", 1:22), "chrM", "chrX", "chrY"),]
+  }
+  gr <- GRanges(seqnames = dat$V1,
+                ranges = IRanges(start=dat$V2,end=dat$V3))
+  return(gr)
+}
+
+# Let's see where the V1-V3 come from in read.table:
+
+test <- read.table("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise/CTCF_R1_peaks.broadPeak")
+
+# let's run the function
+test2 <- read_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise/CTCF_R1_peaks.broadPeak", filter_to_canonical_chr = TRUE)
+
+# Let's take a look at what we got
+table(test2)
+table(table(test2))
+
+# Let's make sure the contigs are gone
+test3 <- test2 %>% as.data.frame()
+
+# Another way to do the same.
+table(test2@seqnames)
+
+
+# Overall read_peaks filters to normal chromosomes and makes a granges for a given peak file.
+# This will be used in a for loop in create_consensus_peaks to filter chromosomes and great a GRanges object -- that will be passed along the for loop to "intersect_peaks" or "findOverlaps"
+
+```
 
 
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
+
+
+
+
+
+
 
 Now let's look at the functions involved in creating consensus peaks.
+It is also going to call other custom functions (read_peaks, intersect_peaks )
 ```{r}
 #' intersect replicates into a "consensus peak list" 
 #' 
@@ -190,6 +253,34 @@ Now let's look at the functions involved in creating consensus peaks.
 #'  the path to consensus peak files
 #' # We're going to iterate over all the files to make it work. 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
