@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
 source("../util/intersect_functions.R")
+source("../util/class_functions.R")
 ```
 
 First we are going to go over a "function" in R. This is a really nice feature of 
@@ -30,7 +31,14 @@ fun <- function(x, y) {
   return(ans)
 }
 fun(2,-4)
+
+# Note that the object ans doesn't exist in our environment. 
+# ans is a local variable that is erased after used. global variables are in our environment.
+# It's good to remember the "scope" of vars in a function don't really exist outside the function.
+# Finally note a function can only return one thing!
 ```
+
+
 
 When creating a function, you can also add documentation about what that function 
 does and the data types and expectationn for the the parameters it takes.
@@ -47,12 +55,127 @@ fun <- function(x, y) {
   return(ans)
 }
 
-
-## Note that the output is un-named and the ans object only has scope within the function.
+# Let's make a util .R file and put this function in there
+# clear environment and load functions -- shows up as something you can just run now
+# Note that the documentation is present in the little "note" icon link.
 ```
 
-This formatting above the function will compile into the nice documentation 
-that you see in the help viewer pane (? fun-name). For the purposes of this class project's organization, we'll put most of the functions that we use in multiple analysis RMarkdown files, into the `../util` directory. 
+Now let's understand "scope" better by creating a more complex function. 
+
+Local variables are those variables that exist only within a certain part of a program 
+like a function and are released when the function call ends.
+
+So it's good to remember local variables are mapped to outputs through a function, but 
+only exist within a function.
+
+Let's take a look at a more complex function we may want to routinely use.
+
+One common task is to make a list of files to be analyzed and rename them based on information
+in the file name itself. Let's look at this function:
+
+```{r}
+
+# First let's set a file path to where all our peak files are.
+
+broadpeakfilepath <- paste0("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
+
+# So this is now a global variable that can be called in a function.
+
+  fl <- list.files(broadpeakfilepath, 
+                   full.names=TRUE)
+  # making a list of file names as we did in 08.Rmd Note full file path is included
+  # This gives us an index 1-15 where each peak file is in a vector.
+  
+  fl <- fl[grep("peaks.broadPeak", fl)]
+  # making sure we only get files that are .broadPeak using grep
+  
+```
+
+Let's make a function to find which DBPs have peak files. sapply requires a function so let's try it
+```{R} 
+
+  tf_name <- sapply(fl, function(x){
+    y <-  str_extract(x, "([^\\/]+$)")
+    unlist(strsplit(y, "_"))[[1]]
+    
+    # We use a generic function (function(x) and set a new variable y using str_extract
+    # then x is subject to str_extract and regex to split all / and words (https://regexr.com/3cr6f)  
+    # strplit then splits up the broken up string from str_extract and takes the right side 
+        # first character string after the last /
+    
+    # ?? What would the input be to make this a function ??
+
+  })
+```
+
+Ok let's make this into a real function that is re-usable "import_peaks" and name file by DBP
+
+```{R}
+
+# estbalishing the function using "function()"
+# establishing the parameter consensus_file_path is needed
+
+import_peaks <- function(consensus_file_path = "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise") {
+  
+  # Setting some variables needed in main part of function (same as above -- peak_files & tf_name)
+  peak_files <- list.files(consensus_file_path, full.names = T)
+  tf_name <- sapply(peak_files, function(x){
+    y <-  str_extract(x, "([^\\/]+$)")
+    unlist(strsplit(y, "_"))[[1]]
+  })
+
+# Here is the heart of the function that will import each file as GRanges (we can use for overlaps)
+  
+  peak_list <- c()
+  for(i in 1:length(peak_files)) {
+    # Import peak files
+    peaks <- rtracklayer::import(peak_files[i])
+    # Append this GRanges object to the of the list.
+    peak_list <- c(peak_list, peaks)
+    # Name the list elements by their TF name.
+    names(peak_list)[length(peak_list)] <- tf_name[i]
+  }
+  return(peak_list)
+}
+
+# ?? Why did nothing come back in the global environment ??
+
+```
+
+
+Let's use import_peaks function but assign the local output to global output!
+```{R}
+peak_lists <- import_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
+```
+ 
+ Let's add import peaks to util using this header:
+```{R}
+
+
+#' import peak .bed files as a list
+#' 
+#' @description 
+#' this function will take consensus peak files and name them by the DNA binding protein and return a list
+#' 
+#' @param consensus_file_path the path to consensus peak files
+```
+
+Cool now we have a function to import peak files as a GRanges.
+We can now use this to find overlaps using another function "intersect peaks"
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 Now let's look at the functions involved in creating consensus peaks.
 ```{r}
