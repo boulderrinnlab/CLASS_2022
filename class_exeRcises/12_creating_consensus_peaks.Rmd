@@ -41,19 +41,19 @@ summary(filtered_consensus_peaks)
 # Cool we see that CTCF and DLX6 are more than 10,000 peaks.
 # Last year we filtered to those with 250 or peaks -- turned out to be a reasonable quartile.
 
+# Now let's export the consensus peaks
 
-#To export consensus peaks
+for(i in 1:length(consensus_peaks)) {
+  rtracklayer::export(consensus_peaks[[i]], 
+                      paste0("/scratch/Shares/rinnclass/consensus_peaks/", 
+                             names(consensus_peaks)[i], 
+                             "_consensus_peaks.bed"))
+}
 
-# for(i in 1:length(filtered_consensus_peaks)) {
-# rtracklayer::export(filtered_consensus_peaks[[i]], 
-                     # paste0("/scratch/Shares/rinnclass/YOUR_FOLDER/X/results/chipseq/filtered_consensus/", 
-                            # names(filtered_consensus_peaks)[i], 
-                            # "_filtered_consensus_peaks.bed"))
-# }
 
 ```
 
-Let's go ahead and import all the DBPs we are studying 486!
+Let's go ahead and import all the DBPs we are studying 483!
 The files are located at:
 /scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks
 ```{r}
@@ -61,27 +61,20 @@ The files are located at:
 consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks", 
                                              pattern = "*.bed",
                                              full.names = TRUE)
+
+# like a for loop we can use lapply to recursively load each file in the "peak_files"
 consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
+
+
+# This is adding the names to each GRange in the list -- names are very important :) 
 names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks/|_filtered_consensus_peaks.bed", "", consensus_peaks_files)
-
-
-
-
 
 ```
 
 
+Great, now we have a bunch of data -- let's see where the peaks land in different annotations of the genome.
 
-
-
-
-
-
-
-
-Exporting Genomic features that we will use frequentyl so we can use rtracklayer::import and save a ton of time :)
-
-These you will want to save directly to your results folder since they will be used for all analyses and not just chipseq (where we exported consensus and filtered consensus peaks)
+First let's make GRanges of mRNA and lncRNA promoter regions (save somewhere handy in your local folder)
 
 1) Promoter Regions
 ```{r}
@@ -95,6 +88,8 @@ rtracklayer::export(mrna_promoters, "/scratch/Shares/rinnclass/YOUR_FOLDER/analy
 ```
 
 
+Same for gene bodies.
+
 2) Gene Bodies
 
 ```{r}
@@ -107,6 +102,18 @@ rtracklayer::export(lncrna_genebody, "/scratch/Shares/rinnclass/YOUR_FOLDER/anal
 mrna_genebody <- gencode_gr[gencode_gr$type == "gene" & 
                               gencode_gr$gene_type %in% c("protein_coding")]
 rtracklayer::export(mrna_genebody, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /mrna_genebody.gtf")
+```
+
+
+Let's use our findOverlaps knowledge to see what we see!
+
+```{r}
+
+
+
+
+
+
 ```
 
 
