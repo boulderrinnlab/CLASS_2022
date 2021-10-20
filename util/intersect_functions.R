@@ -87,10 +87,6 @@ create_consensus_peaks <- function(broadpeakfilepath = "data/test_work/all_peak_
       peak_list <- c(peak_list, read_peaks(tf_files[j]))
     }
     
-    canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
-    for(i in 1:length(peak_list)) {
-      peak_list[[i]] <-peak_list[[i]][which(seqnames(peak_list[[i]]) %in% canonical_chr)]
-    }
     
     final_peakset <- intersect_peaks(peak_list = peak_list)
     if(length(final_peakset) > 0) {
