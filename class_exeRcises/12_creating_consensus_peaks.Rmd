@@ -12,7 +12,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("../../util/intersect_functions.R")
+source("../util/intersect_functions.R")
 ```
 
 
@@ -30,37 +30,43 @@ for(i in 1:length(consensus_peaks)) {
 }
 ```
 
-That was a good exercise for a few files and the same process already took place for all 486 DBPs!
-The files are located at:
 
-/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks
-
-Let's use import peaks to make a GRange obnject.
-```{r}
-import
-```
-
-
-Let's filter 
+Let's filter on number of peaks 
 ```{r}
 num_peaks_threshold <- 10000
 filtered_consensus_peaks <- consensus_peaks[sapply(consensus_peaks, length) > num_peaks_threshold]
-#Export consensus peaks
-for(i in 1:length(filtered_consensus_peaks)) {
-  rtracklayer::export(filtered_consensus_peaks[[i]], 
-                      paste0("/scratch/Shares/rinnclass/YOUR_FOLDER/X/results/chipseq/filtered_consensus/", 
-                             names(filtered_consensus_peaks)[i], 
-                             "_filtered_consensus_peaks.bed"))
-}
+
 
 summary(filtered_consensus_peaks)
 # Cool we see that CTCF and DLX6 are more than 10,000 peaks.
 # Last year we filtered to those with 250 or peaks -- turned out to be a reasonable quartile.
 
+
+#To export consensus peaks
+
+# for(i in 1:length(filtered_consensus_peaks)) {
+# rtracklayer::export(filtered_consensus_peaks[[i]], 
+                     # paste0("/scratch/Shares/rinnclass/YOUR_FOLDER/X/results/chipseq/filtered_consensus/", 
+                            # names(filtered_consensus_peaks)[i], 
+                            # "_filtered_consensus_peaks.bed"))
+# }
+
 ```
 
 Let's go ahead and import all the DBPs we are studying 486!
+The files are located at:
+/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks
 ```{r}
+
+consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks", 
+                                             pattern = "*.bed",
+                                             full.names = TRUE)
+consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
+names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks/|_filtered_consensus_peaks.bed", "", consensus_peaks_files)
+
+
+
+
 
 ```
 
