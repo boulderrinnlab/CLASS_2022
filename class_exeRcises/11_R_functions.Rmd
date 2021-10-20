@@ -1,7 +1,7 @@
 ---
 title: "11_R_functions"
 author: "JR"
-date: "10/18/2021"
+date: "10/20/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -143,9 +143,25 @@ import_peaks <- function(consensus_file_path = "/Shares/rinn_class/data/CLASS_20
 ```
 
 
-Let's use import_peaks function but assign the local output to global output!
+Let's use import_peaks function but assign the local output to global output! Then recreate "peak_list"
 ```{R}
-peak_list <- import_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
+
+# for didactic purposes we need to create "peak_list" to continue from the functions above 
+# This is another good example of how a function only returns local vars and need to assign a global var ( <-)
+peak_list <- import_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise/")
+  
+  peak_list <- c()
+  for(i in 1:length(peak_files)) {
+    # Import peaks
+    peaks <- rtracklayer::import(peak_files[i])
+    # Append this GRanges object to the of the list.
+    peak_list <- c(peak_list, peaks)
+    # Name the list elements by their TF name.
+    names(peak_list)[length(peak_list)] <- tf_name[i]
+  }
+  #return(peak_list)
+#}
+
 ```
  
  Let's add import peaks to util using this header (can take out all the markdown above too):
@@ -164,7 +180,7 @@ We can now use this to find overlaps using another function "intersect peaks"
 Let's take a look at our "intersect_peaks" function. 
 
 
-Here we will use the peak_list we generated above and push it into this function to find overlaps.
+Here we will use the peak_list we generated above and push it into this function intersect_peaks.
 ```{r}
 
 intersect_peaks <- function(peak_list) {
@@ -246,7 +262,8 @@ It is also going to call other custom functions (read_peaks, intersect_peaks )
 #' # We're going to iterate over all the files to make it work. 
 ```
 
-Ok let's go through the code that is a function of functions.
+Ok let's go through the code that is a function of functions we went over above.
+This is the full function!
 ```{r}
 
 # This is just setting up to name the funciton.
