@@ -3,6 +3,8 @@ title: "12_create_consensus_peaks"
 author: "JR"
 date: "10/11/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -13,28 +15,35 @@ library(GenomicRanges)
 source("../../util/intersect_functions.R")
 ```
 
-creating and exporting consensus peaks from individual peak files
 
-Note you will want to place these files in your folder and make a "results/chipseq/consensus_peaks" directory path
 
-The key here is to place all the data we will use moving forward in your directory 
--- make a new .RMD 00_consensus_peaks in your directory 
+Today we are going to practice running the create_consensus_peaks function. Then import the full dataset of 486 DBPs!
 
-May your attention to file paths serve you well !
+First let's run 
 ```{r}
-consensus_peaks <- create_consensus_peaks("/scratch/Shares/rinnclass/data/peaks")
+consensus_peaks <- create_consensus_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
 for(i in 1:length(consensus_peaks)) {
   rtracklayer::export(consensus_peaks[[i]], 
-                      paste0("/scratch/Shares/rinnclass/YOUR_FOLDER/X/results/chipseq/consensus_peaks/", 
+                      paste0("/scratch/Shares/rinnclass/consensus_peaks/", 
                              names(consensus_peaks)[i], 
                              "_consensus_peaks.bed"))
 }
 ```
 
+That was a good exercise for a few files and the same process already took place for all 486 DBPs!
+The files are located at:
 
-Filtering the consensus peaks to files with at least 250 peaks (per last years class cut-off)
+/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks
+
+Let's use import peaks to make a GRange obnject.
 ```{r}
-num_peaks_threshold <- 250
+import
+```
+
+
+Let's filter 
+```{r}
+num_peaks_threshold <- 10000
 filtered_consensus_peaks <- consensus_peaks[sapply(consensus_peaks, length) > num_peaks_threshold]
 #Export consensus peaks
 for(i in 1:length(filtered_consensus_peaks)) {
@@ -43,7 +52,25 @@ for(i in 1:length(filtered_consensus_peaks)) {
                              names(filtered_consensus_peaks)[i], 
                              "_filtered_consensus_peaks.bed"))
 }
+
+summary(filtered_consensus_peaks)
+# Cool we see that CTCF and DLX6 are more than 10,000 peaks.
+# Last year we filtered to those with 250 or peaks -- turned out to be a reasonable quartile.
+
 ```
+
+Let's go ahead and import all the DBPs we are studying 486!
+```{r}
+
+```
+
+
+
+
+
+
+
+
 
 
 Exporting Genomic features that we will use frequentyl so we can use rtracklayer::import and save a ton of time :)
