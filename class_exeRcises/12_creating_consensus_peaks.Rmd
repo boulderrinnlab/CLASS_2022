@@ -1,7 +1,7 @@
 ---
 title: "12_create_consensus_peaks"
 author: "JR"
-date: "10/11/2021"
+date: "10/31/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -12,7 +12,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("../util/intersect_functions.R")
+source("util/intersect_functions.R")
 ```
 
 
@@ -22,6 +22,9 @@ Today we are going to practice running the create_consensus_peaks function. Then
 First let's run 
 ```{r}
 consensus_peaks <- create_consensus_peaks("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise")
+
+
+
 for(i in 1:length(consensus_peaks)) {
   rtracklayer::export(consensus_peaks[[i]], 
                       paste0("/scratch/Shares/rinnclass/consensus_peaks/", 
@@ -45,10 +48,11 @@ summary(filtered_consensus_peaks)
 
 for(i in 1:length(consensus_peaks)) {
   rtracklayer::export(consensus_peaks[[i]], 
-                      paste0("/scratch/Shares/rinnclass/consensus_peaks/", 
+                      paste0("/your_folder/data", 
                              names(consensus_peaks)[i], 
                              "_consensus_peaks.bed"))
 }
+
 
 
 ```
@@ -64,7 +68,7 @@ consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/c
 
 # like a for loop we can use lapply to recursively load each file in the "peak_files"
 consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
-
+# what is missing here??? Let's look at the object ...
 
 # This is adding the names to each GRange in the list -- names are very important :) 
 names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks/|_filtered_consensus_peaks.bed", "", consensus_peaks_files)
@@ -79,10 +83,13 @@ First let's make GRanges of mRNA and lncRNA promoter regions (save somewhere han
 1) Promoter Regions
 ```{r}
 gencode_gr <- rtracklayer::import("/Shares/rinn_class/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf")
+
 lncrna_mrna_promoters <- get_promoter_regions(gencode_gr, biotype = c("lncRNA", "protein_coding"))
 rtracklayer::export(lncrna_mrna_promoters, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /lncrna_mrna_promoters.gtf")
+
 lncrna_promoters <- get_promoter_regions(gencode_gr, biotype = "lncRNA")
 rtracklayer::export(lncrna_promoters, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /lncrna_promoters.gtf")
+
 mrna_promoters <- get_promoter_regions(gencode_gr, biotype = "protein_coding")
 rtracklayer::export(mrna_promoters, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /mrna_promoters.gtf")
 ```
@@ -104,8 +111,37 @@ mrna_genebody <- gencode_gr[gencode_gr$type == "gene" &
 rtracklayer::export(mrna_genebody, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /mrna_genebody.gtf")
 ```
 
+Excercise 1:
 
-Let's use our findOverlaps knowledge to see what we see!
+Pick a protein in the larger data set and see how many peaks overlap mRNAs and lncRNAs.
+Hint: findOverlaps
+
+```{r}
+
+
+#protein_x <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/consensus_peaks/AFF4.bed")
+
+#ov_x <- findOverlaps(protein_x, lncrna_mrna_promoters)
+
+#length(ov_x)
+#length(protein_x)
+#length(lncrna_mrna_promoters)
+
+
+#ov_x_gene_bodies <- findOverlaps(protein_x, lncrna_mrna_genebody)
+
+#length(ov_x_gene_bodies)
+#length(protein_x)
+#length(lncrna_mrna_genebody)
+
+```
+
+
+
+Now, use you function to convert the .bed files created above to check them in the USCS browser.
+Pick 2 proteins and look at the peak files and consensus peaks files in UCSC browser.
+
+Do the peaks seem to overlap?
 
 ```{r}
 
