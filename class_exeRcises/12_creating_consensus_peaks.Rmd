@@ -36,8 +36,9 @@ for(i in 1:length(consensus_peaks)) {
 
 Let's filter on number of peaks 
 ```{r}
-num_peaks_threshold <- 10000
+num_peaks_threshold <- 250
 filtered_consensus_peaks <- consensus_peaks[sapply(consensus_peaks, length) > num_peaks_threshold]
+
 
 
 summary(filtered_consensus_peaks)
@@ -48,7 +49,7 @@ summary(filtered_consensus_peaks)
 
 for(i in 1:length(consensus_peaks)) {
   rtracklayer::export(consensus_peaks[[i]], 
-                      paste0("/your_folder/data", 
+                      paste0("/Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks/", 
                              names(consensus_peaks)[i], 
                              "_consensus_peaks.bed"))
 }
@@ -85,13 +86,13 @@ First let's make GRanges of mRNA and lncRNA promoter regions (save somewhere han
 gencode_gr <- rtracklayer::import("/Shares/rinn_class/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf")
 
 lncrna_mrna_promoters <- get_promoter_regions(gencode_gr, biotype = c("lncRNA", "protein_coding"))
-rtracklayer::export(lncrna_mrna_promoters, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /lncrna_mrna_promoters.gtf")
+rtracklayer::export(lncrna_mrna_promoters, "/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_mrna_promoters.gtf")
 
 lncrna_promoters <- get_promoter_regions(gencode_gr, biotype = "lncRNA")
-rtracklayer::export(lncrna_promoters, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /lncrna_promoters.gtf")
+rtracklayer::export(lncrna_promoters, "/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_promoters.gtf")
 
 mrna_promoters <- get_promoter_regions(gencode_gr, biotype = "protein_coding")
-rtracklayer::export(mrna_promoters, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /mrna_promoters.gtf")
+rtracklayer::export(mrna_promoters, "/Shares/rinn_class/data/CLASS_2022/data/genome_features/mrna_promoters.gtf")
 ```
 
 
@@ -102,13 +103,15 @@ Same for gene bodies.
 ```{r}
 lncrna_mrna_genebody <- gencode_gr[gencode_gr$type == "gene" & 
                                      gencode_gr$gene_type %in% c("lncRNA", "protein_coding")]
-rtracklayer::export(lncrna_mrna_genebody, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /lncrna_mrna_genebody.gtf")
+rtracklayer::export(lncrna_mrna_genebody, "/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_mrna_genebody.gtf")
+
 lncrna_genebody <- gencode_gr[gencode_gr$type == "gene" & 
                                 gencode_gr$gene_type %in% c("lncRNA")]
-rtracklayer::export(lncrna_genebody, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /lncrna_genebody.gtf")
+rtracklayer::export(lncrna_genebody, "/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_genebody.gtf")
+
 mrna_genebody <- gencode_gr[gencode_gr$type == "gene" & 
                               gencode_gr$gene_type %in% c("protein_coding")]
-rtracklayer::export(mrna_genebody, "/scratch/Shares/rinnclass/YOUR_FOLDER/analysis/--- 00 consensus peaks -- /mrna_genebody.gtf")
+rtracklayer::export(mrna_genebody, "/Shares/rinn_class/data/CLASS_2022/data/genome_features/mrna_genebody.gtf")
 ```
 
 Excercise 1:
