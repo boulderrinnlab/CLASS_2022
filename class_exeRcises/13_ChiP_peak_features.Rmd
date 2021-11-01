@@ -120,6 +120,11 @@ num_peaks_df$peaks_overlapping_mrna_genebody <-
 
 # let's take a look.
 
+# Now let's write it out to a file -- will load this moving forward in class
+# This is a time saver from having to regenerate the overlaps that took a bit ...
+
+write_csv(num_peaks_df, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/num_peaks_df.csv")
+
 ```
 
 We have a large group of different DBPs so let's import some annotaitons of which
@@ -172,24 +177,52 @@ Cool all 460 are in there so let's merge the tables
 # first let's filter and grab the first 4 columns that match DBPs in num_peaks_df
 human_tfs <- human_tfs[tolower(human_tfs$Name) %in% tolower(num_peaks_df$dbp), 1:4]
 
+
+# adding new column names
 names(human_tfs) <- c("ensembl_id",
                       "dbp",
                       "dbd",
                       "tf")
 
+# Now comes the actual merge. Let's look at it first
+# ?merge
+
 num_peaks_df <- merge(num_peaks_df, human_tfs, all.x = T)
 
 # Let's check how many NAs -- we should have some missing values.
+is.na(num_peaks_df$is_tf)
 
-write_csv(num_peaks_df, "results/num_peaks_df.csv")
+# Ok looks good let's write it out:
+
+write_csv(num_peaks_df, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/num_peaks_df.csv")
 ```
 
+
+Now let's also use our 'count_peaks_per_feature' function to use the 'occurence' parameter
+We will make a matrix that records all the overlaps with all promoters.
 
 ```{r}
 promoter_peak_occurence <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_peaks, 
                                                type = "occurrence")
-# Output to promoter_peak_occurecne_matrix
-write.table(promoter_peak_occurence, "results/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+
+
+# Let's double check that all lncrna & mrna genes are accounted for:
+
+stopifnot(all(colnames(promoter_peak_occurence) == lncrna_mrna_promoters$gene_id))
+
+
+# Great we will use this quite a bit moving forward so let's write it out! 
+# we are going to write it out a tab seperated values (tsv) file
+# moving forward we will use (?read.tsv) to read this in and save us all that run time :)
+
+write.table(promoter_peak_occurence, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+
+```
+
+
+
+```{R}
+
 # Now we want to make into a data frame using the promoter annotations as rows and attributes as columns.
 # We will use lncrna_mrna_promoters to index "all promoters"
 # First make sure promoter_peak_occurence and lncrna_mrna_promoters are in the same order
