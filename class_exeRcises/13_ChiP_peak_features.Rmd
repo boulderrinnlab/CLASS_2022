@@ -1,7 +1,7 @@
 ---
 title: "13_ChIP_peak_features"
 author: "JR"
-date: "10/11/2021"
+date: "11/1/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -134,7 +134,7 @@ Let's download the file using R (we could also use curl/wget in BASH)
 
 url <- "https://www.cell.com/cms/10.1016/j.cell.2018.01.029/attachment/ede37821-fd6f-41b7-9a0e-9d5410855ae6/mmc2.xlsx"
 
-destination_for_url <- "/Shares/rinn_class/data/CLASS_2022/data/TF_annotations.xls"
+destination_for_url <- "/Shares/rinn_class/data/CLASS_2022/data/TF_annotations.xlsx"
 
 # to download we can use download.file
 
@@ -152,7 +152,7 @@ a new 'read' function (we have used 'read.table' & 'read.csv' etc).
 To this end we will use readX1 'read_excel' function.
 ```{R}
 
-human_tfs <- readxl::read_excel("/Shares/rinn_class/data/CLASS_2022/data/TF_annotations.xls",
+human_tfs <- readxl::read_excel("/Shares/rinn_class/data/CLASS_2022/data/TF_annotations.xlsx",
                                 sheet = 2, skip = 1)
 names(human_tfs)[4] <- "is_tf"
 
