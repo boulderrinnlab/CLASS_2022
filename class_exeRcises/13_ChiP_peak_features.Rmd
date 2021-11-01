@@ -155,14 +155,23 @@ To this end we will use readX1 'read_excel' function.
 human_tfs <- readxl::read_excel("/Shares/rinn_class/data/CLASS_2022/data/TF_annotations.xlsx",
                                 sheet = 2, skip = 1)
 
+
 # let's rename the 4th column to indicate if it is a TF.
 names(human_tfs)[4] <- "is_tf"
 
 
+# now let's intersect gene names that are in our ChIP data and has TF identity.
+
 length(which(tolower(num_peaks_df$dbp) %in% tolower(human_tfs$Name)))
+```
 
 
+Cool all 460 are in there so let's merge the tables
+```{R}
+
+# first let's filter and grab the first 4 columns that match DBPs in num_peaks_df
 human_tfs <- human_tfs[tolower(human_tfs$Name) %in% tolower(num_peaks_df$dbp), 1:4]
+
 names(human_tfs) <- c("ensembl_id",
                       "dbp",
                       "dbd",
