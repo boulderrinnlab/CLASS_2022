@@ -3,6 +3,8 @@ title: "13_ChIP_peak_features"
 author: "JR"
 date: "10/11/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -10,39 +12,57 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("../../util/intersect_functions.R")
+source("util/intersect_functions.R")
 ```
 
+Today we are going to explore where in the genome the 483(460) DBPs bind.
+
+From now on we will import all the data we made in "12_creating_consensus_peaks"
+Let's start importing all the files we need:
 ```{r}
+# starting with filtered_consensus_peaks
 
-
-filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/YOUR_FOLDER/X/results/chipseq/filtered_consensus", 
+filtered_consensus_peaks_files <- list.files("/Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks", 
                                              pattern = "*.bed",
                                              full.names = TRUE)
 filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
 
-names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/YOUR_FOLDER/X/results/chipseq/filtered_consensus/|_filtered_consensus_peaks.bed", "", filtered_consensus_peaks_files)
+names(filtered_consensus_peaks) <- gsub("/Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks/|_consensus_peaks.bed", "", filtered_consensus_peaks_files)
 
-# Import annotations
-lncrna_mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/JYOUR_FOLDER/X/results/lncrna_mrna_promoters.gtf")
-lncrna_mrna_genebody <- rtracklayer::import("/scratch/Shares/rinnclass/YOUR_FOLDER/X/results/lncrna_mrna_genebody.gtf")
+names(filtered_consensus_peaks) <- gsub("/Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks/|_consensus_peaks.bed|.bed", "", filtered_consensus_peaks_files)
+```
 
+Now we will import the GRanges of genome annotations:
+```{R}
+
+lncrna_mrna_promoters <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_mrna_promoters.gtf")
+
+lncrna_mrna_genebody <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_mrna_genebody.gtf")
+
+# Let's also make a list of gene_ids. Note the indexing.
 lncrna_gene_ids <- lncrna_mrna_genebody$gene_id[lncrna_mrna_genebody$gene_type == "lncRNA"]
+
 mrna_gene_ids <- lncrna_mrna_genebody$gene_id[lncrna_mrna_genebody$gene_type == "protein_coding"]
 ```
 
 
-
+Now we are going to start to make a really useful data-frame (df).
+For each property/overlap we will make a new column. 
 ```{r}
+# Let's start with loading in the number of peaks each DBP has -- using length.
+
 num_peaks_df <- data.frame("dbp" = names(filtered_consensus_peaks),
                            "num_peaks" = sapply(filtered_consensus_peaks, length))
 
 
+# Now let's get the total amount of the genome covered by all the peaks for a given DBP.
 
 num_peaks_df$total_peak_length <- sapply(filtered_consensus_peaks, function(x) sum(width(x)))
 
+# Let's take a look at what we have so far
 ```
 
+Cool now we have
 ```{r}
 
 promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_peaks, type = "counts")
