@@ -59,45 +59,100 @@ num_peaks_df <- data.frame("dbp" = names(filtered_consensus_peaks),
 
 num_peaks_df$total_peak_length <- sapply(filtered_consensus_peaks, function(x) sum(width(x)))
 
-# Let's take a look at what we have so far
+# Let's take a look at what we have so far (which DBP, has most peaks? most genome coverage?)
 ```
 
-Cool now we have
+Great we are starting to build an informative DF to incorporate our results.
+Now let's start looking at how many peaks overlap the genome feature files we made.
 ```{r}
+
+# First let's get a count for each DBP that overlaps any promoter.
+## This takes a minute to run :) Let's look count_peaks_per_feature function in meantime
 
 promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_peaks, type = "counts")
 
-num_peaks_df$peaks_overlapping_promoters <- rowSums(promoter_peak_counts)
-
-num_peaks_df$peaks_overlapping_lncrna_promoters <- rowSums(promoter_peak_counts[,lncrna_gene_ids])
-
-num_peaks_df$peaks_overlapping_mrna_promoters <- rowSums(promoter_peak_counts[,mrna_gene_ids])
-
-
+# Take a look at "count_peaks_per_feature" maybe look at in debugging mode?
 
 ```
 
+Above we made the object "promoter_peak_counts" now we can extract information from it
+```{R}
+
+# First let's get a count of how many promter overlapped each DBP.
+
+num_peaks_df$peaks_overlapping_promoters <- rowSums(promoter_peak_counts)
+
+# Now let's break these promoters into two groups "lncrna" and "mrna"
+# We will use the gene_id objects we made above to index and separate them.
+
+num_peaks_df$peaks_overlapping_lncrna_promoters <- rowSums(promoter_peak_counts[,lncrna_gene_ids])
+
+num_peaks_df$peaks_overlapping_mrna_promoters <- 
+  rowSums(promoter_peak_counts[,mrna_gene_ids])
+
+# Let's take a look.
+
+```
+
+Now let's do the same thing for gene-bodies
+First we will make a gene-body object like we did for promoters above.
 ```{r}
 
-
+# Finding overlaps with gene_bodies (will take a few minutes again)
 
 genebody_peak_counts <- count_peaks_per_feature(lncrna_mrna_genebody, 
                                                 filtered_consensus_peaks, 
                                                 type = "counts")
 
-num_peaks_df$peaks_overlapping_genebody <- rowSums(genebody_peak_counts)
-num_peaks_df$peaks_overlapping_lncrna_genebody <- rowSums(genebody_peak_counts[,lncrna_gene_ids])
-num_peaks_df$peaks_overlapping_mrna_genebody <- rowSums(genebody_peak_counts[,mrna_gene_ids])
 
+# Now let's extract the overlaps the same way we did for promoters above
+
+# All gene bodies
+num_peaks_df$peaks_overlapping_genebody <- 
+  rowSums(genebody_peak_counts)
+
+# lncRNA gene bodies 
+num_peaks_df$peaks_overlapping_lncrna_genebody <- rowSums(genebody_peak_counts[,lncrna_gene_ids])
+
+# mRNA gene bodies
+num_peaks_df$peaks_overlapping_mrna_genebody <- 
+  rowSums(genebody_peak_counts[,mrna_gene_ids])
+
+# Now let's take a look.
 
 ```
 
+We have a large group of different DBPs so let's import some annotaitons of which
+ones are transcription factors etc. A paper in Cell is one of the better annotations --
+however they are never perfect :)
 
+Human TF annotations:
+https://www.cell.com/cms/10.1016/j.cell.2018.01.029/attachment/ede37821-fd6f-41b7-9a0e-9d5410855ae6/mmc2.xlsx
+
+Let's download the file using R (we could also use curl/wget in BASH)
 ```{r}
-# The human TFs
-# https://www.cell.com/cms/10.1016/j.cell.2018.01.029/attachment/ede37821-fd6f-41b7-9a0e-9d5410855ae6/mmc2.xlsx
 
-human_tfs <- readxl::read_excel("/scratch/Shares/rinnclass/data/mmc2.xlsx",
+url <- "https://www.cell.com/cms/10.1016/j.cell.2018.01.029/attachment/ede37821-fd6f-41b7-9a0e-9d5410855ae6/mmc2.xlsx"
+
+destination_for_url <- "/Shares/rinn_class/data/CLASS_2022/data/TF_annotations.xls"
+
+# to download we can use download.file
+
+download.file(url, destination_for_url)
+
+# The above is a handy bit of code for downloading data into R directly,but BASH works too
+
+# Download the file locally and let's look it over to see what we might want.
+```
+
+
+Now that we have the file we need to read it in. Since it's excel file we will use
+a new 'read' function (we have used 'read.table' & 'read.csv' etc).
+
+To this end we will use readX1 'read_excel' function.
+```{R}
+
+human_tfs <- readxl::read_excel("/Shares/rinn_class/data/CLASS_2022/data/TF_annotations.xls",
                                 sheet = 2, skip = 1)
 names(human_tfs)[4] <- "is_tf"
 
@@ -156,3 +211,6 @@ create a new directory in your analysis directory on your branch
 hint: make folders for each type of analysis (00 consensus peaks / 01 overlapps num_peaks_df)
 Load all the files needed to make the plots in 10_
 
+
+Since there are roughly similar lncRNA and mRNA promoters. Figure out which DBP seems to bind
+more lncRNA promoters than mRNA promoters 
