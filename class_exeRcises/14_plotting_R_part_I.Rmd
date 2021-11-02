@@ -322,6 +322,7 @@ What if we want to set the limits of the axes?
 We can use 'xlim' & 'ylim' in scale layer.
 
 ```{R}
+
 ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length, color = tf)) +
   geom_point() +
   xlim(1e3, 1e5) +
@@ -377,8 +378,6 @@ ggplot(num_peaks_df %>% filter(dbd %in% dbds),
        aes(x = num_peaks, y = total_peak_length )) +
   facet_grid(tf ~ dbd) + 
   geom_point()
-
-
 
 # Thus the ~ is telling which rows and columns are plotted
 
@@ -453,19 +452,10 @@ backgrounds, grid lines etc. We tend to use paper white as a defualt theme.
 We made a defualt theme that we can source at the begining of the
 document call _setup.R. Once loaded a "paper white" theme will be available.
 
-Let's look at example from 10_our_data_ranges where we called the theme.
-Note they don't have to be in the order we are learning them in :)
-
+Here is an example of a 'theme' is called in ggPlot
 
 ```{r}
 
-ggplot(data,aes(x=D1,y=D2,z=D3,color=Sample)) +
-  geom_point()
-
-```
-
-
-```{r}
 ggplot(num_peaks_df, aes(x = num_peaks)) + 
   geom_density(alpha = 0.2, color = "#424242", fill = "#424242") +
   theme_paperwhite() +
@@ -474,20 +464,22 @@ ggplot(num_peaks_df, aes(x = num_peaks)) +
   ggtitle("Promoter binding events",
           subtitle = "mRNA and lncRNA genes")
 
+# Note this example build everything from labels to data presentation!
 
+# Let's take a look at _setup.R
+# Nice, it basically calls a "function" in ggplot
+# You can change this as you please by going through each line (hint: google)
+```
 
-# we can see here how titles can easily be made with ggtile which
-# is in the "theme" layer of things.
+There are a number of built-in themes in addition to 
+the one we've provided. You can see them by typing theme_ 
+then autocomplete and check a few out! Here is cleavland :
 
-# There are a number of built-in themes in addition to 
-# the one we've provided. You can see them by typing theme_ 
-# then autocomplete and check a few out! Here is cleavland :
+```{r}
 
 ggplot(num_peaks_df, aes(x = num_peaks)) +
   geom_density() +
   theme_cleveland()
 
-
-# Go take a look at _setup.R and see the features of paper white!
 ```
 
