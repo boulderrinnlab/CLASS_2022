@@ -378,6 +378,8 @@ ggplot(num_peaks_df %>% filter(dbd %in% dbds),
   facet_grid(tf ~ dbd) + 
   geom_point()
 
+
+
 # Thus the ~ is telling which rows and columns are plotted
 
 ```
