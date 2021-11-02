@@ -233,7 +233,10 @@ ggplot(num_peaks_df, aes(x = num_peaks,
 
 Let's take a quick look at bar plots 
 we provide the x-axis and ggplot counts for Y.
+<<<<<<< HEAD
 We will also use this opportunity to look at level 3) STAT layer
+=======
+>>>>>>> e489f18b7b26e85ef33d00549e0ce9fddfd2be9d
 ```{r}
 
 # let's plot the number of each type of DBD in our set of DBPs 
@@ -253,7 +256,14 @@ ggplot(num_peaks_df, aes(
 # basically this allows you to command the y-axis 
 # but is very messy in this case
 
+<<<<<<< HEAD
 # let's look at a more realistic example when there is categorical data
+=======
+
+
+
+#TODO make a plot with a mean
+>>>>>>> e489f18b7b26e85ef33d00549e0ce9fddfd2be9d
 
 ggplot(num_peaks_df, aes(x = tf, 
                  y = total_peak_length
@@ -264,6 +274,7 @@ ggplot(num_peaks_df, aes(x = tf,
                shape = 2,
                size = 2)
 
+<<<<<<< HEAD
 # We can use a linear model to find the best trend-line
 
 ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
@@ -279,6 +290,13 @@ ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
 # ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   # geom_point() +
   # geom_abline(slope = lm_fit$coefficients[[1]], intercept = lm_fit$coefficients[[2]])
+=======
+lm_fit <- lm(num_peaks_df$num_peaks ~ num_peaks_df$total_peak_length)
+# is equivalent to
+geom_smooth(method = "lm")
+
+geom_abline(slope = lm_fit$coefficients[[2]], intercept = lm_fit$coefficients[[1]])
+>>>>>>> e489f18b7b26e85ef33d00549e0ce9fddfd2be9d
 ```
 
 Now we have gone through these layers:
