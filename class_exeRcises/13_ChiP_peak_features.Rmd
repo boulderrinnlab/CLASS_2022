@@ -205,37 +205,28 @@ We will make a matrix that records all the overlaps with all promoters.
 promoter_peak_occurence <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_peaks, 
                                                type = "occurrence")
 
-
 # Let's double check that all lncrna & mrna genes are accounted for:
 
 stopifnot(all(colnames(promoter_peak_occurence) == lncrna_mrna_promoters$gene_id))
 
-
 # Great we will use this quite a bit moving forward so let's write it out! 
 # we are going to write it out a tab seperated values (tsv) file
 # moving forward we will use (?read.tsv) to read this in and save us all that run time :)
+# DON'T OPEN THIS FILE IN THE ENVIRONMENT -- VERY LARGE MATRIX
 
 write.table(promoter_peak_occurence, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
 
 ```
 
 
-
+Now let's make the peak occurence matrix into a DF for easier access -- but not computation.
 ```{R}
 
-# Now we want to make into a data frame using the promoter annotations as rows and attributes as columns.
-# We will use lncrna_mrna_promoters to index "all promoters"
 # First make sure promoter_peak_occurence and lncrna_mrna_promoters are in the same order
 stopifnot(all(colnames(promoter_peak_occurence) == lncrna_mrna_promoters$gene_id))
 
 
-
-# We are going to use the promoter peak occurence matrix above to essentially
-# recreate a working version of num_peaks_df. However we will now organize it more
-# this is a good example of how to set up a bunch of columns in dataframe. using the
-# data.frame() fucntion.
-# essentially we will index values from the objects we created and make a .CSV 
-# to keep adding onto in future classes.
+# Now let's use the 'data.frame()' fucntion. Set up a bunch of colnames and populate them.
 
 peak_occurence_df <- data.frame("gene_id" = colnames(promoter_peak_occurence),
                                 "gene_name" = lncrna_mrna_promoters$gene_name,
@@ -244,18 +235,25 @@ peak_occurence_df <- data.frame("gene_id" = colnames(promoter_peak_occurence),
                                 "3kb_up_tss_start" = lncrna_mrna_promoters@ranges@start,
                                 "strand" = lncrna_mrna_promoters@strand,
                                 "number_of_dbp" = colSums(promoter_peak_occurence))
-# This is the CSV file we will start building upon adding columns of properties as we analyze them
-# The output file name will change based on what is added later, but the "peak_occurence_df" will be used throughout.
-write_csv(peak_occurence_df, "results/peak_occurence_dataframe.csv")
+
+# Go through each population index by highlighting and running
+
+
+# Let's write out this data frame -- all this code & run time is now encapsulated in one .csv :)
+
+write_csv(peak_occurence_df, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/peak_occurence_dataframe.csv")
+
+# Cool feel free to open this one -- even in excel :) 
 ```
 
 Excercise
 
-Broom environment
-create a new directory in your analysis directory on your branch
-hint: make folders for each type of analysis (00 consensus peaks / 01 overlapps num_peaks_df)
-Load all the files needed to make the plots in 10_
+Take a look at the peak_occurence_df and num_peaks_df -- find 3 things new that we haven't done yet. 
+
+Simple solutions:
+
+1) Which DBP has the most coverage of peaks in lncRNAs 
+2) Which non TF has the most peaks and genome coverage. How does it compare to those that are TFs
+3) percentage of peaks that overlap promoters versus gene bodies
 
 
-Since there are roughly similar lncRNA and mRNA promoters. Figure out which DBP seems to bind
-more lncRNA promoters than mRNA promoters 
