@@ -270,6 +270,7 @@ lm_fit <- lm(num_peaks_df$num_peaks ~ num_peaks_df$total_peak_length)
 # is equivalent to
 geom_smooth(method = "lm")
 
+
 geom_abline(slope = lm_fit$coefficients[[2]], intercept = lm_fit$coefficients[[1]])
 ```
 
