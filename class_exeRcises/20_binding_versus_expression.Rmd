@@ -41,7 +41,7 @@ Now let's read in the TPMs from salmon
 
 # missing need to rerun pipeline
 
-salmon_tpm <- read_tsv("/scratch/Shares/rinnclass/JR/CLASS_2021/rnaseq/results/star_salmon/salmon.merged.gene_tpm.tsv")
+salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/rnaseq/results/salmon/salmon_merged_transcript_tpm.csv")
 
 # We want to summarize the TPM values for each subcellular fraction, so we'll take the 
 # mean of the two replicates
@@ -49,7 +49,7 @@ salmon_tpm <- read_tsv("/scratch/Shares/rinnclass/JR/CLASS_2021/rnaseq/results/s
 tpm <- salmon_tpm %>% 
   pivot_longer(cols = 2:ncol(.), names_to = "sample_name", values_to = "tpm") %>%
   merge(samplesheet) %>%
-  group_by(gene_id, condition) %>%
+  group_by(transcript_id, condition) %>%
   summarize(tpm = mean(tpm, na.rm = T)) %>%
   pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
 ```
