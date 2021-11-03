@@ -11,24 +11,29 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("util/intersect_functions.R")
-source("util/plotting_functions.R")
-source("util/_setup.R")
+source("../util/intersect_functions.R")
+source("../util/plotting_functions.R")
+source("../util/_setup.R")
 library(Gviz)
 library(ggplot2)
 ```
 
+
+Alright time to start digging into the data for new results !!
+We have made a consensus peak file for each DBP and 
+Moreover, we have a data frame of a bunch of peak overlap features for each DBP.
+
+First let's load in the consensu peak files (this is something we always have to do)
 ```{r}
-# We have now have explored our function to make "consensus peaks". Now we want
-# to get them all into a named list of Granges (so we can track where the peaks are
-# and which chromosome they are on).
-# We can immediately start to analyze the results of our consensus peaks!
- 
-# First we will make a list of files (list.files) and then use lapply to run the "rtracklayer::import" function on the file list (fl)
-fl <- list.files("../../data/consensus_peaks", full.names=TRUE)
+
+fl <- list.files("../data/consensus_peaks", full.names=TRUE)
 consensus_peaks <- lapply(fl, rtracklayer::import, format = "bed")
+
+# Let's take a look since this is an important first step.
 consensus_peaks[[42]]$name %>%
   head()
+
+
 # Now we are going to use an unamed or annonymous function to add the name of 
 # the DBP associated with it's Granges. Here the function simply uses 'strsplit'
 # function to split the current consensus peak in X and append the name column
