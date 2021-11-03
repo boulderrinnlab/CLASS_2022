@@ -25,7 +25,6 @@ First let's read in the sample sheet to know what is what
 samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/samplesheet.csv")
 
 
-
 # The PCA plot in results showed us ENCODE had a label swapped.
 # Now we are fixing that to add the right labels after manual inspection
 
@@ -58,7 +57,8 @@ tpm <- salmon_tpm %>%
 Which tells us how many DBPs are bound at each promoter
 
 ```{r}
-promoter_features_df <- read.csv("/scratch/Shares/rinnclass/JR/CLASS_2021/analysis/01_global_peak_properties/results/peak_occurence_dataframe.csv")
+promoter_features_df <- read.csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/peak_occurence_dataframe.csv")
+
 # Now we can merge in the TPM data to this data.frame
 promoter_features_df <- merge(promoter_features_df, tpm)
 
