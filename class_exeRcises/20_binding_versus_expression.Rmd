@@ -3,6 +3,8 @@ title: "20_binding_vs_expression"
 author: "JR"
 date: "10/11/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -11,26 +13,32 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 library(tidyverse)
 library(GenomicRanges)
-# library(ggpubr)
-source("util/intersect_functions.R")
-source("util/_setup.R")
+library(ggpubr)
+source("../util/intersect_functions.R")
+source("../util/_setup.R")
 ```
 
 
-## Read in the sample sheet
+First let's read in the sample sheet to know what is what
+```{r read in sample_sheet}
 
-```{r}
-samplesheet <- read_csv("/scratch/Shares/rinnclass/JR/CLASS_2021/rnaseq/samplesheet.csv")
-# The cleanest thing to do would be to fix it on the design file and re-run the nf-core pipeline,
-# but for now we can swap it here.
+samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/samplesheet.csv")
+
+
+
+# let's change some of the col names.
+
 samplesheet[which(samplesheet$sample_name == "hepg2_R1"), "condition"] <- "insoluble_cytoplasmic_fraction"
 samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "total"
-# write_csv(samplesheet, "/scratch/Shares/rinnclass/data/samplesheet_fixed_condition.csv")
+
+
+write_csv(samplesheet, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/20_binding_vs_expression/results/samplesheet_fixed_condition.csv")
 ```
 
-## Read in the TPM data from salmon
 
-```{r}
+Now let's read in the TPMs from salmon
+```{r Salmon TPMs}
+
 salmon_tpm <- read_tsv("/scratch/Shares/rinnclass/JR/CLASS_2021/rnaseq/results/star_salmon/salmon.merged.gene_tpm.tsv")
 
 # We want to summarize the TPM values for each subcellular fraction, so we'll take the 
