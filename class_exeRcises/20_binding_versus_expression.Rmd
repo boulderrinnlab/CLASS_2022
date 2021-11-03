@@ -26,7 +26,8 @@ samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/samplesheet.c
 
 
 
-# let's change some of the col names.
+# The PCA plot in results showed us ENCODE had a label swapped.
+# Now we are fixing that to add the right labels after manual inspection
 
 samplesheet[which(samplesheet$sample_name == "hepg2_R1"), "condition"] <- "insoluble_cytoplasmic_fraction"
 samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "total"
