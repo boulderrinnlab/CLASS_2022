@@ -39,6 +39,8 @@ write_csv(samplesheet, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analy
 Now let's read in the TPMs from salmon
 ```{r Salmon TPMs}
 
+# missing need to rerun pipeline
+
 salmon_tpm <- read_tsv("/scratch/Shares/rinnclass/JR/CLASS_2021/rnaseq/results/star_salmon/salmon.merged.gene_tpm.tsv")
 
 # We want to summarize the TPM values for each subcellular fraction, so we'll take the 
