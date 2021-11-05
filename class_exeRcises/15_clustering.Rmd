@@ -194,9 +194,10 @@ Let's make a heatmap of the promoters -- since it will take a long long time to 
 
 high_binders <- peak_occurence_matrix[,colSums(peak_occurence_matrix) > 300]
 
-
 # Could filter out the rows that have zeros, but we don't have any
 min(rowSums(high_binders))
+
+# let's see the diversity of contributions of each DBP to high_binder_promoters
 
 hist(rowSums(high_binders))
 # this means that one DBP is only part of 26 of the 5,661 high binder promoters
@@ -223,11 +224,16 @@ Let's just cluster Zinc Finger proteins (most of unknown function)
 # Let's read in num_peaks_df
 num_peaks_df <- read_csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/num_peaks_df.csv")
 
-# we can now make a 
+# now let's make a zinc_finger_dbd data frame
 zinc_finger_dbd <- num_peaks_df %>% filter(dbd == "C2H2 ZF")
 
-# Index this matrix using the names
+# Now we will subset the high binder matrix we made with the
+# zinc_finger_dbd object we just made.
+
 zf_matrix <- high_binders[zinc_finger_dbd$dbp,] 
+
+# now the heatmap!
+
 pheatmap(zf_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
 
 
