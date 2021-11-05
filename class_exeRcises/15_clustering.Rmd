@@ -34,7 +34,7 @@ Ok let's get started by grabbing the peak_occurrence_matrix from 14_2_our_data_i
 #let's look at the promoter peak occurence matrix (takes a min to load)
 
 promoter_peak_occurence_matrix <- read.table("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
-
+promoter_peak_occurence_matrix <- as.matrix(promoter_peak_occurence_matrix)
 # Ok we see this is a very large matrix of 1 and 0 if a DBP is bound to a promoter.
 # We can use these 36,000+ vectors of genes with 483 values of bound (1) or unbound (0)
 
@@ -105,7 +105,7 @@ plot(bin_hier)
 dev.off()
 
 
-#TODO why order?
+# We can order this to save it
 # Now let's order the DBPs 
 bin_hier$labels[bin_hier$order]
 
@@ -193,15 +193,16 @@ Let's make a heatmap of the promoters -- since it will take a long long time to 
 
 # We'll start with the promoter peak occurrence and filter down to just those that have high numbers of dbps
 
-high_binders <- peak_occurence_matrix[,colSums(peak_occurence_matrix) > 300]
+high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 300]
 
 # Could filter out the rows that have zeros, but we don't have any
 min(rowSums(high_binders))
 
 # let's see the diversity of contributions of each DBP to high_binder_promoters
+# this means that one DBP is only part of 26 of the 5,661 high binder promoters
 
 hist(rowSums(high_binders))
-# this means that one DBP is only part of 26 of the 5,661 high binder promoters
+
 
 # Now let's make a heat map with pheatmap 
 library(pheatmap)
@@ -242,5 +243,22 @@ pheatmap(zf_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", 
 
 zf_hclust <- hclust(dist(zf_matrix, method = "binary"))
 plot(zf_hclust)
+```
+
+```{r}
+
+g2s <- bind_rows(lncrna_promoters %>% as.data.frame(),
+                 mrna_promoters %>% as.data.frame()) %>%
+  dplyr::select(gene_id, gene_name)
+promoter_dbps <- promoter_peak_occurence_matrix %>%
+  as.data.frame() %>%
+  rownames_to_column("dbp") %>%
+  pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
+  filter(occurrence == 1) %>%
+  dplyr::select(-occurrence) %>%
+  left_join(g2s)
+
+firre_promoter <- promoter_dbps %>%
+  filter(gene_name == "FIRRE")
 ```
 
