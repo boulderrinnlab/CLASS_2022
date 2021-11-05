@@ -29,7 +29,7 @@ other considerations for clustering.
 We can use those vectors of 1 and 0 to determine how similar the binding profiles are.
 
 Ok let's get started by grabbing the peak_occurrence_matrix from 14_2_our_data_in_ranges.
-```{r}
+```{r loading in promoter_peak_occurence_df}
 
 #let's look at the promoter peak occurence matrix (takes a min to load)
 
@@ -46,7 +46,7 @@ peak_occurence_matrix <- promoter_peak_occurence_matrix[rowSums(promoter_peak_oc
 
 Let's get started by finding the 'distance' between each promtoer vector.
 We will make a distance matrix of 451 x451 and then use that for clustering.
-```{r}
+```{r calculating distance matrix}
 
 # First let's take a look at the matrix
 
@@ -78,7 +78,7 @@ peak_occurence_dist <- dist(peak_occurence_matrix, method = "binary")
 Now that we have that, we can do hierarchical clustering. In brief, this will cluster 
 vectors that have small distances (high correlation), and will iterate that process until
 everything is in the same cluster.
-```{R}
+```{R hclust of distance matrix}
 # let's take a look at hclust
 
 ?hclust
@@ -116,7 +116,8 @@ bin_hier$labels[bin_hier$order]
 
 Nice so we now have object "bin_hier" that will contain all the cross correlation values across all the samples. 
 Now let's use ggdenro package that will plot the branch lengths that indicate how similar two samples are 
-```{r}
+```{r ggdendro gram}
+
 
  ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3, 
                        theme_dendro = TRUE) +
