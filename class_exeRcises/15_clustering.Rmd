@@ -74,14 +74,24 @@ test2
 
 peak_occurence_dist <- dist(peak_occurence_matrix, method = "binary")
 
-# Now that we have that, we can do hierarchical clustering. In brief, this will cluster more closely
-# vectors that have small distances, and will iterate that process until everything is in the same cluster.
+```
+
+Now that we have that, we can do hierarchical clustering. In brief, this will cluster 
+vectors that have small distances (high correlation), and will iterate that process until
+everything is in the same cluster.
+
+
+```{R}
+# let's take a look at hclust
+
 ?hclust
 
 
-# Hierarchical clustering with binary distance measure
+# Alright we are ready to cluster everything!
+
 bin_hier <- hclust(peak_occurence_dist, method = "complete")
 
+# we now need to plot the information in bin_hier
 plot(bin_hier)
 
 # To make this bigger, we can plot it as a pdf
