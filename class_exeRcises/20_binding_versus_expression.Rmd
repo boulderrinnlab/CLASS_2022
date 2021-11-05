@@ -1,7 +1,7 @@
 ---
 title: "20_binding_vs_expression"
 author: "JR"
-date: "10/11/2021"
+date: "11/4/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -41,15 +41,15 @@ Now let's read in the TPMs from salmon
 
 # missing need to rerun pipeline
 
-salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/rnaseq/results/salmon/salmon_merged_transcript_tpm.csv")
+salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/rnaseq/results/salmon/salmon_merged_gene_tpm.csv")
 
 # We want to summarize the TPM values for each subcellular fraction, so we'll take the 
 # mean of the two replicates
 
 tpm <- salmon_tpm %>% 
-  pivot_longer(cols = 2:ncol(.), names_to = "sample_name", values_to = "tpm") %>%
+  pivot_longer(cols = 2:ncol(.), names_to = "sample_id", values_to = "tpm") %>%
   merge(samplesheet) %>%
-  group_by(transcript_id, condition) %>%
+  group_by(gene_id, condition) %>%
   summarize(tpm = mean(tpm, na.rm = T)) %>%
   pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
 ```
@@ -82,6 +82,7 @@ tpm_scaled <- t(scale(t(tpm_matrix)))
 
 # We want to be sure that we're not removing rows that have NA in only one fraction.
 # And right now we're not sure.
+summary(is.na(tpm_matrix))
 
 # Remove NAs with the complete.cases function
 ?complete.cases
