@@ -3,6 +3,8 @@ title: "15_clustering"
 author: "JR"
 date: "10/11/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -11,29 +13,32 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggdendro)
 library(GenomicRanges)
-source("util/intersect_functions.R")
-source("util/plotting_functions.R")
-source("util/_setup.R")
+source("../../../util/intersect_functions.R")
+source("../../../util/plotting_functions.R")
+source("../../../util/_setup.R")
 ```
 
-The goal for today is to "cluster" the 438 DBPs to find which ones have similar binding profiles across the genome -- and those that are different. 
+Today we are going to use hierarchical clustering to identify DBPs with similar binding patterns.
 
-A lot of what we are going to do today was set up in 10_our_data_ranges and a good 
-example of how you want to make output files for future analyses.
+In brief, this involves calculating the distance (euclidian or spearman) between all pairwise 
+comparisons of DBP binding profiles. We have made a matrix of 1 and 0 if a DBP is bound at a 
+given genome annotation feature (e.g., promoter, gene-body). This is a binary clustering and 
+if we cluster a continuous variable (e.g. RNAseq expression levels) then we may want to make 
+other considerations for clustering.
 
-Let's start by refreshing our memory of what all went down in 10_our_data_ranges.
+We can use those vectors of 1 and 0 to determine how similar the binding profiles are.
 
-Briefly we did 2 really good things that we will need:
+Ok let's get started by grabbing the peak_occurrence_matrix from 14_2_our_data_in_ranges.
 
-1) We made a list of (i) all promoters (ii) lncRNA promoters only (iii) mRNA promoters
-2) We made a "tag_matrix" (.tsv) that is comprised of columns for each dbp. Rows are the DBP and filled 1 or 0 if that DBP binds to a given promoter. Or:
+```{r}
 
-Promoter 1, 2, 3, ....
-DBP      0, 0, 1,....
+#let's look at the promoter peak occurence matrix (takes a min to load)
 
-Thus, each row has ~36,000 1/0 for a given DBP. This is binary data (1/0) and not contious data. We need to consider that when clustering as these similarity measurements will be influenced by continious or binary data.
+promoter_peak_occurence_matrix <- read.table("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv", sep = '\t')
+```
 
-Here is what we did in 10_our_data_ranges:
+
+
 ```{r}
 # We loaded Gencode annotaitons to get all the genome annotations. 
 
