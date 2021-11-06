@@ -243,17 +243,42 @@ pheatmap(zf_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", 
 
 zf_hclust <- hclust(dist(zf_matrix, method = "binary"))
 plot(zf_hclust)
+
+# now let's save it as a PDF
+
+pdf("figures/zfn_clustering.pdf")
+zf_hclust <- hclust(dist(zf_matrix, method = "binary"))
+plot(zf_hclust)
+dev.off()
+
 ```
 
-```{r}
+While we have all these objects in our environment
+let's go ahead and make another data frame.
+This will be which DBPs are bound to which promoter.
+Thus you can simply look up your favorite promoter 
+and retreive all the DBPs bound to it.
+```{r DBPs bound to a given promoter}
 
-g2s <- bind_rows(lncrna_promoters %>% as.data.frame(),
+# We can either read in lncrna_mrna_promoters or merge from here
+
+DBPs_on_promoter <- bind_rows(lncrna_promoters %>% as.data.frame(),
                  mrna_promoters %>% as.data.frame()) %>%
   dplyr::select(gene_id, gene_name)
+
+# This merged the two objects in the environment and made them
+# as data frames. How handy is tidyverse!
+
 promoter_dbps <- promoter_peak_occurence_matrix %>%
   as.data.frame() %>%
   rownames_to_column("dbp") %>%
+
+# here we just made a column that has the DBP name
+# currently it is a "meta" name
+
   pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
+
+#
   filter(occurrence == 1) %>%
   dplyr::select(-occurrence) %>%
   left_join(g2s)
