@@ -278,12 +278,50 @@ promoter_dbps <- promoter_peak_occurence_matrix %>%
 
   pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
 
-#
+# This now a very long matrix - let's get rid of all zero values
+   
   filter(occurrence == 1) %>%
   dplyr::select(-occurrence) %>%
-  left_join(g2s)
+  left_join(promoter_dbps)
+
+# let's write this out it's a very handy DF!
+
+write.csv(promoter_dbps, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/promoter_dbps.csv")
+
+```
+
+Cool now we can select any gene and see what DBPs are bound?
+```{R}
+
+# In the future if we want to filter on genes we can just read this back in.
+# test <- read.csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/promoter_dbps.csv")
+
+# let's see what's on FIRRE
 
 firre_promoter <- promoter_dbps %>%
   filter(gene_name == "FIRRE")
+
+# GAPDH
+
+GAPDH_promoter <- promoter_dbps %>%
+  filter(gene_name == "GAPDH")
+
+# trying to find a small binder :)
+
+XIST_promoter <- promoter_dbps %>%
+  filter(gene_name == "XIST")
+
+# let's look
+
+XIST_promoter
+
+# Interesting, intuition was correct considering
+# this is a male cell line :) but what is bound is interesting
+# Note to self STAG1/CTCF is very interesting!
 ```
 
+Challenge: 
+
+Repeat all code with promoter windows of size +1kb / -.5kb
+
+How do the clustering results change?
