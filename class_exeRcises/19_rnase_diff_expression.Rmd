@@ -22,7 +22,7 @@ Today we will performing differential expression on HEPG2 RNAseq data.
 We will focus on comparing nuclear versus cytoplasmic RNAs.
 
 First let's read in teh sample sheet in our data folder
-```{r}
+```{r import sample sheet}
 samplesheet <- read_csv("../../data/samplesheet.csv")
 
 # For now we want to select just a subset of these samples
@@ -32,7 +32,7 @@ samplesheet_filtered <- samplesheet %>%
 ```
 
 Now let's read in the genome features also in our data folder
-```{r}
+```{r import genome features}
 # We want to include the gene annotation info in the DEseq2 object,
 # so we'll need to read that in.
 gencode_gtf <- rtracklayer::import("../../data/gencode.v32.annotation.gtf")
@@ -43,29 +43,39 @@ genes <- gencode_gtf[gencode_gtf$type == "gene"]
 
 ```
 
-```{R}
+We still need a bit more organizing of transcripts and gene ids.
+```{R importing and organizing salmon gene quantification}
+
 # Salmon's primary level of quantifying is at the transcript-level.
 # Since we're doing differential expression at the gene-level
 # Salmon needs to be able to map transcripts to genes.
+
 tx2gene <- gencode_gtf[gencode_gtf$type == "transcript"] %>% 
   as.data.frame() %>%
   dplyr::select(transcript_id, gene_id)
 
-# We'll also create an object that maps gene IDs to gene symbols
+# Let's also also create an object that maps gene IDs to gene symbols
 # This will come in handy in looking at our results
 g2s <- genes %>% as.data.frame() %>%
   dplyr::select(gene_id, gene_name)
 ```
 
+
+Ok, next step is to read in GENE COUNTS (not TPM)
+This was exported from the NF_CORE RNAseq pipeline in the
+salmon folder. We want "salmon_merged_gene_counts.csv
 ```{r}
-# Read in the count data from salmon
+
 # For DESeq2 we want the raw counts
 # The easiest way to import it in the proper format is to 
 # use the tximport package
-files <- file.path("rnaseq/results/star_salmon",
-                   samplesheet$sample_name, 
-                   "samlon_merged_gene_counts.csv")
-names(files) <- samplesheet$sample_name
+?tximport
+
+# now let's make a list of RNAseq files
+files <- file.path("../../../data/rnaseq/results/star_salmon",
+                   samplesheet_filtered$sample_id, 
+                   "samlon_gene_counts.csv")
+names(files) <- samplesheet_filtered$sample_id
 
 txi <- tximport(files, type = c("salmon"), tx2gene = tx2gene)
 ```
