@@ -3,6 +3,8 @@ title: "19_Rnaseq_diff_expression"
 author: "JR"
 date: "10/11/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -12,27 +14,36 @@ library(tidyverse)
 library(tximport)
 library(DESeq2)
 
-source("util/plotting_functions.R")
-source("util/_setup.R")
+source("../util/plotting_functions.R")
+source("../util/_setup.R")
 ```
 
-Read in the count data.
+Today we will performing differential expression on HEPG2 RNAseq data.
+We will focus on comparing nuclear versus cytoplasmic RNAs.
 
+First let's read in teh sample sheet in our data folder
 ```{r}
-samplesheet <- read_csv("rnaseq/samplesheet.csv")
+samplesheet <- read_csv("../../data/samplesheet.csv")
 
-# We want to select just a subset of these samples
+# For now we want to select just a subset of these samples
 # so that we can run differential expression for two conditions
-samplesheet <- samplesheet %>%
+samplesheet_filtered <- samplesheet %>%
   filter(condition %in% c("cytosolic_fraction", "nuclear_fraction"))
 ```
 
+Now let's read in the genome features also in our data folder
 ```{r}
 # We want to include the gene annotation info in the DEseq2 object,
 # so we'll need to read that in.
-gencode_gtf <- rtracklayer::import("/scratch/Shares/rinnclass/data/genomes/gencode.v32.annotation.gtf")
-genes <- gencode_gtf[gencode_gtf$type == "gene"]
+gencode_gtf <- rtracklayer::import("../../data/gencode.v32.annotation.gtf")
 
+# Let's reduce this big GRanges list to just genes
+genes <- gencode_gtf[gencode_gtf$type == "gene"]
+# in 'list info' we can see gene_id and gene_name
+
+```
+
+```{R}
 # Salmon's primary level of quantifying is at the transcript-level.
 # Since we're doing differential expression at the gene-level
 # Salmon needs to be able to map transcripts to genes.
@@ -53,7 +64,7 @@ g2s <- genes %>% as.data.frame() %>%
 # use the tximport package
 files <- file.path("rnaseq/results/star_salmon",
                    samplesheet$sample_name, 
-                   "quant.sf")
+                   "samlon_merged_gene_counts.csv")
 names(files) <- samplesheet$sample_name
 
 txi <- tximport(files, type = c("salmon"), tx2gene = tx2gene)
