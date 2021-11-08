@@ -13,6 +13,7 @@ options(stringsAsFactors = FALSE)
 library(tidyverse)
 library(tximport)
 library(DESeq2)
+library(ggrepel)
 
 source("../../../util/plotting_functions.R")
 source("../../../util/_setup.R")
@@ -25,8 +26,8 @@ First let's read in teh sample sheet in our data folder
 ```{r import sample sheet}
 samplesheet <- read_csv("../../../data/samplesheet.csv")
 
-# For now we want to select just a subset of these samples
-# so that we can run differential expression for two conditions
+# For now we are just comparing nuclear versus cytoplasmic so let's filter:
+
 samplesheet_filtered <- samplesheet %>%
   filter(condition %in% c("cytosolic_fraction", "nuclear_fraction"))
 ```
@@ -34,119 +35,75 @@ samplesheet_filtered <- samplesheet %>%
 Now let's read in the genome features also in our data folder
 
 ```{r import genome features}
-# We want to include the gene annotation info in the DEseq2 object,
-# so we'll need to read that in.
+
+# Importing genome annotations
 gencode_gtf <- rtracklayer::import("../../../data/gencode.v32.annotation.gtf")
 
 # Let's reduce this big GRanges list to just genes
 genes <- gencode_gtf[gencode_gtf$type == "gene"]
-# in 'list info' we can see gene_id and gene_name
 
-```
+# in 'list info' we can see gene_id and gene_name (note copy link in R Studio !!)
+genes@elementMetadata@listData[["gene_id"]]
+genes@elementMetadata@listData[["gene_name"]]
 
-We still need a bit more organizing of transcripts and gene ids.
+# Cool so we know where are gene names and ids are.
 
-```{R importing and organizing salmon gene quantification}
-
-# Salmon's primary level of quantifying is at the transcript-level.
-# Since we're doing differential expression at the gene-level
-# Salmon needs to be able to map transcripts to genes.
-
-#tx2gene <- gencode_gtf[gencode_gtf$type == "transcript"] %>% 
-#as.data.frame() %>%
-#dplyr::select(transcript_id, gene_id)
-
-# Let's also also create an object that maps gene IDs to gene symbols
-# This will come in handy in looking at our results
-g2s <- genes %>% as.data.frame() %>%
-  dplyr::select(gene_id, gene_name)
 ```
 
 Ok, next step is to read in GENE COUNTS (not TPM) This was exported from the NF_CORE RNAseq pipeline in the salmon folder. We want "salmon_merged_gene_counts.csv
-
-```{r}
-
-# For DESeq2 we want the raw counts
-# The easiest way to import it in the proper format is to 
-# use the tximport package
-?tximport
-
-# now let's make a list of RNAseq files
-# files <- file.path("../../../data/rnaseq/results/star_salmon",
-#                    samplesheet_filtered$sample_id, 
-#                    "samlon_gene_counts.csv")
-# names(files) <- samplesheet_filtered$sample_id
-# 
-# txi <- tximport(files, type = c("salmon"), tx2gene = tx2gene)
+```{r reading in salmon counts convert to matrix}
 
 # DEseq requires a matrix of raw counts
 counts <- read_csv("/Shares/rinn_class/data/CLASS_2022/data/rnaseq/results/salmon/salmon_merged_gene_counts.csv") %>%
+  # this will remove the gene_id column and use it as 'meta' data in matrix
   column_to_rownames("gene_id") %>%
   as.matrix()
 
-####
-samplesheet <- read_csv("../../../data/samplesheet.csv")
+# Nice now we have a matrix we need to import to DeSeq
+# But first we still have some more file cleaning up to do
+```
 
-# Right now the samples are named with the sample id
-# but in the samplesheet there is a much more interpretable name
-# Let's put the counts columns in the same order as the samplesheet
+
+Cleaning up samples sheet to just nuclear and cytoplasmic
+with more accessible names that the ENCODE accession number.
+```{R}
+
+# First let's put the counts columns in the same order as the samplesheet
 counts <- counts[,samplesheet$sample_id]
+
+# This is a handy check point to make sure the labels in 
+# sample sheet and counts are similar
 all(colnames(counts) == samplesheet$sample_id)
+
 # Now we know they're in the same order, and we can change the names
 colnames(counts) <- samplesheet$sample_name
 
 
-# For now we want to select just a subset of these samples
-# so that we can run differential expression for two conditions
+# Now we will filter the sample sheet to just nuclear and cytoplasmic
+# **** for class exercise you may want to run the lines below that round 
+# numbers and get everything ready for DeSeq2. Then filter later.*****
+
 samplesheet_filtered <- samplesheet %>%
   filter(condition %in% c("cytosolic_fraction", "nuclear_fraction"))
 
-
-
-rownames(counts)
-colnames(counts)
-
-
-
 ```
 
+We are almost ready, just a few more things to double check
+For example, that the sample sheet and the counts are in right order.
+Moreover, DeSeq2 requires integers and that condition is a factor.
 ```{r}
-# Will be adding the gene information, the count data, and the sample information
-# to the DESeq function. We want to ensure that all of this data is synced up
-# # So we need to reorder the data so that it's all matching.
-# names(genes) <- genes$gene_id
-# genes <- genes[rownames(txi$counts)]
-# stopifnot(all(genes$gene_id == rownames(txi$counts)))
-# 
-# # Create rownames for the sample sheet and then use that to re-order
-# samplesheet <- samplesheet %>%
-#   mutate(row_names = sample_name) %>%
-#   column_to_rownames("row_names")
-# samplesheet <- samplesheet[colnames(txi$counts),]
-# stopifnot(all(rownames(samplesheet) == colnames(txi$counts)))
-```
-
-The DESeq2 function requires gene information in GRanges format, the count data, and the sample information.
-
-```{r}
-# The conditions that we'll be comparing here are 
-# are nuclear and cytoplasmic fractions
-# Normally with WT and knockout experiments, you'd
-# compare the treatment (KO) condition back to the control
-# condition (WT)
-# Here we don't really have an obvious choice of "control"
-# So let's just choose to compare back to nuclear as our control
-# To do that we make it the first level of the factor
-# samplesheet$condition <- factor(samplesheet$condition, levels = c("nuclear_fraction", "cytosolic_fraction"))
-
-# Now we have all the components that we need to add to the 
-# DESeq2 function. So now let's create our DEseq2 object
 
 # make sure the count columns and the sample rows are in the same order
 # we're using a subset, so this will also filter to just the cols that we want.
 dim(counts)
+
 samplesheet_filtered$sample_name %in% colnames(counts)
-counts <- counts[, samplesheet_filtered$sample_name]
+# Cool, the 4 samples in filtered are same as counts
+
+# now we will reduce the counts matrix to just these 4 samples.
+counts_nuc_cyto <- counts[, samplesheet_filtered$sample_name]
+
+
 rownames(samplesheet_filtered) <- samplesheet_filtered$sample_name
 stopifnot(all(rownames(samplesheet_filtered) == colnames(counts)))
 
@@ -216,7 +173,7 @@ rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
   select(sample_name, PC1, PC2)
 rld_prcomps <- merge(samplesheet, rld_prcomps)
 # install.packages("ggrepel")
-library(ggrepel)
+
 
 g <- ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate))
 g + geom_point() +
