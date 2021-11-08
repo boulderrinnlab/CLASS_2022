@@ -14,8 +14,8 @@ library(tidyverse)
 library(tximport)
 library(DESeq2)
 
-source("../util/plotting_functions.R")
-source("../util/_setup.R")
+source("../../../util/plotting_functions.R")
+source("../../../util/_setup.R")
 ```
 
 Today we will performing differential expression on HEPG2 RNAseq data.
