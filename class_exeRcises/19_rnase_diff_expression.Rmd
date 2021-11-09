@@ -56,15 +56,9 @@ genes@elementMetadata@listData[["gene_id"]]
 genes@elementMetadata@listData[["gene_name"]]
 
 # cool let's write these out.
+# /Shares/rinn_class/data/CLASS_2022/data/genome_features
 
-
-
-/Shares/rinn_class/data/CLASS_2022/data/genome_features
-
-# in 'list info' we can see gene_id and gene_name (note copy link in R Studio !!)
-
-
-# Cool so we know where are gene names and ids are.
+# Nice now we have a handy conversion table of gene_id & gene_name
 ```
 
 Ok, next step is to read in GENE COUNTS (not TPM) This was exported from the NF_CORE RNAseq pipeline in the salmon folder. We want "salmon_merged_gene_counts.csv
@@ -77,49 +71,84 @@ counts <- read_csv("/Shares/rinn_class/data/CLASS_2022/data/rnaseq/results/salmo
   as.matrix()
 
 # Nice now we have a matrix we need to import to DeSeq
-# But first we still have some more file cleaning up to do
+# However it has all the samples so we need to orgnize a bit.
 ```
 
 Cleaning up samples sheet to just nuclear and cytoplasmic with more accessible names that the ENCODE accession number.
 ```{R}
 
 # First let's put the counts columns in the same order as the samplesheet
+# If they are not then we would essentially be randomizing our data later!!
+
 counts <- counts[,samplesheet$sample_id]
 
 # This is a handy check point to make sure the labels in 
 # sample sheet and counts are similar
+
 all(colnames(counts) == samplesheet$sample_id)
 
 # Now we know they're in the same order, and we can change the names
+
 colnames(counts) <- samplesheet$sample_name
 
 
 # Now we will filter the sample sheet to just nuclear and cytoplasmic
-# **** for class exercise you may want to run the lines below that round 
-# numbers and get everything ready for DeSeq2. Then filter later.*****
+
 
 samplesheet_filtered <- samplesheet %>%
   filter(condition %in% c("cytosolic_fraction", "nuclear_fraction"))
 
+# Nice now we have a reduced sample sheet that is well organized.
+
+# **** for class exercise you may want to run the lines below that round 
+# numbers and get everything ready for DeSeq2. Then filter later.*****
+# This way you can run DeSeq2 on other comparisons that could be useful!
 ```
 
-We are almost ready, just a few more things to double check For example, that the sample sheet and the counts are in right order. Moreover, DeSeq2 requires integers and that condition is a factor.
+We are almost ready, just a few more things to double check:
 
+Triple check that the sample sheet and the counts are in right order. 
+Reduce the sample and counts to just nuclear and cytoplasmic samples.
 ```{r}
 
-# make sure the count columns and the sample rows are in the same order
-# we're using a subset, so this will also filter to just the cols that we want.
-dim(counts)
+# Next, let's triple check that the reduced sample sheet and counts
+# have the same sample names.
 
 samplesheet_filtered$sample_name %in% colnames(counts)
+
 # Cool, the 4 samples in filtered are same as counts
-
-# now we will reduce the counts matrix to just these 4 samples.
-counts_nuc_cyto <- counts[, samplesheet_filtered$sample_name]
-
+# Now let's look at samplesheet_filtered.
+# Not the rownames are numbers -- this is 'meta' information we need.
+# So let's make the rownames the names of the samples.
 
 rownames(samplesheet_filtered) <- samplesheet_filtered$sample_name
-stopifnot(all(rownames(samplesheet_filtered) == colnames(counts)))
+# Now if we look at this object we see rownames as sample_name - nice.
+
+# now we will reduce the counts matrix to just these 4 samples.
+
+counts_nuc_cyto <- counts[, samplesheet_filtered$sample_name]
+
+# This is a good way to triple check everything is in order.
+
+stopifnot(all(rownames(samplesheet_filtered) == colnames(counts_nuc_cyto)))
+# Great this evaluated to true and thus moved on -- we would get an error message otherwise.
+
+
+
+
+
+
+
+```
+
+We are almost ready, last things to check:
+
+DeSeq2 requires integer data and that condition is a factor. We will make
+sure these data files are in the right data format (good example of data types in R!)
+
+Most importantly we need to add a 'meta' factor for DeSeq to know which order the samples
+were analyzed -- this is critical !! Log fold change doesn't mean much with out knowing the order.
+```{R}
 
 # The first factor level is the "control" and all the other levels
 # will be compared back to it.
