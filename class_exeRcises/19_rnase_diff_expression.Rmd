@@ -57,6 +57,13 @@ genes@elementMetadata@listData[["gene_id"]]
 genes@elementMetadata@listData[["gene_name"]]
 #TODO export mRNA and lncRNA annotations for RNAseq Analyse??
 
+# let's make an object of gene_id and names
+# we just saw above we can get both gene_id and name from 'genes'
+# We can convert to DF for readability.
+
+g2s <- genes %>% as.data.frame() %>%
+  dplyr::select(gene_id, gene_name)
+
 # cool let's write these out.
 # /Shares/rinn_class/data/CLASS_2022/data/genome_features
 
@@ -249,54 +256,97 @@ But now let's see how similar and different the samples and replicates are with 
 To do this we will use Principle Component Analysis (PCA)
 ```{r}
 # The first thing that we'll want to do is make a PCA plot.
+# we will use another base R function called 'assay()'
+# This will summarize the matrix values of each sample
+# 'prcomp()' is the principle component analysis function.
+
+?prcomp
+?assay
 
 rld_pca <- prcomp(t(assay(rlog_counts)))
 rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
+  # note that x is in rld_pca as the PCA values
   rownames_to_column("sample_name") %>%
   select(sample_name, PC1, PC2)
 rld_prcomps <- merge(samplesheet, rld_prcomps)
 # install.packages("ggrepel")
 
 
-g <- ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate))
-g + geom_point() +
-  geom_text_repel()
+ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate))
+geom_point() +
+geom_text_repel()
 
 ```
 
+Now let's look deeper into the results held in dds object
 ```{r}
-# Now we can check out the results from this analysis.
+
+# let's check out dds
 resultsNames(dds)
+
+# not very interesting because it's an DESeq object.
+# 'results' is a DESeq function that can extract results.
+# ?results
+
 res <- results(dds, name = "condition_cytosolic_fraction_vs_nuclear_fraction")
 
 # It's easier to view it as a data.frame so we'll convert it.
 res_df <- res %>% as.data.frame() %>%
   rownames_to_column("gene_id") %>%
   merge(g2s)
+
+# Nice now we have a DF with a lot of good info for each gene.
+
+# Let's save this dataframe !!
+
+write.csv2(res_df, "results/nuc_cyto_diff_expression_res_df.csv")
 ```
 
-Making a valcano plot
+Let's make some standard RNAseq or gene-expression plots:
 ```{r}
-# We can now make some standard plots to check out these results
 
+# First let's take a look at res_df
+# What is the most nuclear RNA? Most cytoplasmic? Does that make sense?
+
+# Now we can look at the data with some standard QC plots:
+
+#TODO add color (color by noncoding or not?)
 # Volcano plot
-ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj))) + 
+ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = -log10(padj > 90))) + 
   geom_point()
 
-# MA plot
+
+# MA plot (this make a take a min)
 ggplot(res_df, aes(x = log10(baseMean), y = log2FoldChange)) + 
   geom_point()
 
-# P-value histogram
+# This is a good QC plot and shows the pvalues are not biased to low "base-mean" levels
+
+# let's see the range of pvalues:
 hist(res_df$padj)
+
+# how many genes above 0.05 padj?
+
+num_sig <- res_df$padj < 0.05
+summary(num_sig)
+
+# We see about 14,268 genes are differentiall expressed.
 ```
 
-```{r}
-# Now on your own, find the top 10 genes that are nuclear vs. cytoplasmic.
-# There's lots more to explore with this type of data and these results
-# and we're opening to exploring more if you guys would like!
-# This is just the very basics.
-```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # DESeq with all subcellular fractions
 
