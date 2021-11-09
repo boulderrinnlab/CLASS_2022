@@ -247,7 +247,6 @@ pdf("figures/nuc_cyto_var_genes_heatmap.pdf")
 pheatmap(scaled_counts, show_rownames = FALSE)
 dev.off()
 
-
 ```
 
 
@@ -296,10 +295,6 @@ res_df <- res %>% as.data.frame() %>%
   merge(g2s)
 
 # Nice now we have a DF with a lot of good info for each gene.
-
-# Let's save this dataframe !!
-
-write.csv2(res_df, "results/nuc_cyto_diff_expression_res_df.csv")
 ```
 
 Let's make some standard RNAseq or gene-expression plots:
@@ -334,7 +329,42 @@ summary(num_sig)
 ```
 
 
+Let's now save res_df as a data.frame!
 
+```{r}
+
+# write.csv2 didn't work for some reason??
+
+# Let's save this dataframe !!
+
+write.table(res_df, "results/nuc_cyto_diff_expression_res_df.csv")
+
+
+
+test <- read.table("results/nuc_cyto_diff_expression_res_df.csv")
+
+
+
+
+res_df_nuc_cyto <- data.frame("gene_id" = character(), 
+                     "baseMean" = numeric(), 
+                     "log2FoldChange" = numeric(), 
+                     "lfcSE" = numeric(),
+                     "stat" = numeric(),
+                     "pvalue" = numeric(),
+                     "padj" = numeric(),
+                     "gene_name" = character(),
+                     "result_name" = character())
+
+
+
+
+
+
+
+
+
+```
 
 
 
