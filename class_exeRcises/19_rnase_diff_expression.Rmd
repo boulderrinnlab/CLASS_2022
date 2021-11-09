@@ -14,6 +14,7 @@ library(tidyverse)
 library(tximport)
 library(DESeq2)
 library(ggrepel)
+library(pheatmap)
 
 source("../../../util/plotting_functions.R")
 source("../../../util/_setup.R")
@@ -54,6 +55,7 @@ genes <- gencode_gtf[gencode_gtf$type == "gene"]
 #TODO how to export two columns into GTF so RTACKLAYER can reimport?
 genes@elementMetadata@listData[["gene_id"]]
 genes@elementMetadata@listData[["gene_name"]]
+#TODO export mRNA and lncRNA annotations for RNAseq Analyse??
 
 # cool let's write these out.
 # /Shares/rinn_class/data/CLASS_2022/data/genome_features
@@ -133,12 +135,6 @@ counts_nuc_cyto <- counts[, samplesheet_filtered$sample_name]
 stopifnot(all(rownames(samplesheet_filtered) == colnames(counts_nuc_cyto)))
 # Great this evaluated to true and thus moved on -- we would get an error message otherwise.
 
-
-
-
-
-
-
 ```
 
 We are almost ready, last things to check:
@@ -150,65 +146,109 @@ Most importantly we need to add a 'meta' factor for DeSeq to know which order th
 were analyzed -- this is critical !! Log fold change doesn't mean much with out knowing the order.
 ```{R}
 
+# NOTE: DeSeq wants the control as a factor (fct), currently (chr)
 # The first factor level is the "control" and all the other levels
 # will be compared back to it.
+
+# Let's make the condition a factor:
+
 samplesheet_filtered$condition <- factor(samplesheet_filtered$condition, 
                                          levels = c("nuclear_fraction", "cytosolic_fraction"))
 
+# now we see condition became a factor!
+# So now a log fold change of < 1 = cytosolic, and greater than 1 = nuclear.
+# This is subtle but important.
 
-# DESeq2 needs an integer count matrix.
-# featureCounts will provide integer counts
-# but because salmon is fancy and uses the 
-# transcript level counts to summarize to gene level
-# the count data is continous. We need to round it to 
-# the nearest integer
-counts <- round(counts)
-mode(counts) <- "integer"
+# Ok now we need to turn the counts into integer data (int)
 
-# One other thing that can be done is to filter out the
-# genes with low counts across the dataset.
-# This will subtly change the results.. but I believe it is subtle
-counts_filtered <- counts[rowSums(counts) > 1,]
+counts <- round(counts_nuc_cyto)
+# This will round the counts, but still need to change to integer
+
+mode(counts_nuc_cyto) <- "integer"
+# We just coerced the data to integer and can now see that in env (int).
+
+# Ok, one final step filtering some of the gene counts out.
+# Let's fileter to genes that have at least one count across cols.
+nuc_cyto_counts_filtered <- counts[rowSums(counts) > 1,]
+
+```
 
 
-dds <- DESeqDataSetFromMatrix(countData = counts_filtered,
+Ok we are now ready for 'DeSeq land' we will be calling several
+functions from DeSeq. We need to know a few things that DeSeq requires.
+We will explore these now.
+```{R}
+
+# we dirst set up a dds (Distributed Data-structures in R)
+# we have created a count matrix and thus will use 'DESeqDataSetFromMatrix'
+# the params for this are:
+# 'countData' (the counts matrix)
+# 'coldData' where to get column data for which samples are which 
+# design is the analysis model and we are using condition column in sample sheet.
+
+
+dds <- DESeqDataSetFromMatrix(countData = nuc_cyto_counts_filtered,
                               colData = samplesheet_filtered,
                               design = ~ condition)
 
-dds <- DESeq(dds)
-###
-rlog_counts <- rlog(dds, blind = TRUE)
-rlog_counts_matrix <- assay(rlog_counts)
+# after creating the dds we run the DESeq function on this dds.
+# NOW WE RUN DESEQ !!
 
+dds <- DESeq(dds)
+
+#TODO write this out to save all this in the future??
+
+```
+
+
+Now let's cluster the data and make a heatmap of differntially expressed genes in nuc/cyto.
+Fist we need the right type of normalized quantificaiton across samples that DESeq provided
+```{R}
+
+# Deseq porvided us with a really useful normalized quantification in RNAseq.
+# to retrieve this we use the DESeq function 'rlog'
+
+rlog_counts <- rlog(dds, blind = TRUE)
+# we see this is a DESeq object - let's transform into a matrix for clustering.
+
+rlog_counts_matrix <- assay(rlog_counts)
+# let's take a look at the distribution of 'variability' across samples.
+# we use rowVars from the rlog_counts_matrix.
 
 hist(rowVars(rlog_counts_matrix))
 
-rlog_var_genes <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 3,]
+# Based on this we see that most of the data is 0 or not differential across samples.
+# somewhere around 2 the distribution changes so let's filter there:
 
-# Let's take the top variable genes
-# matrix of log normalized counts
-# for all samples 
-# cols: f1_1, f1_2, f2_1,..
-# rows: genes
-# you could cluster this, but largely it would dominated by abundance
-# so you want to zscale the rows
+rlog_var_genes <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 2,]
+# cool we have the top 1,000 ish genes that are variable between nuc/cyto.
+
+# Now we need to "row center" the values across samples. This simply means:
+# we take the mean of the row and divide it by each value. Tells where up and down.
+
+# r can only scale in columns so we are going to transmute the matrix (counts as cols)
+# then flip the matrix right back
+
 scaled_counts <- t(scale(t(rlog_var_genes)))
-# this is what you'd want to cluster
-pheatmap::pheatmap(scaled_counts, show_rownames = FALSE)
-# Other functions which give normalized counts from deseq: vst, rlog
+
+# Nice and for all this hard work, how about a heatmap:
+
+pheatmap(scaled_counts, show_rownames = FALSE)
+# Awesome that looks just as it should let's save it!
+
+pdf("figures/nuc_cyto_var_genes_heatmap.pdf")
+pheatmap(scaled_counts, show_rownames = FALSE)
+dev.off()
+
+
 ```
 
-```{r}
-# We now have the object set up to 
-# run the differential expression analysis
-# and it's a very simple command to do so. 
-# Even though it's doing a lot of complicated statistics!
-# dds <- DESeq(dds)
-```
 
+The clustering of the most variable genes show a clear separation of nuc and cyto samples.
+But now let's see how similar and different the samples and replicates are with all values.
+To do this we will use Principle Component Analysis (PCA)
 ```{r}
 # The first thing that we'll want to do is make a PCA plot.
-# rlog_counts <- rlog(dds)
 
 rld_pca <- prcomp(t(assay(rlog_counts)))
 rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
@@ -221,6 +261,7 @@ rld_prcomps <- merge(samplesheet, rld_prcomps)
 g <- ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate))
 g + geom_point() +
   geom_text_repel()
+
 ```
 
 ```{r}
@@ -234,6 +275,7 @@ res_df <- res %>% as.data.frame() %>%
   merge(g2s)
 ```
 
+Making a valcano plot
 ```{r}
 # We can now make some standard plots to check out these results
 
