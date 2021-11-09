@@ -19,10 +19,11 @@ source("../../../util/plotting_functions.R")
 source("../../../util/_setup.R")
 ```
 
-Today we will performing differential expression on HEPG2 RNAseq data. We will focus on comparing nuclear versus cytoplasmic RNAs.
+Today we will performing differential expression on HEPG2 RNAseq data. We will focus on comparing nuclear versus cytoplasmic RNAs. We can use this data to find genes that are nuclear or cytoplasmic enriched. We can use this data to determine if the high-binding promoters are biased for nuclear or cytoplasmic RNAs. Meaning the number of binding events indicates if the RNA product is sent to the cytoplasm (typically) or the nucleus. We can also use this data to determine if lncRNAs or mRNAs have similar or different nuclear/cytoplasmic localizations.
+
+
 
 First let's read in teh sample sheet in our data folder
-
 ```{r import sample sheet}
 samplesheet <- read_csv("../../../data/samplesheet.csv")
 
@@ -33,21 +34,37 @@ samplesheet_filtered <- samplesheet %>%
 ```
 
 Now let's read in the genome features also in our data folder
-
+While we are at it, let's also print these out to make this go quicker in the future.
 ```{r import genome features}
 
 # Importing genome annotations
 gencode_gtf <- rtracklayer::import("../../../data/gencode.v32.annotation.gtf")
+# that took awhile let's make genome annotation files that can be quickly read in the future
+
+
 
 # Let's reduce this big GRanges list to just genes
 genes <- gencode_gtf[gencode_gtf$type == "gene"]
 
-# in 'list info' we can see gene_id and gene_name (note copy link in R Studio !!)
+# now check out how to index into this using the handy
+# Rstudio "clipboard", view object on right hand side clipboard icon appears.
+# looks like we want:
+
+
+#TODO how to export two columns into GTF so RTACKLAYER can reimport?
 genes@elementMetadata@listData[["gene_id"]]
 genes@elementMetadata@listData[["gene_name"]]
 
-# Cool so we know where are gene names and ids are.
+# cool let's write these out.
 
+
+
+/Shares/rinn_class/data/CLASS_2022/data/genome_features
+
+# in 'list info' we can see gene_id and gene_name (note copy link in R Studio !!)
+
+
+# Cool so we know where are gene names and ids are.
 ```
 
 Ok, next step is to read in GENE COUNTS (not TPM) This was exported from the NF_CORE RNAseq pipeline in the salmon folder. We want "salmon_merged_gene_counts.csv
@@ -63,9 +80,7 @@ counts <- read_csv("/Shares/rinn_class/data/CLASS_2022/data/rnaseq/results/salmo
 # But first we still have some more file cleaning up to do
 ```
 
-
-Cleaning up samples sheet to just nuclear and cytoplasmic
-with more accessible names that the ENCODE accession number.
+Cleaning up samples sheet to just nuclear and cytoplasmic with more accessible names that the ENCODE accession number.
 ```{R}
 
 # First let's put the counts columns in the same order as the samplesheet
@@ -88,9 +103,8 @@ samplesheet_filtered <- samplesheet %>%
 
 ```
 
-We are almost ready, just a few more things to double check
-For example, that the sample sheet and the counts are in right order.
-Moreover, DeSeq2 requires integers and that condition is a factor.
+We are almost ready, just a few more things to double check For example, that the sample sheet and the counts are in right order. Moreover, DeSeq2 requires integers and that condition is a factor.
+
 ```{r}
 
 # make sure the count columns and the sample rows are in the same order
