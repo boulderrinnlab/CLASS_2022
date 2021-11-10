@@ -1,9 +1,10 @@
 ---
 title: "17_RNase_Part_I"
 author: "JR"
-date: "10/11/2021"
+date: "11/10/2021"
 output: html_document
 ---
+
 
 
 ```{r setup, include=FALSE}
@@ -12,30 +13,36 @@ options(stringsAsFactors = FALSE)
 library(tidyverse)
 library(httr)
 library(janitor)
+
+
 ```
 
-Goal: to get a rational samplesheet for use in downstream analysis (ie., differential expression) and to rename the files in the format needed by nf-core/rnaseq. You need the read numbers to be a part of the filename to run with nextflow.
+Goal: to downlaod a RNAseq data from HEPG2 that is fractionated by cellular compartment (nuc, cyto, total etc).
+Along the way we will want to make a well orgnanized sample sheet to use later for DeSEQ.
+
+So we are going to combine our skills from 02_downloading data and all the tidyverse functions :)
+
+Here is a snap shot of the data to be downloaded -- let's start by putting in browser and taking a look
 
 
-[Encode Query]("https://www.encodeproject.org/report/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]")
+[Encode Query]("https://www.encodeproject.org/search/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.classification=cell+line&files.read_length=50&limit=all&advancedQuery=date_released:%5B2009-01-01+TO+2021-12-31%5D&biosample_ontology.term_name=HepG2&assay_title=total+RNA-seq&biosample_ontology.classification=cell%20line")
 
 
 
 ```{bash}
-# You'll want to change directory to the rnaseq directory for this following bit.
-# Retrieve experiment info table
-# cd to rnaseq directory (/scratch/Shares/rinnclass/<your_dir>/rnaseq)
+# You'll want to change directory to the rnaseq directory 
+# this will get you a list of samples as a .txt file using wget.
+# We will use this to make the sample sheet.
+
 wget -O samples.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
 
-# Retrieve fastq file urls
+# This will give us a text file of the file names. We will use this to download the files.
+
 wget -O files.txt "https://www.encodeproject.org/batch_download/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
 
-# Now cd to the rnaseq/fastq directory 
-# If the fastq directory doesn't exist, let's create it.
-# You can either use the terminal and mkdir or create the directory in R.
-# if(!dir.exists("rnaseq/fastq")) dir.create("rnaseq/fastq")
-# Download the fastq files -- ~50 GB
-# xargs -L 1 curl -O -J -L < files.txt
+# Now let's make a common directory called HEPG2_rnaseq so we only download this once :)
+# Download the fastq files -- ~50 GB 
+ xargs -L 1 curl -O -J -L < files.txt
 ```
 
 Let's look at this table in the RStudio viewer. You can see that there are a number of columns that we don't need and a number of empty columns. 
@@ -47,7 +54,8 @@ samples <- read.table("rnaseq/samples.txt",
   dplyr::rename(experiment_accession = Accession) 
 ```
 
-We will need to clean this up as well as append new data to this (such as the md5 checksum for each file). You'll notice that there is no md5 column in this table, so that's why we need to supplement it with other data from ENCODE.
+We will need to clean this up as well as append new data to this (such as the md5 checksum for each file). 
+There are no md5 column in this table so we need to 'hack' into the ENCODE API to get this information.
 
 ## Introduction to APIs (Application Programming Interface)
 
@@ -373,5 +381,5 @@ write_csv(design, "rnaseq/design.csv")
 
 
 Now we have the raw files downloaded and the samplesheet needed for downstream analyses (ex, differential expression). So the next step is to run nf-core/rnaseq on these samples.
-We'll do this in the 14-1 R Markdown.
+We'll do this in the RNAseq II.
 
