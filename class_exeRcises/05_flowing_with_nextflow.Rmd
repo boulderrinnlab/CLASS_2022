@@ -155,6 +155,16 @@ cd work
 ```
 
 
+Sometimes nextflow versions don't work so well with a given pipeline. 
+
+1) You may need an edge release installed -- once installed all "self-update" commands will stay on edge
+
+>>> to remove edge rlease: export NXF_EDGE=0
+
+2) To updarte nextflow:
+
+Nextflow self-update
+
 
 
 
