@@ -33,7 +33,7 @@ Nice, we can get all the data we need. First we need to think about where to put
 To be safe let's make an rnaseq directory somewhere on scratch that we can all access.
 Then download everythign we need!
 
-```{bash}
+```{bash downloading file list and sample sheet}
 # You'll want to change directory to the rnaseq directory 
 # this will get you a list of samples as a .txt file using wget.
 # We will use this to make the sample sheet.
@@ -53,58 +53,35 @@ xargs -L 1 curl -O -J -L < files.txt
 ```
 
 Let's look at this table in the RStudio viewer. 
-```{r}
+```{r reading in sample sheet}
 # We'll also rename this Accession column to clarify between experiment_accession and file_accession.
 samples <- read.table("samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
   dplyr::rename(experiment_accession = Accession) 
 
-# You can see that there are a number of columns that we don't need and a number of empty columns. 
 # It's seems mundane but starting here is the best way to make a "reproducible" sample sheet.
-# You will see we have to take a lot of steps to clean all this up.
 # Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
 ```
 
-We will need to clean this up as well as append new data to this (such as the md5 checksum for each file). 
-There are no md5 column in this table so we need to 'hack' into the ENCODE API to get this information.
-
-## Introduction to APIs (Application Programming Interface)
-
+ ---- Introduction to APIs (Application Programming Interface) ----
 In order to exchange information between someone's database and your computer you use an API -- basically a highly specified language for interacting and retrieving the data you need.
-You've done this before almost certainly as a lot of web buttons behind the scenes use an API to communicate with other databases and services that make the product work.
-For that data we will use ENCODE's API to retrieve additional file information from their server.
-
-```{r}
-# First we need a function  to query their api.
-# A basic API query for a REST API is made in the form of an http request (just like when you visit a website)
-# Instead of sending the information to your browser though, we'll just capture this information in text format.
-
-# We'll use for this the R library httr
-library(httr)
-# The basic way to retrieve data from a rest API is with a GET request. 
-(resp <- GET("http://httpbin.org/get"))
 
 
-# In our case we want to query the ENCODE API using the experiment accession number and request information on the md5sum, number of reads, etc.
-# The base url we'll use for querying ENCODE is as follows:
-# https://www.encodeproject.org/report.tsv?
-# You can see from this that we expect the data to be returned in a tsv -- tab separated values format.
+Today, we will use ENCODE's API to retrieve additional file information from their server.
+```{r examining encode API}
+
+# ENCODE base url: https://www.encodeproject.org/report.tsv?
 
 # Let's look at an example request for this experiment accession: ENCSR541TIG
 request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=released&file_format=fastq&dataset=%2Fexperiments%2FENCSR541TIG%2F&field=accession&field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target"
-# Let's break this down into your parts.
+
 # the field parameter is where we tell it which columns or which pieces of data we want to get.
-
-
-# For example, this 'API code':
-# field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target
-
-# this retrievies read_count, md5sum, controlled_by, paired_end, paired_with, replicate, and target
-# the same as the buttons on the ENCODE portal browser but with more (e.g., md5sum)
+# this retrieves read_count, md5sum, controlled_by, paired_end, paired_with, replicate, and target
 
 ```
 
 We've written some custom helper functions specific to the ENCODE API to request exactly the information we want, since we'll make these requests multiple times -- for each experiment accession.
+
 Here are those functions. Read through and see if you can figure out what each step is doing. The ENCODE API provides extensive documentation as to what data you can request and how to format that data to make your request. You can browse the possible requests in an interactive way using their interactive documentation: https://app.swaggerhub.com/apis-docs/encodeproject/api/basic_search
 
 ```{r}
