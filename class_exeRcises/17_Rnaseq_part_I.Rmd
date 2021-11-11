@@ -3,9 +3,9 @@ title: "17_RNase_Part_I"
 author: "JR"
 date: "11/10/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
-
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -28,6 +28,10 @@ Here is a snap shot of the data to be downloaded -- let's start by putting in br
 [Encode Query]("https://www.encodeproject.org/search/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.classification=cell+line&files.read_length=50&limit=all&advancedQuery=date_released:%5B2009-01-01+TO+2021-12-31%5D&biosample_ontology.term_name=HepG2&assay_title=total+RNA-seq&biosample_ontology.classification=cell%20line")
 
 
+Nice, we can get all the data we need. First we need to think about where to put this :)
+# PLEASE don't download until class -- we will just download once in one place (big data)
+To be safe let's make an rnaseq directory somewhere on scratch that we can all access.
+Then download everythign we need!
 
 ```{bash}
 # You'll want to change directory to the rnaseq directory 
@@ -42,16 +46,23 @@ wget -O files.txt "https://www.encodeproject.org/batch_download/?type=Experiment
 
 # Now let's make a common directory called HEPG2_rnaseq so we only download this once :)
 # Download the fastq files -- ~50 GB 
- xargs -L 1 curl -O -J -L < files.txt
+xargs -L 1 curl -O -J -L < files.txt
+
+# Cool we have all the data we need for the NF_CORE RNAseq pipeline in 18_
+
 ```
 
-Let's look at this table in the RStudio viewer. You can see that there are a number of columns that we don't need and a number of empty columns. 
-
+Let's look at this table in the RStudio viewer. 
 ```{r}
 # We'll also rename this Accession column to clarify between experiment_accession and file_accession.
-samples <- read.table("rnaseq/samples.txt",
+samples <- read.table("samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
   dplyr::rename(experiment_accession = Accession) 
+
+# You can see that there are a number of columns that we don't need and a number of empty columns. 
+# It's seems mundane but starting here is the best way to make a "reproducible" sample sheet.
+# You will see we have to take a lot of steps to clean all this up.
+# Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
 ```
 
 We will need to clean this up as well as append new data to this (such as the md5 checksum for each file). 
@@ -73,7 +84,7 @@ library(httr)
 # The basic way to retrieve data from a rest API is with a GET request. 
 (resp <- GET("http://httpbin.org/get"))
 
-# This returns to us a response object which contains information about the request made as well as some accompanying data.
+
 # In our case we want to query the ENCODE API using the experiment accession number and request information on the md5sum, number of reads, etc.
 # The base url we'll use for querying ENCODE is as follows:
 # https://www.encodeproject.org/report.tsv?
@@ -82,24 +93,15 @@ library(httr)
 # Let's look at an example request for this experiment accession: ENCSR541TIG
 request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=released&file_format=fastq&dataset=%2Fexperiments%2FENCSR541TIG%2F&field=accession&field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target"
 # Let's break this down into your parts.
-# Just like a function, we have paramters and accomanying values separated by equal signs.
-# https://www.encodeproject.org/report.tsv?type=File&status=released&file_format=fastq
-# Here's where we request this particular accession
-# dataset=%2Fexperiments%2FENCSR541TIG%2F
+# the field parameter is where we tell it which columns or which pieces of data we want to get.
 
-# And the field parameter is where we tell it which columns or which pieces of data we want to get.
-# Here we're retrieving read_count, md5sum, controlled_by, paired_end, paired_with, replicate, and target
+
+# For example, this 'API code':
 # field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target
 
+# this retrievies read_count, md5sum, controlled_by, paired_end, paired_with, replicate, and target
+# the same as the buttons on the ENCODE portal browser but with more (e.g., md5sum)
 
-# Paste this in your browswer address bar and you'll get a preview of the data we're about to retrieve.
-# https://www.encodeproject.org/report.tsv?type=File&status=released&file_format=fastq&dataset=%2Fexperiments%2FENCSR541TIG%2F&field=accession&field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target
-
-# Let's use the httr to retreive this same data into our r session
-(resp <- GET(request_url))
-# This object contains the data we want, but also contains header information about the request, so let's extract just the data (body) portion
-body <- read_tsv(content(resp, "text"), skip = 1)
-# We can see that this now gives us a data frame of just the requested information.
 ```
 
 We've written some custom helper functions specific to the ENCODE API to request exactly the information we want, since we'll make these requests multiple times -- for each experiment accession.
