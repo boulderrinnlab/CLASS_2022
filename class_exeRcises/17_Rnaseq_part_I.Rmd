@@ -13,6 +13,7 @@ options(stringsAsFactors = FALSE)
 library(tidyverse)
 library(httr)
 library(janitor)
+library(purrr)
 
 
 ```
@@ -52,16 +53,7 @@ xargs -L 1 curl -O -J -L < files.txt
 
 ```
 
-Let's look at this table in the RStudio viewer. 
-```{r reading in sample sheet}
-# We'll also rename this Accession column to clarify between experiment_accession and file_accession.
-samples <- read.table("samples.txt",
-                      sep = "\t", skip = 1, header = T) %>%
-  dplyr::rename(experiment_accession = Accession) 
 
-# It's seems mundane but starting here is the best way to make a "reproducible" sample sheet.
-# Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
-```
 
  ---- Introduction to APIs (Application Programming Interface) ----
 In order to exchange information between someone's database and your computer you use an API -- basically a highly specified language for interacting and retrieving the data you need.
@@ -119,6 +111,7 @@ contstruct_query <- function(experiment_accession,
 }
 
 # This function actually makes the request and returns the data only (without the response headers) in a data.frame format.
+
 encode_file_info <- function(experiment_accession,
                              base_url = "https://www.encodeproject.org/report.tsv?",
                              file_format = "fastq",
@@ -127,7 +120,8 @@ encode_file_info <- function(experiment_accession,
                              fields = c("accession", "read_count", "md5sum",
                                         "controlled_by", "paired_end",
                                       "paired_with", "replicate", "target")) {
-  # Now we 
+  
+  # Now we are creating a url that encode will understand
   path <- "report.tsv?"
   base_url <- modify_url("https://www.encodeproject.org/", path = path)
   url <- contstruct_query(experiment_accession,
@@ -136,6 +130,7 @@ encode_file_info <- function(experiment_accession,
                           type,
                           status,
                           fields)
+  # this is now retrieving the data with GET function in httr
   resp <- GET(url)
   if (http_error(resp)) {
     error_message <- content(resp, type = "text/html", encoding = "UTF-8") %>%
@@ -190,9 +185,8 @@ is places on "cell" of an excel file. So each cell contains an excel sheet in th
 ```{r}
 # In this example we'll take the digits 1 through 10 and "map" each to the rnorm function. 
 
-map_example <- 1:10 %>%
-  map(rnorm, n = 10)
-?rnorm
+map <- map_example <- 1:10 %>%
+  map(rnorm, n = 10) 
 
 # It returns a nested list, let's look:
 summary(map_example)
@@ -214,13 +208,27 @@ df_map_example <- unnest(map_example)
 
 We can use map to call this encode_file_info function for each experiment accession and return each data.frame into a new column in our samples data.frame.
 
+First let's read in the samples we downloaded from ENCODE.
+
+```{r reading in sample sheet}
+# We'll also rename this Accession column to clarify between experiment_accession and file_accession.
+samples <- read.table("samples.txt",
+                      sep = "\t", skip = 1, header = T) %>%
+  dplyr::rename(experiment_accession = Accession) 
+
+# It's seems mundane but starting here is the best way to make a "reproducible" sample sheet.
+# Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
+```
+
 ```{r}
+
+#TODO does map make a new column or is it mapping to experiment_acession from the encode_file_info function?
 samples <- samples %>%
   mutate(file_info = map(experiment_accession, ~ encode_file_info(.x)))
 
-# Note that in this new column we have a bunch of data.frames -- nested in our samples data.frame.
-# Let's retrieve one as an example
-file_info <- samples$file_info[[1]]
+# This short bit of code is doing a lot!
+# we make a new column 'file_info'
+# each entry will be the information gained from the encode_file_info function
 ```
 
 This is a bit hard to read in this format, so we can unnest the data.frames in the file_info column using the unnest command.
@@ -230,6 +238,9 @@ This will duplicate the remaining columns to match the number of lines in the ne
 # We also need to tell it which column we want to unnest.
 samples <- samples %>%
   unnest(cols = file_info)
+
+# Amazing now we have all the information for each file in all the experiment accessions
+# we will use this to start making a sample_sheet.
 ```
 
 Now we have all the information we neeed in this data.frame and we just need to clean it up.
@@ -238,9 +249,12 @@ Now we have all the information we neeed in this data.frame and we just need to 
 # Let's number our replicates and create a new column called sample id where we join the experiment accesion and the rep number
 samples <- samples %>%
   group_by(experiment_accession) %>%
+  #TODO is factor making the numbers?
   mutate(rep_number = as.numeric(factor(replicate))) %>%
   # ?unite -- will combine two data columns into one. Be careful, by default it will remove the columns you're uniting.
-  unite(sample_id, experiment_accession, rep_number, sep = "_rep")
+  
+  #TODO there is no sample_id?
+  unite(experiment_accession, sample_id, rep_number, sep = "_rep")
 ```
 
 Essentially we're creating the file names for each fastq so that they're understandable.
