@@ -84,9 +84,15 @@ We've written some custom helper functions specific to the ENCODE API to request
 
 Here are those functions. Read through and see if you can figure out what each step is doing. The ENCODE API provides extensive documentation as to what data you can request and how to format that data to make your request. You can browse the possible requests in an interactive way using their interactive documentation: https://app.swaggerhub.com/apis-docs/encodeproject/api/basic_search
 
+
+We will make two functions:
+1) construct_query
+2) encode file info
 ```{r}
 
 ## This will generate a request URL in the format that ENCODE requires to retrieve each of the columns listed in the field default parameter (accession, read_count, md5sum, etc.)
+
+# first let's set up the structure
 contstruct_query <- function(experiment_accession,
                              base_url = "https://www.encodeproject.org/report.tsv?",
                              file_format = "fastq",
@@ -95,10 +101,16 @@ contstruct_query <- function(experiment_accession,
                              fields = c("accession", "read_count", "md5sum",
                                         "controlled_by", "paired_end",
                                         "paired_with", "replicate", "target")) {
+  
+  # Now we will populate this structure above, note experiment_accession is only
+  # parameter we need to populate
   query <- paste(list(paste0("type=", type),
                       paste0("status=", status),
                       paste0("file_format=", file_format),
                       paste0("dataset=%2Fexperiments%2F", experiment_accession, "%2F"),
+                      # map is a way of transforming input and applying a function
+                      # in this case we are just using "paste0" as the function
+                      # map_chr is to make sure it stays as a character value
                       map_chr(fields, ~paste0("field=", .))) %>%
                    flatten(),
                  collapse = "&")
@@ -114,7 +126,8 @@ encode_file_info <- function(experiment_accession,
                              status = "released",
                              fields = c("accession", "read_count", "md5sum",
                                         "controlled_by", "paired_end",
-                                        "paired_with", "replicate", "target")) {
+                                      "paired_with", "replicate", "target")) {
+  # Now we 
   path <- "report.tsv?"
   base_url <- modify_url("https://www.encodeproject.org/", path = path)
   url <- contstruct_query(experiment_accession,
@@ -149,27 +162,52 @@ encode_file_info <- function(experiment_accession,
 ```
 
 We can now test that this function delivers what we want it to using the same accession we used previously.
-Note that since all of the parameters except the accession number have default values, if we want the defaults, we
-only need to provide the ENCODE accession of the experiment we want the file info for.
+
+
+Note that since all of the parameters except the accession number have default values.
+If we want the defaults, we only need to provide the ENCODE accession of the experiment we want.
+
 
 ```{r}
 dat <- encode_file_info("ENCSR541TIG")
+
+# Nice we just retrieved all the information we wanted for this experiment accession!
 ```
 
 ## Introduction to map
 
-There is one other function we need to learn about before we make the queries to the ENCODE API, which is the map function from the purrr package.
+There is one other function we need to learn about before we make the queries to the ENCODE API.
+Specifically the map function from the purrr package.
 This allows us to query each experiment accession and load the data we retrieve into the same data.frame that contains the sample info.
+
 It's very similar to sapply or lapply, but is more consisten with tidyverse syntax and allows us to do lapply inside a data.frame & with pipe syntax.
+
+One other way to think about map is the information we just got from:
+dat <- encode_file_info("ENCSR541TIG")
+is places on "cell" of an excel file. So each cell contains an excel sheet in the cell.
+
 
 ```{r}
 # In this example we'll take the digits 1 through 10 and "map" each to the rnorm function. 
+
 map_example <- 1:10 %>%
   map(rnorm, n = 10)
 ?rnorm
-# It returns a nested list. 
+
+# It returns a nested list, let's look:
+summary(map_example)
+table(summary(map_example))
+
+# let's index and look
 map_example[[1]]
+map_example[[2]]
+
+# if we want a specific index of a specifc rnorm array:
 map_example[[1]][[1]]
+
+
+#TODO unmap to get
+df_map_example <- unnest(map_example)
 
 # We'll come back to this concept of nesting...
 ```
