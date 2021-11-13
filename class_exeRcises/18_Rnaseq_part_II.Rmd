@@ -1,47 +1,33 @@
 ---
 title: "18_Rnaseq_part_II"
 author: "JR"
-date: "10/11/2021"
+date: "11/12/2021"
 output: html_document
 ---
 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = FALSE)
+library(tidyverse)
+library(tximport)
+library(DESeq2)
+library(ggrepel)
+library(pheatmap)
 ```
 
 Let's do some RNAseq !
 
 Goal: Align reads and get the number of reads in each gene in the genome using nf-core/rnaseq 
 
-To use this new version of the nf-core/rnaseq pipeline (v3.0) we need to update to an edge release of nextflow.
-cd to your directory where you installed nextflow (~/bin/) and 
-
-wget https://github.com/nextflow-io/nextflow/releases/download/v21.02.0-edge/nextflow
-
-You may need to chmod +x nextflow 
-if it is not alread executable (check with ls -lah)
-
-This was retrieved from the nextflow github. The first time you run this new nextflow it will install itself.
-
-First let's take a look at the documentation:
-
-https://nf-co.re/rnaseq/usage
-
+To use this new version of the nf-core/rnaseq pipeline (v3.4) 
 So what we need is
 
 design.csv
 nextflow.config file
 run.sh
 
-We will need to run nf-core/rnaseq to map the reads and make "counts" for each gene. These counts are essentially saying how many reads were there on a gene. However, not all genes are the same length. Thus, long genes will naturally get more reads by chance -- so we need to account for that. 
-
-We also need to account for how many reads there were in total. We will end with a Transcript Per Million Reads (TPM). You may have heard of Reads Per Kilobase per Million reads (RPKM) -- You can read all the debates about this, but we will use Salmon quantification.
-
-First we align to the genome with STAR
-Salmon is aware of different isoforms for each gene and will make a quantification for each isoform and then merge it into a final gene count. To account gene length SALMON calculates and effective transcript length (it's complicated but think of it as length normalization of all possible isoforms for that gene). Finally, SALMON simply divides this by the number of reads in millions. So we essentially (there are some esoteric differences) get a TPM or transcripts present per 1 million total reads.
-
-Take a deep breath -- basically we are going to get the abundance of RNA for each gene in the genome.
 
 Let's start with the config file -- very similar to nf-core/chipseq
 
@@ -56,6 +42,7 @@ process {
 ```
 
 Now the run.sh file that gives nf-core/rnaseq all the instructions for nextflow to task. 
+#TODO fix this !
 ```{bash}
 #!/bin/bash
 #SBATCH -p long
@@ -143,6 +130,6 @@ date
 
 Now we need the design file, similar to nf-core/chipseq it has to be very specific :)
 
-group,replicate,fastq_1,fastq_2,strandedness
+sample,replicate,fastq_1,fastq_2,strandedness
 
 Our data is not stranded, but this is an important consideration even if you don't have it.
