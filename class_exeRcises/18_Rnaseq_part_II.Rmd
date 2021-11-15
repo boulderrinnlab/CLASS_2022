@@ -54,7 +54,7 @@ Now the run.sh file that gives nf-core/rnaseq all the instructions for nextflow 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
-#SBATCH --time=100:00:00
+#SBATCH --time=30:00:00
 #SBATCH --output=nextflow.out
 #SBATCH --error=nextflow.err
 
@@ -70,7 +70,7 @@ nextflow run nf-core/rnaseq -r 3.4 \
 # Now the inputs for nextflow.
 
 # Firs the design file that we just made.
---input /Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/17_API_to_RNAseq/design.csv \
+--input /scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/design.csv \
 
 # The genome file
 --fasta /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/GRCh38.p13.genome.fa \
@@ -101,7 +101,7 @@ Here is the run.sh in full form for nano adjustments
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
-#SBATCH --time=100:00:00
+#SBATCH --time=30:00:00
 #SBATCH --output=nextflow.out
 #SBATCH --error=nextflow.err
 
@@ -113,7 +113,7 @@ module load singularity/3.1.1
 nextflow run nf-core/rnaseq -r 3.4 \
 -resume \
 -profile singularity \
---input /scratch/Shares/rinn/JR/rna_protein_complexes/rnaseq/design.csv \
+--input /scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/design.csv \
 --fasta /scratch/Shares/rinn/genomes/Mus_musculus/Gencode/M25/GRCm38.p6.genome.fa \
 --gtf /scratch/Shares/rinn/genomes/Mus_musculus/Gencode/M25/gencode.vM25.annotation.gtf \
 --aligner star_salmon \
