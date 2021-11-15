@@ -15,7 +15,6 @@ library(httr)
 library(janitor)
 library(purrr)
 
-
 ```
 
 Goal: to downlaod a RNAseq data from HEPG2 that is fractionated by cellular compartment (nuc, cyto, total etc).
@@ -207,7 +206,7 @@ First let's read in the samples we downloaded from ENCODE.
 
 ```{r reading in sample sheet}
 # We'll also rename this Accession column to clarify between experiment_accession and file_accession.
-samples <- read.table("samples.txt",
+samples <- read.table("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
   dplyr::rename(experiment_accession = Accession) 
 
@@ -217,7 +216,10 @@ samples <- read.table("samples.txt",
 
 ```{r}
 
-#TODO does map make a new column or is it mapping to experiment_acession from the encode_file_info function?
+# We are making a new column in samples called file_info. This is created
+# by mapping experiment_accession and putting the variable through encode_file_info function.
+# This will map all associated files with the each experiment accession
+
 samples <- samples %>%
   mutate(file_info = map(experiment_accession, ~ encode_file_info(.x)))
 
@@ -242,6 +244,9 @@ Now we have all the information we neeed in this data.frame and we just need to 
 
 ```{r}
 # Let's number our replicates and create a new column called sample id where we join the experiment accesion and the rep number
+
+#TODO somehow group by gets rid of the experiment_accession column
+
 samples <- samples %>%
   group_by(experiment_accession) %>%
   mutate(rep_number = as.numeric(factor(replicate))) %>%
@@ -275,8 +280,10 @@ samples <- samples %>%
 
 We broke this down into parts, so you can understand what is happening, but just note that you can write all of this in one block and read it like a sentence.
 
+
+#TODO this runs where as the seperate chunks above do not :(
 ```{r}
-samples <- read.table("samples.txt",
+samples <- read.table("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
   dplyr::rename(experiment_accession = Accession) %>%
   mutate(file_info = map(experiment_accession, ~ encode_file_info(.x))) %>%
@@ -305,9 +312,12 @@ rename_script <- samples %>%
 # We can write this out as a bash script with ?write_lines 
 # We include a shebang header line so that the script is interpreted by bash.
 
-write_lines(c("#!/bin/bash", rename_script$command), "rnaseq/fastq/rename.sh")
+write_lines(c("#!/bin/bash", rename_script$command), "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/rename.sh")
+
 # Here we use an R command to call bash and cd into that directory, then make the file executable, and then run it.
-# system("cd rnaseq/fastq; chmod u+x rename.sh; ./rename.sh")
+
+# TODO doesn't rename all the files :(
+ system("cd /scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/; chmod u+x rename.sh; ./rename.sh")
 ```
 
 Additionally from all of this information we've gathered we can create a text file to run the md5sum check.
