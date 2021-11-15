@@ -15,6 +15,8 @@ library(httr)
 library(janitor)
 library(purrr)
 
+
+# File path /scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test
 ```
 
 Goal: to downlaod a RNAseq data from HEPG2 that is fractionated by cellular compartment (nuc, cyto, total etc).
@@ -51,7 +53,6 @@ xargs -L 1 curl -O -J -L < files.txt
 # Cool we have all the data we need for the NF_CORE RNAseq pipeline in 18_
 
 ```
-
 
 
  ---- Introduction to APIs (Application Programming Interface) ----
@@ -206,7 +207,7 @@ First let's read in the samples we downloaded from ENCODE.
 
 ```{r reading in sample sheet}
 # We'll also rename this Accession column to clarify between experiment_accession and file_accession.
-samples <- read.table("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/samples.txt",
+samples <- read.table("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
   dplyr::rename(experiment_accession = Accession) 
 
@@ -250,7 +251,7 @@ Now we have all the information we neeed in this data.frame and we just need to 
 samples <- samples %>%
   group_by(experiment_accession) %>%
   mutate(rep_number = as.numeric(factor(replicate))) %>%
-  unite(sample_id, experiment_accession, rep_number, sep = "_rep")
+  unite(sample_id, experiment_accession, rep_number, sep = "_rep", remove = F)
 
  # unite will make a new column in samples (piped in)
   # here we will combine experiment accession and rep number with _rep in between
@@ -262,7 +263,7 @@ Now let's get rid of all that data we don't need!
 
 # We're just selecting a subset of columns from samples
 samples <- samples %>%
-   dplyr::select(sample_id, experiment_accession, Assay.title,
+   dplyr::select(accession, sample_id, experiment_accession, Assay.title,
                 Biosample.summary, md5sum, paired_end_identifier) %>%
   # Note that we're not removing the original columns
   unite(fastq_file, sample_id, paired_end_identifier, sep = "_read", remove = F)
@@ -282,6 +283,8 @@ We broke this down into parts, so you can understand what is happening, but just
 
 
 #TODO this runs where as the seperate chunks above do not :(
+
+# TODO REFACTOR
 ```{r}
 samples <- read.table("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
@@ -304,6 +307,7 @@ Now we want to rename the fastq files to the fastq name we just made.
 ```{r}
 # Rename the fastq files so that they contain the sample ID.
 rename_script <- samples %>%
+  ungroup() %>%
   dplyr::select(fastq_file, original_file) %>%
   mutate(command = "mv") %>%
   unite(command, command, original_file, fastq_file, sep = " ")
@@ -325,9 +329,10 @@ Additionally from all of this information we've gathered we can create a text fi
 ```{r}
 # Let's create an md5.txt to run the checksums
 md5 <- samples %>% 
+  ungroup() %>%
   dplyr::select(md5sum, fastq_file) %>%
   unite(line, md5sum, fastq_file, sep = "  ")
-write_lines(md5$line, "rnaseq/fastq/md5.txt")
+write_lines(md5$line, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/md5.txt")
 # Now let's run it.
 # system("cd rnaseq/fastq; md5sum -c md5.txt")
 ```
@@ -350,11 +355,11 @@ samples <- samples %>%
 Now that we have it cleaned up, let's create one line for each replicate where the fastq read 1 and read 2 are in the same row.
 ```{R}
 
-# 
+
 # For this we will use the pivot wider function
 # We need to tell the pivot_wider function which unique column combinations will specify each new row. 
-samplesheet <- samples
-samplesheet <- samplesheet %>%
+
+samplesheet <- samples %>%
   #id_cols is a parameter in pivot wider to select the cols
   pivot_wider(id_cols = c("sample_id", "seq_type", "sample_name"),
               names_from = paired_end_identifier,
@@ -378,7 +383,7 @@ samplesheet <- samplesheet %>%
                 cell_type, seq_type, fastq_1, fastq_2, md5sum_1,
                 md5sum_2)
 
-write_csv(samplesheet, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/17_RNaseq_part_I/samplesheet.csv")
+write_csv(samplesheet, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/samplesheet.csv")
 ```
 
 We also need to make a design file for the nf-core/rnaseq
@@ -397,7 +402,7 @@ design <- samplesheet %>%
   mutate(sample = gsub(" ", "_", sample_name) %>% tolower(),
          strandedness = "unstranded",
          fastq_1 = paste0("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/", fastq_1),
-         fastq_2 = paste0("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq", fastq_2)) %>%
+         fastq_2 = paste0("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/", fastq_2)) %>%
   # We have the replicate number already, but it's just a part of the sample id
   # We can use the separate function (opposite of unite) to retrieve it.
   separate(sample_id, into = c("experiment_accession", "replicate"), sep = "_", remove = FALSE) %>%
@@ -412,14 +417,12 @@ design <- design %>%
   mutate(sample = gsub("_r1", "", sample),
          sample = gsub("_r2", "", sample))
 
-design <- design %>% 
-  arrange(sample, replicate)
 
 all(sapply(design$fastq_1, file.exists))
 all(sapply(design$fastq_2, file.exists))
 # Now we can write this out for input into nextflow
 
-write_csv(design, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/design.csv")
+write_csv(design, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/design.csv")
 
 write_csv(samples, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/samples.csv")
 

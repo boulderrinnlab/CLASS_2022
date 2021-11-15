@@ -52,6 +52,8 @@ https://uswest.ensembl.org/info/website/upload/gff.html
 
 gencode_gr <- rtracklayer::import("data/gencode.v32.annotation.gtf")
 
+
+
 # we used rtracklayer::import to turn the annotations into start and stops (Iranges) w/ chr (Granges)
 
 ```
@@ -214,6 +216,16 @@ summary(total_exon_length)
 
 total_exon_length/3.2e9
 # Boom we can see the human genome is about 4% exons!
+
+# We can do the same for gene bodies too
+
+total_gene_length <- gencode_gr[gencode_gr$type == "gene"] %>%
+  GenomicRanges::reduce() %>% 
+  width() %>%
+  sum()
+reduced_gene_bodies <- gencode_gr[gencode_gr$type == "gene"] %>%
+  GenomicRanges::reduce()
+hist(width(reduced_gene_bodies))
 
 ```
 
@@ -379,6 +391,7 @@ length(unique(promoter_overlaps_df$promoter_gene_id))
 
 
 ```
+
 
 *********************
 EXCERCISE
