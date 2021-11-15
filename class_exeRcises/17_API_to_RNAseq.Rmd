@@ -330,11 +330,13 @@ Additionally from all of this information we've gathered we can create a text fi
 # Let's create an md5.txt to run the checksums
 md5 <- samples %>% 
   ungroup() %>%
-  dplyr::select(md5sum, fastq_file) %>%
-  unite(line, md5sum, fastq_file, sep = "  ")
+  dplyr::select(md5sum, fastq) %>%
+  unite(line, md5sum, fastq, sep = "  ")
 write_lines(md5$line, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/md5.txt")
 # Now let's run it.
-# system("cd rnaseq/fastq; md5sum -c md5.txt")
+ md5_results <- system("cd /scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq; md5sum -c md5.txt")
+ 
+# Nice they all look correct !
 ```
 
 Finally, we can write out a nicely formatted sample sheet that we will use downstream for further analysis of the read counts in R.
@@ -342,6 +344,7 @@ Finally, we can write out a nicely formatted sample sheet that we will use downs
 ```{r}
 # Let's create the sample sheet that we will use later
 # to do the RNA-seq analysis in R.
+
 samples <- samples %>%
   dplyr::rename(fastq = fastq_file,
                 seq_type = Assay.title,
@@ -424,9 +427,9 @@ all(sapply(design$fastq_2, file.exists))
 
 write_csv(design, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/design.csv")
 
-write_csv(samples, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/samples.csv")
+write_csv(samples, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/samples.csv")
 
-write_csv(samplesheet, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/samplesheet.csv")
+write_csv(samplesheet, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/samplesheet.csv")
 ```
 
 
