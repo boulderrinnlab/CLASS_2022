@@ -396,14 +396,17 @@ design <- samplesheet %>%
   # We also need to add the proper file path
   mutate(sample = gsub(" ", "_", sample_name) %>% tolower(),
          strandedness = "unstranded",
-         fastq_1 = paste0("/Shares/rinn_class/data/CLASS_2022/data/rnaseq/rnaseq_fastq/", fastq_1),
-         fastq_2 = paste0("/Shares/rinn_class/data/CLASS_2022/data/rnaseq/rnaseq_fastq/", fastq_2)) %>%
+         fastq_1 = paste0("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/", fastq_1),
+         fastq_2 = paste0("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq", fastq_2)) %>%
   # We have the replicate number already, but it's just a part of the sample id
   # We can use the separate function (opposite of unite) to retrieve it.
   separate(sample_id, into = c("experiment_accession", "replicate"), sep = "_", remove = FALSE) %>%
   mutate(replicate = gsub("rep", "", replicate)) %>%
   # Now we gather just the columns we need
-  dplyr::select(sample, replicate, fastq_1, fastq_2, strandedness)
+  dplyr::select(sample, fastq_1, fastq_2, strandedness)
+
+
+#TODO need to remove replicate from design ....
 
 design <- design %>%
   mutate(sample = gsub("_r1", "", sample),
@@ -416,11 +419,11 @@ all(sapply(design$fastq_1, file.exists))
 all(sapply(design$fastq_2, file.exists))
 # Now we can write this out for input into nextflow
 
-write_csv(design, "design.csv")
+write_csv(design, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/design.csv")
 
-write_csv(samples, "samples.csv")
+write_csv(samples, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/samples.csv")
 
-write_csv(samplesheet, "samplesheet.csv")
+write_csv(samplesheet, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/samplesheet.csv")
 ```
 
 
