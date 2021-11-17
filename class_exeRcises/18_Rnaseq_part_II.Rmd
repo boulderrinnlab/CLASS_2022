@@ -158,10 +158,10 @@ process {
 
 RUN.SH
 
-```{bash}
+```{bash }
 #!/bin/bash
 #SBATCH -p long
-#SBATCH --job-name=HEPG2_rna_seq
+#SBATCH --job-name=CLASS_HEPG2_rna_seq
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=john.rinn@colorado.edu
 #SBATCH --nodes=1
@@ -176,9 +176,9 @@ module load singularity/3.1.1
 nextflow run nf-core/rnaseq -r 3.0 \
 -resume \
 -profile singularity \
---input design.csv
---aligner star_salmon
---genome /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/GRCh38.p13.genome.fa \
+--input design.csv \
+--aligner star_salmon \
+--fasta /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/GRCh38.p13.genome.fa \
 --gtf /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/gencode.v32.annotation.gtf \
 --gencode \
 --email john.rinn@colorado.edu \
