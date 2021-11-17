@@ -26,7 +26,7 @@ Today we will performing differential expression on HEPG2 RNAseq data. We will f
 
 First let's read in teh sample sheet in our data folder
 ```{r import sample sheet}
-samplesheet <- read_csv("../../../data/samplesheet.csv")
+samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/samplesheet.csv")
 
 # For now we are just comparing nuclear versus cytoplasmic so let's filter:
 
@@ -39,23 +39,13 @@ While we are at it, let's also print these out to make this go quicker in the fu
 ```{r import genome features}
 
 # Importing genome annotations
-gencode_gtf <- rtracklayer::import("../../../data/gencode.v32.annotation.gtf")
+gencode_gtf <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
 # that took awhile let's make genome annotation files that can be quickly read in the future
-
 
 
 # Let's reduce this big GRanges list to just genes
 genes <- gencode_gtf[gencode_gtf$type == "gene"]
 
-# now check out how to index into this using the handy
-# Rstudio "clipboard", view object on right hand side clipboard icon appears.
-# looks like we want:
-
-
-#TODO how to export two columns into GTF so RTACKLAYER can reimport?
-genes@elementMetadata@listData[["gene_id"]]
-genes@elementMetadata@listData[["gene_name"]]
-#TODO export mRNA and lncRNA annotations for RNAseq Analyse??
 
 # let's make an object of gene_id and names
 # we just saw above we can get both gene_id and name from 'genes'
@@ -64,8 +54,7 @@ genes@elementMetadata@listData[["gene_name"]]
 g2s <- genes %>% as.data.frame() %>%
   dplyr::select(gene_id, gene_name)
 
-# cool let's write these out.
-# /Shares/rinn_class/data/CLASS_2022/data/genome_features
+write.csv(g2s, "g2s.csv")
 
 # Nice now we have a handy conversion table of gene_id & gene_name
 ```
@@ -74,7 +63,7 @@ Ok, next step is to read in GENE COUNTS (not TPM) This was exported from the NF_
 ```{r reading in salmon counts convert to matrix}
 
 # DEseq requires a matrix of raw counts
-counts <- read_csv("/Shares/rinn_class/data/CLASS_2022/data/rnaseq/results/salmon/salmon_merged_gene_counts.csv") %>%
+counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/rnaseq/results/salmon/salmon_merged_gene_counts.csv") %>%
   # this will remove the gene_id column and use it as 'meta' data in matrix
   column_to_rownames("gene_id") %>%
   as.matrix()
@@ -83,8 +72,8 @@ counts <- read_csv("/Shares/rinn_class/data/CLASS_2022/data/rnaseq/results/salmo
 # However it has all the samples so we need to orgnize a bit.
 ```
 
-Cleaning up samples sheet to just nuclear and cytoplasmic with more accessible names that the ENCODE accession number.
-```{R}
+Making an rlog counts matrix for all samples -- can read in to start in future
+```{R making counts table and normalized Rlog counts}
 
 # First let's put the counts columns in the same order as the samplesheet
 # If they are not then we would essentially be randomizing our data later!!
@@ -100,25 +89,61 @@ all(colnames(counts) == samplesheet$sample_id)
 
 colnames(counts) <- samplesheet$sample_name
 
+# Deseq wants round numbers so we are going to round them here:
 
+counts <- round(counts)
+
+# now we want to get rid of all genes with 0 across all samples.
+
+counts_filtered <- counts[rowSums(counts) > 1,]
+
+
+# Next we want to normalize these counts 
+# mostly to account for low abundance and noisey genes
+# We need to do this in four steps:
+
+# (1) first run DESeq2 by creating a dds object.
+
+dds <- DESeqDataSetFromMatrix(countData = counts_filtered,
+                              colData = samplesheet,
+                              design = ~ condition)
+
+# (2) run DESeq2 on dds object
+
+dds <- DESeq(dds)
+
+# (3) arrive at rlog normalized counts table!
+# bild = T means it will normalize with out the "design ~ condition"
+# seems redundant but these are the steps :)
+
+rlog_counts <- rlog(dds, blind = TRUE)
+
+# (4) now we retrieve the values using assay (an accessor function into rlog_counts)
+
+rlog_counts_matrix <- assay(rlog_counts)
+
+# Let's round the numbers now for better storage of this data
+
+rlog_counts_matrix <- round(rlog_counts_matrix)
+
+
+# Now we can write this out and START from here in the future.
+
+write_rds(rlog_counts_matrix, "rlog_count_matrices/rlog_counts_all_rounded.rds")
+
+# reading back in to be sure we can start here in the future.
+rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all_rounded.rds")
+```
+
+
+Now let's make a sample sheet we can use to compare nuc/cyto samples.
+```{R nuclear and cytoplasmic samplesheet}
 # Now we will filter the sample sheet to just nuclear and cytoplasmic
-
 
 samplesheet_filtered <- samplesheet %>%
   filter(condition %in% c("cytosolic_fraction", "nuclear_fraction"))
 
 # Nice now we have a reduced sample sheet that is well organized.
-
-# **** for class exercise you may want to run the lines below that round 
-# numbers and get everything ready for DeSeq2. Then filter later.*****
-# This way you can run DeSeq2 on other comparisons that could be useful!
-```
-
-We are almost ready, just a few more things to double check:
-
-Triple check that the sample sheet and the counts are in right order. 
-Reduce the sample and counts to just nuclear and cytoplasmic samples.
-```{r}
 
 # Next, let's triple check that the reduced sample sheet and counts
 # have the same sample names.
@@ -133,8 +158,25 @@ samplesheet_filtered$sample_name %in% colnames(counts)
 rownames(samplesheet_filtered) <- samplesheet_filtered$sample_name
 # Now if we look at this object we see rownames as sample_name - nice.
 
-# now we will reduce the counts matrix to just these 4 samples.
+# let's write out this samplesheet for future use
 
+write.csv(samplesheet_filtered, "sample_sheets/samplesheet_filtered.csv")
+
+# writing into be sure we are comfortable using this in the future.
+
+samplesheet_filtered <- read.csv("sample_sheets/samplesheet_filtered.csv")
+
+```
+
+
+.
+```{r nuc/cyto  counts}
+
+
+
+
+
+# now we will reduce the counts matrix to just these 4 samples.
 counts_nuc_cyto <- counts[, samplesheet_filtered$sample_name]
 
 # This is a good way to triple check everything is in order.
@@ -203,9 +245,50 @@ dds <- DESeqDataSetFromMatrix(countData = nuc_cyto_counts_filtered,
 
 dds <- DESeq(dds)
 
-#TODO write this out to save all this in the future??
+# Now let's get the rlog normalized nuc/cyto counts like we did above
+# running rlog normalization on dds (that is only nuc and cyto now)
+# CAREFUL of what is in your dds when running this part :)
+
+rlog_counts_nuc_cyto <- rlog(dds, blind = TRUE)
+
+# exctracting count matrix with assay()
+
+rlog_counts_matrix_nuc_cyto <- assay(rlog_counts)
+
+# This is another handy matrix to load in so let's write it out
+
+write_rds(rlog_counts_matrix_nuc_cyto, "rlog_count_matrices/rlog_counts_matrix_nuc_cyto.rds")
+
+# reading in so comfortable starting here with nuc/cyto
+
+rlog_counts_matrix_nuc_cyto <- read_rds("rlog_count_matrices/rlog_counts_matrix_nuc_cyto.rds")
+
+# Nice now we can just start here in the futre.
+```
+
+# START POINT
+All the work we have done above can be skipped by 
+reading in the following files.
+
+```{r START POINT}
+
+# All normalized counts 
+rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all_rounded.rds")
+
+# Nuc and cyto normalized counts
+read_rds("rlog_count_matrices/rlog_counts_matrix_nuc_cyto.rds")
+
+samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/samplesheet.csv")
+
+
 
 ```
+
+
+
+
+
+
 
 
 Now let's cluster the data and make a heatmap of differntially expressed genes in nuc/cyto.
