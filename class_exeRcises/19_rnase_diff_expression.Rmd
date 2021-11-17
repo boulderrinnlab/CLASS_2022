@@ -24,11 +24,30 @@ Today we will performing differential expression on HEPG2 RNAseq data. We will f
 
 
 
-First let's read in teh sample sheet in our data folder
+First let's read in th sample sheet in our data folder
 ```{r import sample sheet}
 samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/samplesheet.csv")
 
-# For now we are just comparing nuclear versus cytoplasmic so let's filter:
+# ENCODE swapped labels on one sample !! 
+
+# We of course need to swap the labels for total and insoluble cytoplasmic
+# From looking in the browser at genes that should be nuclear: NEAT1 for ex.
+# We have concluded that 
+# hepg2_R2 -- is whole cell / total
+# hepg2_insoluble_cytoplasmic_fraction_R2 -- is whole cell / total
+# hepg2_R1 -- is insoluble_cytoplasmic
+# hepg2_insoluble_cytoplasmic_fraction_R1 -- is insoluble_cytoplasmic
+
+# Long story let's just fix it.
+
+samplesheet[which(samplesheet$sample_name == "hepg2_R1"), "condition"] <- "insoluble_cytoplasmic_fraction"
+samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "total"
+
+# saving this to sample_sheets folder
+
+write.csv(samplesheet, "sample_sheets/full_samplesheet_corrected.csv")
+
+# We will want a nuclear versus cytoplasmic sample_sheet too so let's filter:
 
 samplesheet_filtered <- samplesheet %>%
   filter(condition %in% c("cytosolic_fraction", "nuclear_fraction"))
@@ -140,7 +159,7 @@ Now let's make a sample sheet we can use to compare nuc/cyto samples.
 ```{R nuclear and cytoplasmic samplesheet}
 # Now we will filter the sample sheet to just nuclear and cytoplasmic
 
-samplesheet_filtered <- samplesheet %>%
+samplesheet_filtered_nuc_cyto <- samplesheet %>%
   filter(condition %in% c("cytosolic_fraction", "nuclear_fraction"))
 
 # Nice now we have a reduced sample sheet that is well organized.
@@ -148,35 +167,27 @@ samplesheet_filtered <- samplesheet %>%
 # Next, let's triple check that the reduced sample sheet and counts
 # have the same sample names.
 
-samplesheet_filtered$sample_name %in% colnames(counts)
+samplesheet_filtered_nuc_cyto$sample_name %in% colnames(counts)
 
 # Cool, the 4 samples in filtered are same as counts
 # Now let's look at samplesheet_filtered.
 # Not the rownames are numbers -- this is 'meta' information we need.
 # So let's make the rownames the names of the samples.
 
-rownames(samplesheet_filtered) <- samplesheet_filtered$sample_name
+rownames(samplesheet_filtered_nuc_cyto) <- samplesheet_filtered_nuc_cyto$sample_name
 # Now if we look at this object we see rownames as sample_name - nice.
 
 # let's write out this samplesheet for future use
 
-write.csv(samplesheet_filtered, "sample_sheets/samplesheet_filtered.csv")
-
-# writing into be sure we are comfortable using this in the future.
-
-samplesheet_filtered <- read.csv("sample_sheets/samplesheet_filtered.csv")
+write.csv(samplesheet_filtered_nuc_cyto, "sample_sheets/samplesheet_filtered_nuc_cyto.csv")
 
 ```
 
 
-.
+Next we will reduce out counts_matrix to just the values of nuc/cyto
 ```{r nuc/cyto  counts}
 
-
-
-
-
-# now we will reduce the counts matrix to just these 4 samples.
+# first reduce the counts matrix to just these 4 samples.
 counts_nuc_cyto <- counts[, samplesheet_filtered$sample_name]
 
 # This is a good way to triple check everything is in order.
@@ -193,7 +204,7 @@ sure these data files are in the right data format (good example of data types i
 
 Most importantly we need to add a 'meta' factor for DeSeq to know which order the samples
 were analyzed -- this is critical !! Log fold change doesn't mean much with out knowing the order.
-```{R}
+```{R organizing nuc/cyto counts and samplesheet for deseq}
 
 # NOTE: DeSeq wants the control as a factor (fct), currently (chr)
 # The first factor level is the "control" and all the other levels
@@ -275,42 +286,35 @@ reading in the following files.
 # All normalized counts 
 rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all_rounded.rds")
 
-# Nuc and cyto normalized counts
-read_rds("rlog_count_matrices/rlog_counts_matrix_nuc_cyto.rds")
+# Nuc/cyto normalized counts.
+rlog_counts_matrix_nuc_cyto <- read_rds("rlog_count_matrices/rlog_counts_matrix_nuc_cyto.rds")
 
-samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/samplesheet.csv")
+# full sample_sheet
+samplesheet <- read_csv("sample_sheets/full_samplesheet_corrected.csv")
 
+# nuc/cyto sample sheet
+samplesheet_filtered_nuc_cyto <- read.csv("sample_sheets/samplesheet_filtered_nuc_cyto.csv")
 
+# need to add row names
+rownames(samplesheet_filtered_nuc_cyto) <- samplesheet_filtered_nuc_cyto$sample_name
+
+# finally a gene_id and gene_names object
+
+g2s <- read.csv(g2s, "g2s.csv")
 
 ```
 
 
+Now let's cluster the data of differntially expressed genes in nuc/cyto.
+```{R heat map of differnetial genes in nuc_cyto}
+# first let's filter to variable genes 
 
-
-
-
-
-
-Now let's cluster the data and make a heatmap of differntially expressed genes in nuc/cyto.
-Fist we need the right type of normalized quantificaiton across samples that DESeq provided
-```{R}
-
-# Deseq porvided us with a really useful normalized quantification in RNAseq.
-# to retrieve this we use the DESeq function 'rlog'
-
-rlog_counts <- rlog(dds, blind = TRUE)
-# we see this is a DESeq object - let's transform into a matrix for clustering.
-
-rlog_counts_matrix <- assay(rlog_counts)
-# let's take a look at the distribution of 'variability' across samples.
-# we use rowVars from the rlog_counts_matrix.
-
-hist(rowVars(rlog_counts_matrix))
+hist(rowVars(rlog_counts_matrix_nuc_cyto))
 
 # Based on this we see that most of the data is 0 or not differential across samples.
 # somewhere around 2 the distribution changes so let's filter there:
 
-rlog_var_genes <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 2,]
+rlog_var_genes_nuc_cyto <- rlog_counts_matrix_nuc_cyto[rowVars(rlog_counts_matrix_nuc_cyto) > 2,]
 # cool we have the top 1,000 ish genes that are variable between nuc/cyto.
 
 # Now we need to "row center" the values across samples. This simply means:
@@ -319,13 +323,28 @@ rlog_var_genes <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 2,]
 # r can only scale in columns so we are going to transmute the matrix (counts as cols)
 # then flip the matrix right back
 
-scaled_counts <- t(scale(t(rlog_var_genes)))
+scaled_counts_nuc_cyto <- t(scale(t(rlog_var_genes_nuc_cyto)))
 
 # Nice and for all this hard work, how about a heatmap:
 
-pheatmap(scaled_counts, show_rownames = FALSE)
+pheatmap(scaled_counts_nuc_cyto, show_rownames = FALSE)
 # Awesome that looks just as it should let's save it!
 
+pdf("figures/nuc_cyto_var_genes_heatmap.pdf")
+pheatmap(scaled_counts_nuc_cyto, show_rownames = FALSE)
+dev.off()
+
+
+# Now we can make a heatmap of all the data too
+rlog_var_genes <- rlog_counts_matrix[rowVars(rlog_counts_matrix_nuc_cyto) > 2,]
+
+# row center
+scaled_counts <- t(scale(t(rlog_var_genes)))
+
+# make heat map
+pheatmap(scaled_counts, show_rownames = FALSE)
+
+# saving
 pdf("figures/nuc_cyto_var_genes_heatmap.pdf")
 pheatmap(scaled_counts, show_rownames = FALSE)
 dev.off()
@@ -333,17 +352,18 @@ dev.off()
 ```
 
 
-The clustering of the most variable genes show a clear separation of nuc and cyto samples.
-But now let's see how similar and different the samples and replicates are with all values.
+The clustering showed a clear separation of nuc and cyto samples.
+Now let's see how similar and different the samples and replicates are.
 To do this we will use Principle Component Analysis (PCA)
-```{r}
+```{r PCA analysis}
+
+#TODO something buggy here
+
 # The first thing that we'll want to do is make a PCA plot.
-# we will use another base R function called 'assay()'
-# This will summarize the matrix values of each sample
 # 'prcomp()' is the principle component analysis function.
 
 ?prcomp
-?assay
+
 
 rld_pca <- prcomp(t(assay(rlog_counts)))
 rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
@@ -361,7 +381,7 @@ geom_text_repel()
 ```
 
 Now let's look deeper into the results held in dds object
-```{r}
+```{r digging deeper into dds}
 
 # let's check out dds
 resultsNames(dds)
@@ -381,7 +401,7 @@ res_df <- res %>% as.data.frame() %>%
 ```
 
 Let's make some standard RNAseq or gene-expression plots:
-```{r}
+```{r volcano, MA and other plots}
 
 # First let's take a look at res_df
 # What is the most nuclear RNA? Most cytoplasmic? Does that make sense?
@@ -412,22 +432,20 @@ summary(num_sig)
 ```
 
 
-Let's now save res_df as a data.frame!
+Let's now save res_df as a data.frame of genes differential 
+in nuc -vs -cyto with P < 0.05
 
 ```{r}
 
-# write.csv2 didn't work for some reason??
-
 # Let's save this dataframe !!
-
-write.table(res_df, "results/nuc_cyto_diff_expression_res_df.csv")
-
-
-
-test <- read.table("results/nuc_cyto_diff_expression_res_df.csv")
+write.table(res_df, "results/nuc_cyto_diff_expression_res_df_P05.csv")
 
 
 
+
+
+
+#TODO why this?
 
 res_df_nuc_cyto <- data.frame("gene_id" = character(), 
                      "baseMean" = numeric(), 
@@ -439,71 +457,52 @@ res_df_nuc_cyto <- data.frame("gene_id" = character(),
                      "gene_name" = character(),
                      "result_name" = character())
 
-
-
-
-
-
-
-
+test <- read.table("results/nuc_cyto_diff_expression_res_df.csv")
 
 ```
-
-
-
-
-
-
-
-
-
 
 
 
 
 # DESeq with all subcellular fractions
 
-```{r}
-samplesheet <- read_csv("rnaseq/samplesheet.csv")
+```{r organizing sample sheet for comparison to total RNA for each fraction}
 
-# We of course need to swap the labels for total and insoluble cytoplasmic
-# From looking in the browser at genes that should be nuclear: NEAT1 for ex.
-# We have concluded that 
-# hepg2_R2 -- is whole cell / total
-# hepg2_insoluble_cytoplasmic_fraction_R2 -- is whole cell / total
-# hepg2_R1 -- is insoluble_cytoplasmic
-# hepg2_insoluble_cytoplasmic_fraction_R1 -- is insoluble_cytoplasmic
 
-# The cleanest thing to do would be to fix it on the design file and re-run the nf-core pipeline,
-# but for now we can swap it here.
-samplesheet[which(samplesheet$sample_name == "hepg2_R1"), "condition"] <- "insoluble_cytoplasmic_fraction"
-samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "total"
+#TODO figure out what to load in here :(
+samplesheet <- read_csv("sample_sheets/full_samplesheet_corrected.csv")
+
+
+# In order to make the total (whole cell) condition be the one that everything is compared back to
+# we will want to set the factor levels with "total" first
+
+samplesheet$condition <- factor(samplesheet$condition, levels = c("total", "membrane_fraction", "insoluble_cytoplasmic_fraction", "cytosolic_fraction", "nuclear_fraction"))
+
+
+#TODO how to read this in? Is this the right counts?
+# reading in all counts:
+rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all_rounded.rds")
+
+
+dds <- DESeqDataSetFromMatrix(countData = rlog_counts_matrix,
+                              colData = samplesheet,
+                              design = ~ condition)
+
+# setting up dds for DESeq
+dds <- DESeqDataSetFromTximport(rlog_counts_matrix,
+                                design = ~ condition,
+                                colData = samplesheet,
+                                rowData = g2s)
+
+# Run the DESeq stats
+dds <- DESeq(dds)
+
+
 ```
 
-```{r}
-# We now won't filter the sample sheet and we'll read in all the data
-files <- file.path("rnaseq/results/star_salmon",
-                   samplesheet$sample_name, 
-                   "quant.sf")
-names(files) <- samplesheet$sample_name
 
-txi <- tximport(files, type = c("salmon"), tx2gene = tx2gene)
-```
 
-```{r}
-# We'll do the same housekeeping as before to make sure the genes and the samples are in the same order as
-# the count data.
-names(genes) <- genes$gene_id
-genes <- genes[rownames(txi$counts)]
-stopifnot(all(genes$gene_id == rownames(txi$counts)))
 
-# Create rownames for the sample sheet and then use that to re-order
-samplesheet <- samplesheet %>%
-  mutate(row_names = sample_name) %>%
-  column_to_rownames("row_names")
-samplesheet <- samplesheet[colnames(txi$counts),]
-stopifnot(all(rownames(samplesheet) == colnames(txi$counts)))
-```
 
 ```{r}
 # In order to make the total (whole cell) condition be the one that everything is compared back to
