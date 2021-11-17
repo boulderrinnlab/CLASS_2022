@@ -135,6 +135,56 @@ This is an example of good reproducibility. We made the design file in 17 from c
 run and get the exact same design file !
 
 
-#TODO set up place to run and download fastqs from 17
+# NEW PIPELINE HAS NUCLEAR FRACTION FAIL :(
+
+# Let's try and run as class on differnet versions
+
+
+Here is the information for running the original NF_CORE rnaseq 1.4
+This is what we ran last year.
+
+
+NEXTFLOW.CONFIG
+```{bash}
+
+process {
+  executor='slurm'
+  queue='short'
+  memory='16 GB'
+  maxForks=10
+}
+
+```
+
+RUN.SH
+
+```{bash}
+#!/bin/bash
+#SBATCH -p long
+#SBATCH --job-name=HEPG2_rna_seq
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=john.rinn@colorado.edu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=6gb
+#SBATCH --time=20:00:00
+#SBATCH --output=nextflow.out
+#SBATCH --error=nextflow.err
+pwd; hostname; date
+echo "Here we go You've requested $SLURM_CPUS_ON_NODE core."
+module load singularity/3.1.1
+nextflow run nf-core/rnaseq -r 3.0 \
+-resume \
+-profile singularity \
+--input design.csv
+--aligner star_salmon
+--fasta /Shares/rinn_class/data/genomes/human/gencode/v32/GRCh38.p13.genome.fa \
+--gtf /Shares/rinn_class/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf \
+--gencode \
+--email john.rinn@colorado.edu \
+-c nextflow.config
+date
+
+```
 
 
