@@ -1,7 +1,7 @@
 ---
 title: "20_binding_vs_expression"
 author: "JR"
-date: "11/4/2021"
+date: "11/17/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -22,29 +22,20 @@ source("../util/_setup.R")
 First let's read in the sample sheet to know what is what
 ```{r read in sample_sheet}
 
-samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/samplesheet.csv")
+samplesheet <- read_csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/19_differential_expression/sample_sheets/full_samplesheet_corrected.csv")
 
-
-# The PCA plot in results showed us ENCODE had a label swapped.
-# Now we are fixing that to add the right labels after manual inspection
-
-samplesheet[which(samplesheet$sample_name == "hepg2_R1"), "condition"] <- "insoluble_cytoplasmic_fraction"
-samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "total"
-
-
-write_csv(samplesheet, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/20_binding_vs_expression/results/samplesheet_fixed_condition.csv")
 ```
 
 
 Now let's read in the TPMs from salmon
-```{r Salmon TPMs}
+```{r reading in salmon Salmon TPMs}
 
-# missing need to rerun pipeline
+# reading in salmon counts TPM (note we previously read in counts)
 
 salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/rnaseq/results/salmon/salmon_merged_gene_tpm.csv")
 
-# We want to summarize the TPM values for each subcellular fraction, so we'll take the 
-# mean of the two replicates
+# Taking the mean TPM of replicate values for each subcellular fraction
+# while we are at it we will add more intuitive row and col names 
 
 tpm <- salmon_tpm %>% 
   pivot_longer(cols = 2:ncol(.), names_to = "sample_id", values_to = "tpm") %>%
@@ -138,6 +129,8 @@ table(promoter_features_df$hepg2_reservoir)
 ## Let's read in the reservoirs from last year
 
 ```{r}
+
+#TODO FIND THIS FILE :)
 k562_df <- read.csv("/scratch/Shares/rinnclass/data/2020_peak_occurence_df.csv")
 
 # To compare these reservoirs to this year's dataset, we can just merge in the relevant columns
