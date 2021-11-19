@@ -37,6 +37,7 @@ salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/rnaseq/results/s
 # Taking the mean TPM of replicate values for each subcellular fraction
 # while we are at it we will add more intuitive row and col names 
 
+#TODO understand this fully -- good example
 tpm <- salmon_tpm %>% 
   pivot_longer(cols = 2:ncol(.), names_to = "sample_id", values_to = "tpm") %>%
   merge(samplesheet) %>%
@@ -45,25 +46,30 @@ tpm <- salmon_tpm %>%
   pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
 ```
 
-## Read in the promoter features data
-
-Which tells us how many DBPs are bound at each promoter
-
+Now let's read in the promoter features data:
+how many DBPs are bound at each promoter
 ```{r}
 promoter_features_df <- read.csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/peak_occurence_dataframe.csv")
 
 # Now we can merge in the TPM data to this data.frame
 promoter_features_df <- merge(promoter_features_df, tpm)
 
+# saving this file
+write.csv(promoter_features_df, "results/promoter_feature_df_20_tpms.csv")
+
 # Remember this plot!
 ggplot(promoter_features_df, aes(x = number_of_dbp)) +
   geom_density()
+
+#TODO save this figure
+ggsave("")
 ```
 
-## Plot a heatmap of where each gene is expressed
 
-```{r}
-# We need to turn this into a matrix
+Let's plot abundance of genes in each cellular fraction.
+```{r TPM of genes in each fraction}
+
+# First we need to the tpm DF into a matrix
 tpm_matrix <- tpm %>% 
   column_to_rownames("gene_id") %>%
   as.matrix()
@@ -80,15 +86,26 @@ summary(is.na(tpm_matrix))
 tpm_scaled <- tpm_scaled[complete.cases(tpm_scaled),]
 
 pheatmap::pheatmap(tpm_scaled, show_rownames = FALSE)
+
+
+#TODO save PDF
+# saving:
+
+
 ```
 
-## Plot the binding vs. expression
 
+Now let's examine how binding effects expression.
+We have published previously that the more binding
+events at a promoter the more abundant the expression is.
+Let's see if this holds for this larger number of DBPs
 ```{r}
-# Total
-# We're plotting only a trend line here with geom_smooth
-# But we're also adding in the points for those with no expression (as triangle shapes)
-# The ones with high number of DBPs and no expression are our reservoirs
+
+# We will plot:
+# x-axis = number of DBPs bound on the promoter
+# y-axis = expression level of that gene.
+
+
 ggplot(promoter_features_df, 
             aes(y = log2(tpm_total + 0.001), x = number_of_dbp, color = gene_type)) + 
   geom_point(data = promoter_features_df %>% filter(tpm_total < 0.001),
@@ -100,13 +117,17 @@ ggplot(promoter_features_df,
   ggtitle("Expression vs. promoter binding events") + 
   xlab(expression('Number of TFs')) +
   ylab(expression(log[2](TPM)))
+
+# The ones with high number of DBPs and no expression are our reservoirs
 ```
 
 ```{r}
+
+#TODO
 # Now plot this for each subcellular fraction
 ```
 
-
+Comparing lncRNA vs mRNA expression levels 
 ```{r}
 # We can see this from the trend lines that lncRNAs are less expressed,
 # but here's another way of looking at that.

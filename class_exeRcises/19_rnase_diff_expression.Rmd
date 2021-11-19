@@ -247,8 +247,8 @@ We will explore these now.
 # design is the analysis model and we are using condition column in sample sheet.
 
 
-dds <- DESeqDataSetFromMatrix(countData = nuc_cyto_counts_filtered,
-                              colData = samplesheet_filtered,
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = samplesheet,
                               design = ~ condition)
 
 # after creating the dds we run the DESeq function on this dds.
@@ -265,6 +265,10 @@ rlog_counts_nuc_cyto <- rlog(dds, blind = TRUE)
 # exctracting count matrix with assay()
 
 rlog_counts_matrix_nuc_cyto <- assay(rlog_counts)
+
+# now we need to round the values
+rlog_counts_matrix_nuc_cyt <- round(rlog_counts_matrix_nuc_cyto)
+
 
 # This is another handy matrix to load in so let's write it out
 
@@ -283,6 +287,8 @@ reading in the following files.
 
 ```{r START POINT}
 
+#TODO both rlog_counts read in have negative numbers
+
 # All normalized counts 
 rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all_rounded.rds")
 
@@ -300,7 +306,7 @@ rownames(samplesheet_filtered_nuc_cyto) <- samplesheet_filtered_nuc_cyto$sample_
 
 # finally a gene_id and gene_names object
 
-g2s <- read.csv(g2s, "g2s.csv")
+g2s <- read.csv("g2s.csv")
 
 ```
 
@@ -336,10 +342,11 @@ dev.off()
 
 
 # Now we can make a heatmap of all the data too
-rlog_var_genes <- rlog_counts_matrix[rowVars(rlog_counts_matrix_nuc_cyto) > 2,]
+rlog_var_genes_all <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 2,]
 
 # row center
-scaled_counts <- t(scale(t(rlog_var_genes)))
+scaled_counts <- t(scale(t(rlog_var_genes_all))) %>%
+  as.matrix()
 
 # make heat map
 pheatmap(scaled_counts, show_rownames = FALSE)
@@ -365,7 +372,7 @@ To do this we will use Principle Component Analysis (PCA)
 ?prcomp
 
 
-rld_pca <- prcomp(t(assay(rlog_counts)))
+rld_pca <- prcomp(t(assay(rlog_counts_matrix)))
 rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
   # note that x is in rld_pca as the PCA values
   rownames_to_column("sample_name") %>%
@@ -382,6 +389,11 @@ geom_text_repel()
 
 Now let's look deeper into the results held in dds object
 ```{r digging deeper into dds}
+
+# TODO why does rlog counts have negative numbers?
+dds <- DESeqDataSetFromMatrix(countData = rlog_counts_matrix_nuc_cyto,
+                              colData = samplesheet_filtered_nuc_cyto,
+                              design = ~ condition)
 
 # let's check out dds
 resultsNames(dds)
@@ -410,7 +422,8 @@ Let's make some standard RNAseq or gene-expression plots:
 
 #TODO add color (color by noncoding or not?)
 # Volcano plot
-ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = -log10(padj > 90))) + 
+#TODO tring to index for colir
+ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = -log10(res_df$padj > 90))) + 
   geom_point()
 
 
