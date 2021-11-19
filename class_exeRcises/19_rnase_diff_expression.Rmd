@@ -45,12 +45,9 @@ samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fracti
 
 # saving this to sample_sheets folder
 
-write.csv(samplesheet, "sample_sheets/full_samplesheet_corrected.csv")
 
-# We will want a nuclear versus cytoplasmic sample_sheet too so let's filter:
 
-samplesheet_filtered <- samplesheet %>%
-  filter(condition %in% c("cytosolic_fraction", "nuclear_fraction"))
+
 ```
 
 Now let's read in the genome features also in our data folder
@@ -87,6 +84,8 @@ counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/rnaseq/results/sal
   column_to_rownames("gene_id") %>%
   as.matrix()
 
+
+
 # Nice now we have a matrix we need to import to DeSeq
 # However it has all the samples so we need to orgnize a bit.
 ```
@@ -96,7 +95,9 @@ Making an rlog counts matrix for all samples -- can read in to start in future
 
 # First let's put the counts columns in the same order as the samplesheet
 # If they are not then we would essentially be randomizing our data later!!
-
+# TODO: note that right now, this pipeline run contains polyA and total RNA-seq
+# we can filter to just the total RNA-seq by taking only the columns
+# that are in the samplesheet (n = 10)
 counts <- counts[,samplesheet$sample_id]
 
 # This is a handy check point to make sure the labels in 
@@ -105,7 +106,7 @@ counts <- counts[,samplesheet$sample_id]
 all(colnames(counts) == samplesheet$sample_id)
 
 # Now we know they're in the same order, and we can change the names
-
+# It is nicer to have more descriptive names.
 colnames(counts) <- samplesheet$sample_name
 
 # Deseq wants round numbers so we are going to round them here:
@@ -116,6 +117,19 @@ counts <- round(counts)
 
 counts_filtered <- counts[rowSums(counts) > 1,]
 
+
+# In order to cache this and read it in later we'll
+# save it as an RDS
+write_rds(counts_filtered, "counts_matrix/counts_matrix.rds")
+
+# TODO: work this in where you think it goes.
+# We want to factor the condition variable. 
+# In this case it doesn't matter which comes first the "control"
+samplesheet$condition <- as.factor(samplesheet$condition)
+
+# Now that the samplesheet is ready to used in DESeq2, 
+# we'll write it out for future use.
+write_rds(samplesheet, "sample_sheets/final_samplesheet.rds")
 
 # Next we want to normalize these counts 
 # mostly to account for low abundance and noisey genes
@@ -141,17 +155,17 @@ rlog_counts <- rlog(dds, blind = TRUE)
 
 rlog_counts_matrix <- assay(rlog_counts)
 
-# Let's round the numbers now for better storage of this data
-
-rlog_counts_matrix <- round(rlog_counts_matrix)
+# # Let's round the numbers now for better storage of this data
+# 
+# rlog_counts_matrix <- round(rlog_counts_matrix)
 
 
 # Now we can write this out and START from here in the future.
 
-write_rds(rlog_counts_matrix, "rlog_count_matrices/rlog_counts_all_rounded.rds")
+write_rds(rlog_counts_matrix, "rlog_count_matrices/rlog_counts_all.rds")
 
 # reading back in to be sure we can start here in the future.
-rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all_rounded.rds")
+rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all.rds")
 ```
 
 
@@ -159,52 +173,27 @@ Now let's make a sample sheet we can use to compare nuc/cyto samples.
 ```{R nuclear and cytoplasmic samplesheet}
 # Now we will filter the sample sheet to just nuclear and cytoplasmic
 
-samplesheet_filtered_nuc_cyto <- samplesheet %>%
+samplesheet_nuc_cyto <- samplesheet %>%
   filter(condition %in% c("cytosolic_fraction", "nuclear_fraction"))
 
 # Nice now we have a reduced sample sheet that is well organized.
 
-# Next, let's triple check that the reduced sample sheet and counts
-# have the same sample names.
+# Next, let's triple check that the counts data
+# contains the counts for the samples in the reduced sample sheet 
 
-samplesheet_filtered_nuc_cyto$sample_name %in% colnames(counts)
+samplesheet_nuc_cyto$sample_name %in% colnames(counts)
 
 # Cool, the 4 samples in filtered are same as counts
 # Now let's look at samplesheet_filtered.
 # Not the rownames are numbers -- this is 'meta' information we need.
 # So let's make the rownames the names of the samples.
 
-rownames(samplesheet_filtered_nuc_cyto) <- samplesheet_filtered_nuc_cyto$sample_name
+# To keep the rownames, we can make sure it's a data.frame
+samplesheet_nuc_cyto <- samplesheet_nuc_cyto %>%
+  as.data.frame()
+
+rownames(samplesheet_nuc_cyto) <- samplesheet_nuc_cyto$sample_name
 # Now if we look at this object we see rownames as sample_name - nice.
-
-# let's write out this samplesheet for future use
-
-write.csv(samplesheet_filtered_nuc_cyto, "sample_sheets/samplesheet_filtered_nuc_cyto.csv")
-
-```
-
-
-Next we will reduce out counts_matrix to just the values of nuc/cyto
-```{r nuc/cyto  counts}
-
-# first reduce the counts matrix to just these 4 samples.
-counts_nuc_cyto <- counts[, samplesheet_filtered$sample_name]
-
-# This is a good way to triple check everything is in order.
-
-stopifnot(all(rownames(samplesheet_filtered) == colnames(counts_nuc_cyto)))
-# Great this evaluated to true and thus moved on -- we would get an error message otherwise.
-
-```
-
-We are almost ready, last things to check:
-
-DeSeq2 requires integer data and that condition is a factor. We will make
-sure these data files are in the right data format (good example of data types in R!)
-
-Most importantly we need to add a 'meta' factor for DeSeq to know which order the samples
-were analyzed -- this is critical !! Log fold change doesn't mean much with out knowing the order.
-```{R organizing nuc/cyto counts and samplesheet for deseq}
 
 # NOTE: DeSeq wants the control as a factor (fct), currently (chr)
 # The first factor level is the "control" and all the other levels
@@ -212,74 +201,20 @@ were analyzed -- this is critical !! Log fold change doesn't mean much with out 
 
 # Let's make the condition a factor:
 
-samplesheet_filtered$condition <- factor(samplesheet_filtered$condition, 
-                                         levels = c("nuclear_fraction", "cytosolic_fraction"))
+samplesheet_nuc_cyto$condition <- factor(samplesheet_nuc_cyto$condition, 
+                                         levels = c("nuclear_fraction",
+                                                    "cytosolic_fraction"))
 
-# now we see condition became a factor!
-# So now a log fold change of < 1 = cytosolic, and greater than 1 = nuclear.
-# This is subtle but important.
 
-# Ok now we need to turn the counts into integer data (int)
 
-counts <- round(counts_nuc_cyto)
-# This will round the counts, but still need to change to integer
+# let's write out this samplesheet for future use
 
-mode(counts_nuc_cyto) <- "integer"
-# We just coerced the data to integer and can now see that in env (int).
-
-# Ok, one final step filtering some of the gene counts out.
-# Let's fileter to genes that have at least one count across cols.
-nuc_cyto_counts_filtered <- counts[rowSums(counts) > 1,]
+write_rds(samplesheet_nuc_cyto, "sample_sheets/samplesheet_nuc_cyto.rds")
 
 ```
 
 
-Ok we are now ready for 'DeSeq land' we will be calling several
-functions from DeSeq. We need to know a few things that DeSeq requires.
-We will explore these now.
-```{R}
 
-# we dirst set up a dds (Distributed Data-structures in R)
-# we have created a count matrix and thus will use 'DESeqDataSetFromMatrix'
-# the params for this are:
-# 'countData' (the counts matrix)
-# 'coldData' where to get column data for which samples are which 
-# design is the analysis model and we are using condition column in sample sheet.
-
-
-dds <- DESeqDataSetFromMatrix(countData = counts,
-                              colData = samplesheet,
-                              design = ~ condition)
-
-# after creating the dds we run the DESeq function on this dds.
-# NOW WE RUN DESEQ !!
-
-dds <- DESeq(dds)
-
-# Now let's get the rlog normalized nuc/cyto counts like we did above
-# running rlog normalization on dds (that is only nuc and cyto now)
-# CAREFUL of what is in your dds when running this part :)
-
-rlog_counts_nuc_cyto <- rlog(dds, blind = TRUE)
-
-# exctracting count matrix with assay()
-
-rlog_counts_matrix_nuc_cyto <- assay(rlog_counts)
-
-# now we need to round the values
-rlog_counts_matrix_nuc_cyt <- round(rlog_counts_matrix_nuc_cyto)
-
-
-# This is another handy matrix to load in so let's write it out
-
-write_rds(rlog_counts_matrix_nuc_cyto, "rlog_count_matrices/rlog_counts_matrix_nuc_cyto.rds")
-
-# reading in so comfortable starting here with nuc/cyto
-
-rlog_counts_matrix_nuc_cyto <- read_rds("rlog_count_matrices/rlog_counts_matrix_nuc_cyto.rds")
-
-# Nice now we can just start here in the futre.
-```
 
 # START POINT
 All the work we have done above can be skipped by 
@@ -289,30 +224,33 @@ reading in the following files.
 
 #TODO both rlog_counts read in have negative numbers
 
-# All normalized counts 
-rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all_rounded.rds")
+# Read in the raw counts
+counts <- read_rds("counts_matrix/counts_matrix.rds")
 
-# Nuc/cyto normalized counts.
-rlog_counts_matrix_nuc_cyto <- read_rds("rlog_count_matrices/rlog_counts_matrix_nuc_cyto.rds")
+# All normalized counts 
+rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all.rds")
 
 # full sample_sheet
-samplesheet <- read_csv("sample_sheets/full_samplesheet_corrected.csv")
+samplesheet <- read_rds("sample_sheets/final_samplesheet.rds")
 
 # nuc/cyto sample sheet
-samplesheet_filtered_nuc_cyto <- read.csv("sample_sheets/samplesheet_filtered_nuc_cyto.csv")
+samplesheet_nuc_cyto <- read_rds("sample_sheets/samplesheet_nuc_cyto.rds")
 
-# need to add row names
-rownames(samplesheet_filtered_nuc_cyto) <- samplesheet_filtered_nuc_cyto$sample_name
 
 # finally a gene_id and gene_names object
-
 g2s <- read.csv("g2s.csv")
 
 ```
 
 
+
+
+
 Now let's cluster the data of differntially expressed genes in nuc/cyto.
 ```{R heat map of differnetial genes in nuc_cyto}
+# Let's subset the rlog_counts to just the nuclear and cyto samples
+rlog_counts_matrix_nuc_cyto <- rlog_counts_matrix[,samplesheet_nuc_cyto$sample_name]
+
 # first let's filter to variable genes 
 
 hist(rowVars(rlog_counts_matrix_nuc_cyto))
@@ -372,7 +310,7 @@ To do this we will use Principle Component Analysis (PCA)
 ?prcomp
 
 
-rld_pca <- prcomp(t(assay(rlog_counts_matrix)))
+rld_pca <- prcomp(t(rlog_counts_matrix))
 rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
   # note that x is in rld_pca as the PCA values
   rownames_to_column("sample_name") %>%
@@ -381,19 +319,67 @@ rld_prcomps <- merge(samplesheet, rld_prcomps)
 # install.packages("ggrepel")
 
 
-ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate))
+ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate)) +
 geom_point() +
 geom_text_repel()
 
 ```
 
+Next we will reduce out counts_matrix to just the values of nuc/cyto
+```{r nuc/cyto  counts}
+
+# first reduce the counts matrix to just these 4 samples.
+counts_nuc_cyto <- counts[, samplesheet_nuc_cyto$sample_name]
+
+# This is a good way to triple check everything is in order.
+
+stopifnot(all(rownames(samplesheet_nuc_cyto) == colnames(counts_nuc_cyto)))
+# Great this evaluated to true and thus moved on -- we would get an error message otherwise.
+
+```
+
+We are almost ready, last things to check:
+
+DeSeq2 requires integer data and that condition is a factor. We will make
+sure these data files are in the right data format (good example of data types in R!)
+
+Most importantly we need to add a 'meta' factor for DeSeq to know which order the samples
+were analyzed -- this is critical !! Log fold change doesn't mean much with out knowing the order.
+```{R organizing nuc/cyto counts and samplesheet for deseq}
+
+
+
+# now we see condition became a factor!
+# So now a log fold change of < 1 = cytosolic, and greater than 1 = nuclear.
+# This is subtle but important.
+
+# Ok now we need to turn the counts into integer data (int)
+
+counts_nuc_cyto <- round(counts_nuc_cyto)
+# This will round the counts, but still need to change to integer
+
+mode(counts_nuc_cyto) <- "integer"
+# We just coerced the data to integer and can now see that in env (int).
+
+# Ok, one final step filtering some of the gene counts out.
+# Let's fileter to genes that have at least one count across cols.
+nuc_cyto_counts_filtered <- counts_nuc_cyto[rowSums(counts_nuc_cyto) > 1,]
+
+
+
+```
+
 Now let's look deeper into the results held in dds object
 ```{r digging deeper into dds}
+colnames(nuc_cyto_counts_filtered) == rownames(samplesheet_nuc_cyto)
 
-# TODO why does rlog counts have negative numbers?
-dds <- DESeqDataSetFromMatrix(countData = rlog_counts_matrix_nuc_cyto,
-                              colData = samplesheet_filtered_nuc_cyto,
+# DEseq always needs raw counts
+dds <- DESeqDataSetFromMatrix(countData = nuc_cyto_counts_filtered,
+                              colData = samplesheet_nuc_cyto,
                               design = ~ condition)
+
+
+dds <- DESeq(dds)
 
 # let's check out dds
 resultsNames(dds)
@@ -423,9 +409,10 @@ Let's make some standard RNAseq or gene-expression plots:
 #TODO add color (color by noncoding or not?)
 # Volcano plot
 #TODO tring to index for colir
-ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = -log10(res_df$padj > 90))) + 
+ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = -log10(res_df$padj) > 90)) + 
   geom_point()
 
+# There is a limit floating precision and apparent for R it ends at 300-something
 
 # MA plot (this make a take a min)
 ggplot(res_df, aes(x = log10(baseMean), y = log2FoldChange)) + 
@@ -451,7 +438,7 @@ in nuc -vs -cyto with P < 0.05
 ```{r}
 
 # Let's save this dataframe !!
-write.table(res_df, "results/nuc_cyto_diff_expression_res_df_P05.csv")
+write.table(res_df, "results/nuc_cyto_diff_expression_res_df.csv")
 
 
 
@@ -460,17 +447,17 @@ write.table(res_df, "results/nuc_cyto_diff_expression_res_df_P05.csv")
 
 #TODO why this?
 
-res_df_nuc_cyto <- data.frame("gene_id" = character(), 
-                     "baseMean" = numeric(), 
-                     "log2FoldChange" = numeric(), 
-                     "lfcSE" = numeric(),
-                     "stat" = numeric(),
-                     "pvalue" = numeric(),
-                     "padj" = numeric(),
-                     "gene_name" = character(),
-                     "result_name" = character())
+# res_df_nuc_cyto <- data.frame("gene_id" = character(), 
+#                      "baseMean" = numeric(), 
+#                      "log2FoldChange" = numeric(), 
+#                      "lfcSE" = numeric(),
+#                      "stat" = numeric(),
+#                      "pvalue" = numeric(),
+#                      "padj" = numeric(),
+#                      "gene_name" = character(),
+#                      "result_name" = character())
 
-test <- read.table("results/nuc_cyto_diff_expression_res_df.csv")
+test <- read_csv("results/nuc_cyto_diff_expression_res_df.csv")
 
 ```
 
@@ -483,7 +470,7 @@ test <- read.table("results/nuc_cyto_diff_expression_res_df.csv")
 
 
 #TODO figure out what to load in here :(
-samplesheet <- read_csv("sample_sheets/full_samplesheet_corrected.csv")
+# samplesheet <- read_csv("sample_sheets/full_samplesheet_corrected.csv")
 
 
 # In order to make the total (whole cell) condition be the one that everything is compared back to
@@ -494,18 +481,14 @@ samplesheet$condition <- factor(samplesheet$condition, levels = c("total", "memb
 
 #TODO how to read this in? Is this the right counts?
 # reading in all counts:
-rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all_rounded.rds")
+# rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all_rounded.rds")
 
 
-dds <- DESeqDataSetFromMatrix(countData = rlog_counts_matrix,
+
+dds <- DESeqDataSetFromMatrix(countData = counts,
                               colData = samplesheet,
                               design = ~ condition)
 
-# setting up dds for DESeq
-dds <- DESeqDataSetFromTximport(rlog_counts_matrix,
-                                design = ~ condition,
-                                colData = samplesheet,
-                                rowData = g2s)
 
 # Run the DESeq stats
 dds <- DESeq(dds)
@@ -514,24 +497,6 @@ dds <- DESeq(dds)
 ```
 
 
-
-
-
-```{r}
-# In order to make the total (whole cell) condition be the one that everything is compared back to
-# we will want to set the factor levels with "total" first
-samplesheet$condition <- factor(samplesheet$condition, levels = c("total", "membrane_fraction", 
-                                                                  "insoluble_cytoplasmic_fraction", 
-                                                                  "cytosolic_fraction", "nuclear_fraction"))
-
-dds <- DESeqDataSetFromTximport(txi,
-                                design = ~ condition,
-                                colData = samplesheet,
-                                rowData = genes)
-
-# Run the DESeq stats
-dds <- DESeq(dds)
-```
 
 ```{r}
 # We now have a bunch more results
@@ -555,7 +520,7 @@ res_df <- res %>% as.data.frame() %>%
 summary(res_df$log2FoldChange)
 
 ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj))) + 
-  geom_point() + xlim(-24, 13)
+  geom_point()
 
 
 res_shrunken_df <- res_shrunken %>% as.data.frame() %>%
