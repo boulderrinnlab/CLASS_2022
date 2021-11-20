@@ -215,15 +215,10 @@ write_rds(samplesheet_nuc_cyto, "sample_sheets/samplesheet_nuc_cyto.rds")
 ```
 
 
-
-
 # START POINT
 All the work we have done above can be skipped by 
 reading in the following files.
-
 ```{r START POINT}
-
-#TODO both rlog_counts read in have negative numbers
 
 # Read in the raw counts
 counts <- read_rds("counts_matrix/counts_matrix.rds")
@@ -243,17 +238,70 @@ g2s <- read.csv("g2s.csv")
 
 ```
 
+First let's cluster all the data to see how the samples relate.
+
+```{r heatmap of all data}
+
+# Now we can make a heatmap of all the different fractions
+
+# First we will filter to genes that are variable across data.
+hist(rowVars(rlog_counts_matrix))
+
+rlog_var_genes_all <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 2,]
+
+# row center
+scaled_counts <- t(scale(t(rlog_var_genes_all))) %>%
+  as.matrix()
+
+# make heat map
+pheatmap(scaled_counts, show_rownames = FALSE)
+
+# saving
+pdf("figures/all_vs_total_genes_heatmap.pdf")
+pheatmap(scaled_counts, show_rownames = FALSE)
+dev.off()
+```
+
+Now let's use Principle Component Analysis to determine sample similarity
+```{r PCA analysis}
+
+# The first thing that we'll want to do is make a PCA plot.
+# 'prcomp()' is the principle component analysis function.
+
+?prcomp
+
+# let's calculate the values associated with 'prcomp'
+# install.packages("ggrepel") to move text so it doesn't overlap
 
 
+rld_pca <- prcomp(t(rlog_counts_matrix))
+rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
+  # note that x is in rld_pca as the PCA values
+  rownames_to_column("sample_name") %>%
+  select(sample_name, PC1, PC2)
+rld_prcomps <- merge(samplesheet, rld_prcomps)
+
+
+ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate)) +
+geom_point() +
+geom_text_repel()
+
+# RESULT: PCA plot looks like replicates are more similar than fraction type!
+
+# Let's print this out
+
+ggsave("figures/PCA_plot.pdf")
+
+```
 
 
 Now let's cluster the data of differntially expressed genes in nuc/cyto.
 ```{R heat map of differnetial genes in nuc_cyto}
-# Let's subset the rlog_counts to just the nuclear and cyto samples
+
+# Let's subset the rlog_counts to just the nuclear and cyto samples using sample_sheet
 rlog_counts_matrix_nuc_cyto <- rlog_counts_matrix[,samplesheet_nuc_cyto$sample_name]
 
 # first let's filter to variable genes 
-
 hist(rowVars(rlog_counts_matrix_nuc_cyto))
 
 # Based on this we see that most of the data is 0 or not differential across samples.
@@ -279,58 +327,8 @@ pdf("figures/nuc_cyto_var_genes_heatmap.pdf")
 pheatmap(scaled_counts_nuc_cyto, show_rownames = FALSE)
 dev.off()
 
-
-# Now we can make a heatmap of all the data too
-rlog_var_genes_all <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 2,]
-
-# row center
-scaled_counts <- t(scale(t(rlog_var_genes_all))) %>%
-  as.matrix()
-
-# make heat map
-pheatmap(scaled_counts, show_rownames = FALSE)
-
-# saving
-pdf("figures/all_vs_total_genes_heatmap.pdf")
-pheatmap(scaled_counts, show_rownames = FALSE)
-dev.off()
-
 ```
 
-
-The clustering showed a clear separation of nuc and cyto samples.
-Now let's see how similar and different the samples and replicates are.
-To do this we will use Principle Component Analysis (PCA)
-```{r PCA analysis}
-
-
-# The first thing that we'll want to do is make a PCA plot.
-# 'prcomp()' is the principle component analysis function.
-
-?prcomp
-
-# let's calculate the values associated with 'prcomp'
-
-rld_pca <- prcomp(t(rlog_counts_matrix))
-rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
-  # note that x is in rld_pca as the PCA values
-  rownames_to_column("sample_name") %>%
-  select(sample_name, PC1, PC2)
-rld_prcomps <- merge(samplesheet, rld_prcomps)
-# install.packages("ggrepel")
-
-
-ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate)) +
-geom_point() +
-geom_text_repel()
-
-# RESULT: PCA plot looks like replicates are more similar than fraction type!
-
-# Let's print this out
-
-ggsave("figures/PCA_plot.pdf")
-
-```
 
 Next we will reduce out counts_matrix to just the values of nuc/cyto
 ```{r nuc/cyto  counts}
@@ -347,11 +345,11 @@ stopifnot(all(rownames(samplesheet_nuc_cyto) == colnames(counts_nuc_cyto)))
 
 We are almost ready, last things to check:
 
-DeSeq2 requires integer data and that condition is a factor. We will make
-sure these data files are in the right data format (good example of data types in R!)
+1) DeSeq2 requires integer data 
 
-Most importantly we need to add a 'meta' factor for DeSeq to know which order the samples
-were analyzed -- this is critical !! Log fold change doesn't mean much with out knowing the order.
+2) Deseq2 needs the condition being compared to as a "factor" 
+-- this is critical --
+
 ```{R organizing nuc/cyto counts and samplesheet for deseq}
 
 # Ok now we need to turn the counts into integer data (int)
@@ -362,11 +360,9 @@ counts_nuc_cyto <- round(counts_nuc_cyto)
 mode(counts_nuc_cyto) <- "integer"
 # We just coerced the data to integer and can now see that in env (int).
 
-# Ok, one final step filtering some of the gene counts out.
+
 # Let's fileter to genes that have at least one count across cols.
 nuc_cyto_counts_filtered <- counts_nuc_cyto[rowSums(counts_nuc_cyto) > 1,]
-
-
 
 ```
 
@@ -374,6 +370,7 @@ Now let's look deeper into the results held in dds object
 ```{r digging deeper into dds}
 
 # double check organization of input files to DESeq!
+# If this is not true the results will be a mix of wrong samples!
 
 colnames(nuc_cyto_counts_filtered) == rownames(samplesheet_nuc_cyto)
 
@@ -426,7 +423,8 @@ ggsave("figures/nuc_cyto_volcano.pdf")
 ggplot(res_df, aes(x = log10(baseMean), y = log2FoldChange)) + 
   geom_point()
 
-# This is a good QC plot and shows the pvalues are not biased to low "base-mean" levels
+# This is a good QC plot and shows the fold changes
+# are not biased to low "base-mean" levels
 
 # saving MA PLOT
 
@@ -451,13 +449,13 @@ summary(num_sig)
 # DESeq with all subcellular fractions
 ```{r organizing sample sheet for comparison to total RNA for each fraction}
 
-# In order to make the total (whole cell) condition be the one that everything is compared back to
-# we will want to set the factor levels with "total" first
+# We will use total RNA (whole cell) condition to compare everything back to.
 
+# we will want to set the factor levels with "total" first
 samplesheet$condition <- factor(samplesheet$condition, levels = c("total", "membrane_fraction", "insoluble_cytoplasmic_fraction", "cytosolic_fraction", "nuclear_fraction"))
 
 
-# creating dds based on teh factors above
+# creating dds based on the factors above
 
 dds <- DESeqDataSetFromMatrix(countData = counts,
                               colData = samplesheet,
@@ -480,22 +478,8 @@ resultsNames(dds)
 # Let's just look at one of the results
 res <- results(dds, name = "condition_membrane_fraction_vs_total")
 
+# We can further index the information for just this sample:
 
-
-
-
-
-
-
-
-
-# TODO deterime how to organize or if worth it to have shrunken fold change here or 
-# too much
-
-res_shrunken <- lfcShrink(dds, coef = "condition_membrane_fraction_vs_total",  res = res)
-
-
-# Let's quickly compare the unshrunken vs shrunken fold changes.
 res_df <- res %>% as.data.frame() %>%
   rownames_to_column("gene_id") %>%
   merge(g2s) %>%
@@ -504,20 +488,14 @@ res_df <- res %>% as.data.frame() %>%
 # Set the x-axes the same.
 summary(res_df$log2FoldChange)
 
-ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj))) + 
-  geom_point()
-
-
-res_shrunken_df <- res_shrunken %>% as.data.frame() %>%
-  rownames_to_column("gene_id") %>%
-  merge(g2s) %>%
-  mutate(result_name = "condition_membrane_fraction_vs_total")
-
-ggplot(res_shrunken_df, aes(x = log2FoldChange, y = -log10(padj))) + 
-  geom_point() + xlim(-24, 13)
 ```
 
-```{r}
+
+
+
+
+```{r compiling all the results}
+
 # Okay, now that we have results for each comparison back to total,
 # we can combine the fold changes into a matrix and make a heatmap / cluster the genes
 # By which cellular fraction they are enriched in.
