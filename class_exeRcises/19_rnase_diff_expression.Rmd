@@ -1,7 +1,7 @@
 ---
 title: "19_Rnaseq_diff_expression"
 author: "JR"
-date: "10/11/2021"
+date: "11/20/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -491,19 +491,22 @@ summary(res_df$log2FoldChange)
 ```
 
 
-
-
-
+Ok that was a lot of RNAseq !!
+Let's save the results:
 ```{r compiling all the results}
 
-# Okay, now that we have results for each comparison back to total,
-# we can combine the fold changes into a matrix and make a heatmap / cluster the genes
-# By which cellular fraction they are enriched in.
-# A good starting point would be to use a for loop to make a data.frame with all the results
-# and then you can make that into a matrix with pivot_wider.
+# A good starting point would be to use a for loop to make a data.frame 
+# with all the results
+
 results_names <- resultsNames(dds)
+
+# let's look
+results_names
+
 # We don't care about the intercept, so we can leave that out
 results_names <- results_names[-1]
+
+# First we set up a data frame for logFC results.
 
 res_df <- data.frame("gene_id" = character(), 
                      "baseMean" = numeric(), 
@@ -514,6 +517,9 @@ res_df <- data.frame("gene_id" = character(),
                      "padj" = numeric(),
                      "gene_name" = character(),
                      "result_name" = character())
+
+# in parallel we can make the same results with "shrunken"
+# logFC this normalizes low expressed genes to be less significant.
 
 res_shrunken_df <- data.frame("gene_id" = character(), 
                               "baseMean" = numeric(), 
@@ -547,7 +553,23 @@ for(i in 1:length(results_names)) {
   res_shrunken_df <- bind_rows(res_shrunken_df, tmp_res_shrunken_df)
 }
 
-# Let's move forward with the shrunken log fold-changes
+# Let's save these res_df
+
+write_rds(res_df, "results/deseq_results_df.rds")
+
+write_rds(res_shrunken_df, "results/deseq_results_shrunken_lfc_df.rds")
+
+```
+
+Cool now we have two great data frames to move forward with.
+Normally we would just move forward with shrunken logFC.
+Let's add a couple more fun colums to this res_shrunken_df
+
+```{R adding more information to res_shrunken_df }
+
+# we could start here by reading in the files from above:
+res_shrunken_df <- read_rds("results/deseq_results_shrunken_lfc_df.rds")
+
 # First let's label the genes as being significant in any condition or not.
 res_shrunken_df <- res_shrunken_df %>%
   group_by(gene_id) %>%
@@ -556,6 +578,7 @@ res_shrunken_df <- res_shrunken_df %>%
 # Let's clean up the column names a little bit
 res_shrunken_df <- res_shrunken_df %>%
   mutate(subcellular_fraction = gsub("condition_|_fraction_vs_total", "", result_name))
+
 
 sig_res_shrunked_df <- res_shrunken_df %>%
   filter(sig == "sig")
@@ -567,4 +590,7 @@ lfc_matrix <- sig_res_shrunked_df %>%
   as.matrix()
 
 pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
+
+
 ```
+
