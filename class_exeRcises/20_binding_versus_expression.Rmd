@@ -110,7 +110,7 @@ Now let's examine how binding effects expression.
 We have published previously that the more binding
 events at a promoter the more abundant the expression is.
 Let's see if this holds for this larger number of DBPs
-```{r}
+```{r DBP promoter binding versus total RNA expression}
 
 # We will plot:
 # x-axis = number of DBPs bound on the promoter
@@ -238,11 +238,8 @@ write_csv(k562_df, "2020_k562_promoter_peak_df.csv")
 # first we should label what is k562 and what is Hepg2
 
 
-# renaming cols to have k562
+# K562_df renaming :
 
-
-
-# To compare these reservoirs to this year's dataset, we can just merge in the relevant columns
 k562_df <- k562_df %>% 
   dplyr::select(gene_id, reservoir, conservative_reservoir, tpm, expression, tf_binding, promoter_mean_tpm, promoter_median_tpm, promoter_max_tpm) %>%
   dplyr::rename(k562_reservoir = reservoir, 
@@ -257,10 +254,23 @@ k562_df <- k562_df %>%
 
 write.csv(k562_df,"k562_df.csv")
 
-# TODO rename Hepg2
+# renaming promoter_features_df to hepg2_df
 
-promoter_features_df <- merge(promoter_features_df, k562_df)
+hepg2_df <- promoter_features_df %>%
+  dplyr::select(tpm_total, tpm_cytosolic_fraction, tpm_nuclear_fraction, tpm_insoluble_cytoplasmic_fraction, tpm_membrane_fraction, number_of_dbp) %>%
+   dplyr::rename(hepg2_tpm_total = tpm_total,
+                 hepg2_tpm_cytosolic_fraction = tpm_cytosolic_fraction,
+                 hepg2_tpm_nuclear_fraction = tpm_nuclear_fraction,
+                 hepg2_tpm_insoluble_cytoplasmic_fraction = tpm_insoluble_cytoplasmic_fraction,
+                 hepg2_tpm_membrane_fraction = tpm_membrane_fraction,
+                 hepg2_number_of_dbp = number_of_dbp )
 
+write_csv(hepg2_df,"hepg2_df.csv")
+  
+# TODO this breaks for some reason
+hepg2_k562_promoter_features_df <- merge(hepg2_df, k562_df)
+
+write_csv(hepg2_k562_promoter_features_df, "hepg2_k562_promoter_features_df.csv")
 
 # Make a table of reservoir status
 res_status <- promoter_features_df %>% 
