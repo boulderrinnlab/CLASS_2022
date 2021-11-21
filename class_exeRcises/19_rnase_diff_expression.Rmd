@@ -45,9 +45,6 @@ samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fracti
 
 # saving this to sample_sheets folder
 
-
-
-
 ```
 
 Now let's read in the genome features also in our data folder
@@ -95,7 +92,9 @@ Making an rlog counts matrix for all samples -- can read in to start in future
 
 # First let's put the counts columns in the same order as the samplesheet
 # If they are not then we would essentially be randomizing our data later!!
-# TODO: note that right now, this pipeline run contains polyA and total RNA-seq
+
+
+# NOTE: that right now, this pipeline run contains polyA and total RNA-seq
 # we can filter to just the total RNA-seq by taking only the columns
 # that are in the samplesheet (n = 10)
 counts <- counts[,samplesheet$sample_id]
@@ -122,7 +121,6 @@ counts_filtered <- counts[rowSums(counts) > 1,]
 # save it as an RDS
 write_rds(counts_filtered, "counts_matrix/counts_matrix.rds")
 
-# TODO: work this in where you think it goes.
 # We want to factor the condition variable. 
 # In this case it doesn't matter which comes first the "control"
 samplesheet$condition <- as.factor(samplesheet$condition)
@@ -132,7 +130,7 @@ samplesheet$condition <- as.factor(samplesheet$condition)
 write_rds(samplesheet, "sample_sheets/final_samplesheet.rds")
 
 # Next we want to normalize these counts 
-# mostly to account for low abundance and noisey genes
+# mostly to account for low abundance and noisy genes
 # We need to do this in four steps:
 
 # (1) first run DESeq2 by creating a dds object.
@@ -153,16 +151,9 @@ rlog_counts <- rlog(dds, blind = TRUE)
 
 # (4) now we retrieve the values using assay (an accessor function into rlog_counts)
 
-
 rlog_counts_matrix <- assay(rlog_counts)
 
-# # Let's round the numbers now for better storage of this data
-# 
-# rlog_counts_matrix <- round(rlog_counts_matrix)
-
-
 # Now we can write this out and START from here in the future.
-
 write_rds(rlog_counts_matrix, "rlog_count_matrices/rlog_counts_all.rds")
 
 # reading back in to be sure we can start here in the future.
@@ -205,7 +196,6 @@ rownames(samplesheet_nuc_cyto) <- samplesheet_nuc_cyto$sample_name
 samplesheet_nuc_cyto$condition <- factor(samplesheet_nuc_cyto$condition, 
                                          levels = c("nuclear_fraction",
                                                     "cytosolic_fraction"))
-
 
 
 # let's write out this samplesheet for future use

@@ -1,7 +1,7 @@
 ---
 title: "20_binding_vs_expression"
 author: "JR"
-date: "11/17/2021"
+date: "11/21/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -22,7 +22,7 @@ source("../util/_setup.R")
 First let's read in the sample sheet to know what is what
 ```{r read in sample_sheet}
 
-samplesheet <- read_csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/19_differential_expression/sample_sheets/full_samplesheet_corrected.csv")
+samplesheet <- read_rds("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/19_differential_expression/sample_sheets/final_samplesheet.rds")
 
 ```
 
@@ -32,7 +32,7 @@ Now let's read in the TPMs from salmon
 
 # reading in salmon counts TPM (note we previously read in counts)
 
-salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/rnaseq/results/salmon/salmon_merged_gene_tpm.csv")
+salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/data/rnaseq/results/salmon/salmon_merged_gene_tpm.csv")
 
 # Taking the mean TPM of replicate values for each subcellular fraction
 # while we are at it we will add more intuitive row and col names 
@@ -55,18 +55,24 @@ promoter_features_df <- read.csv("/Shares/rinn_class/data/CLASS_2022/class_exeRc
 promoter_features_df <- merge(promoter_features_df, tpm)
 
 # saving this file
-write.csv(promoter_features_df, "results/promoter_feature_df_20_tpms.csv")
+write.csv(promoter_features_df, "results/promoter_feature_df_20_tpm.csv")
 
-# Remember this plot!
+# let's plot the number of DBPs bound as a densuty plot.
+
 ggplot(promoter_features_df, aes(x = number_of_dbp)) +
-  geom_density()
+  geom_density() +
+  ggsave("figures/DBP_binding_density_plot.pdf")
 
-#TODO save this figure
-ggsave("")
+# Remember this plot :) !
+
 ```
+RESULT: There is a bimodal distriubution of the number of DBPs bound
+to a given promoter. One that falls off around 100 DBPs and another
+that emerged at ~250 DBPs on a promter. That's a lot.
 
 
-Let's plot abundance of genes in each cellular fraction.
+
+Plotting the abundance of genes in each cellular fraction.
 ```{r TPM of genes in each fraction}
 
 # First we need to the tpm DF into a matrix
@@ -81,18 +87,23 @@ tpm_scaled <- t(scale(t(tpm_matrix)))
 # And right now we're not sure.
 summary(is.na(tpm_matrix))
 
-# Remove NAs with the complete.cases function
+# NA = false, cool, but if there were we would want to remove them with complete.cases:
 ?complete.cases
+
+# clearing all possible NAs
 tpm_scaled <- tpm_scaled[complete.cases(tpm_scaled),]
 
 pheatmap::pheatmap(tpm_scaled, show_rownames = FALSE)
 
-
-#TODO save PDF
-# saving:
-
+# saving heatmap:
+pdf("figures/tpm_all_fraction_genes_heatmap.pdf")
+pheatmap::pheatmap(tpm_scaled, show_rownames = FALSE)
+dev.off()
 
 ```
+RESULT: 
+(1) Most RNAs are abundant in the nucleus
+(2) Some RNAs expressed in total that are not in other fractioins?
 
 
 Now let's examine how binding effects expression.
@@ -105,6 +116,57 @@ Let's see if this holds for this larger number of DBPs
 # x-axis = number of DBPs bound on the promoter
 # y-axis = expression level of that gene.
 
+ggplot(promoter_features_df, 
+            aes(y = log2(tpm_total + 0.001), x = number_of_dbp, color = gene_type)) + 
+  geom_point(data = promoter_features_df %>% filter(tpm_total < 0.001),
+             shape = 17, alpha = 0.7) +
+  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+  stat_cor() +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+  ggtitle("Expression vs. promoter binding events") + 
+  xlab(expression('Number of TFs')) +
+  ylab(expression(log[2](TPM))) +
+  # saving figure
+  ggsave("figures/expression-vs-promoter_binding.pdf")
+
+
+# The ones with high number of DBPs and no expression are our reservoirs
+```
+RESULTS:
+(1) Expression is typically linearly correlatd with the number of DBPs at a proomter.
+This validates known data from Mele et al. on a much larger scale.
+
+(2) Linear correlation of DBP to expression level is similar for lncRNA and mRNA.
+This is also validates that lncRNAs are typically lower abundant. 
+
+(2) There is a very interestingn line on the bottom of the plot !
+This means that there is a unique distribution of promoters that
+are bound by many DBPs (up to 400!).
+
+Next we will directly test the lncRNA vs mRNA expression levels in total RNA. 
+```{r determining lncRNA and mRNA expression levels in total RNA}
+
+# We can see this from the trend lines that lncRNAs are less expressed,
+# but here's another way of looking at that.
+ggplot(promoter_features_df, aes(x = log2(tpm_total + 0.01), color = gene_type))+
+  geom_density()
+
+```
+RESULT:
+(1) This yet again confirms lncRNAs have lower expression levels than mRNAs.
+
+
+
+Next we will determine if the linear correlation of DBP binding to abundance
+holds across all the fractionation data.
+```{r}
+
+#TODO
+# Now plot this for each subcellular fraction
+
+# SOMETHING LIKE BELOW but with a facet for each fraction?
+
 
 ggplot(promoter_features_df, 
             aes(y = log2(tpm_total + 0.001), x = number_of_dbp, color = gene_type)) + 
@@ -116,43 +178,47 @@ ggplot(promoter_features_df,
   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
   ggtitle("Expression vs. promoter binding events") + 
   xlab(expression('Number of TFs')) +
-  ylab(expression(log[2](TPM)))
+  ylab(expression(log[2](TPM))) +
+  
 
-# The ones with high number of DBPs and no expression are our reservoirs
 ```
+RESULTS:
+(1)
 
-```{r}
 
-#TODO
-# Now plot this for each subcellular fraction
-```
 
-Comparing lncRNA vs mRNA expression levels 
-```{r}
-# We can see this from the trend lines that lncRNAs are less expressed,
-# but here's another way of looking at that.
-ggplot(promoter_features_df, aes(x = log2(tpm_total + 0.01), color = gene_type))+
-  geom_density()
-```
+We have previously observed that k562 cells also exhibit high binding promoters
+that are not expressed. We termed them 'reservoirs' as they are a reservoir
+for many Dna-protein interaction sites. Based on the plot above we observed that
+this phenomena also exists in hepG2 cells as well. 
 
-## Now we can define reservoirs in HEPG2
+Based on this we next wanted to identify the 'reservoirs' in hepG2 cells.
+```{r defining HEPG2 reservoirs}
 
-```{r}
-# We'll use a cutoff of 100 DBPs here, but we can think more about 
-# what would be a reasonable cutoff here.
+# first we will use a cutoff of 100 DBPs.
+# We can think about this more in the future.
+
 promoter_features_df$hepg2_reservoir <- 
   as.numeric(promoter_features_df$number_of_dbp > 100 & 
                promoter_features_df$tpm_total < 0.001)
 
 table(promoter_features_df$hepg2_reservoir)
+
 ```
+RESULT:
+(1) There are 628 reservoirs in HEPG2.
 
-## Let's read in the reservoirs from last year
 
-```{r}
 
-#TODO FIND THIS FILE :)
-k562_df <- read.csv("/scratch/Shares/rinnclass/data/2020_peak_occurence_df.csv")
+Now that we have defined reservoirs in hepG2 cells, we next want to determine how many 
+are similar genomic regions in k562 and hepG2.
+```{r reading in K%62 reservoirs}
+
+# TODO START HERE but found the DF -- thank goodness that was hard ::)
+
+k562_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/2020_peak_occurence_df.csv")
+# saving for future use this was hard to find :)
+write_csv(k562_df, "2020_k562_promoter_peak_df.csv")
 
 # To compare these reservoirs to this year's dataset, we can just merge in the relevant columns
 k562_reservoir <- k562_df %>% 
