@@ -144,6 +144,51 @@ This is also validates that lncRNAs are typically lower abundant.
 This means that there is a unique distribution of promoters that
 are bound by many DBPs (up to 400!).
 
+Let's see if the binding versus expression holds in the nuclear fraction
+```{r binding versus nuclear expression}
+
+ggplot(promoter_features_df, 
+            aes(y = log2(tpm_nuclear_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
+  geom_point(data = promoter_features_df %>% filter(tpm_total < 0.001),
+             shape = 17, alpha = 0.7) +
+  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+  stat_cor() +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+  ggtitle("Nuclear Expression vs. promoter binding events") + 
+  xlab(expression('Number of TFs')) +
+  ylab(expression(log[2](TPM))) +
+  # saving figure
+  ggsave("figures/nuclear_expression-vs-promoter_binding.pdf")
+
+
+```
+
+
+Next we will determine the DBP binding versus cytoplasmic expression
+```{Binding versus cytoplasmic expression}
+
+ggplot(promoter_features_df, 
+            aes(y = log2(tpm_cytosolic_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
+            # note if we take off the log2 everything is very lowly expressed
+  geom_point(data = promoter_features_df %>% filter(tpm_total < 0.001),
+             shape = 17, alpha = 0.7) +
+  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+  stat_cor() +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+  ggtitle("Cytoplasmic Expression vs. promoter binding events") + 
+  xlab(expression('Number of TFs')) +
+  ylab(expression(log[2](TPM))) +
+  # saving figure
+  ggsave("figures/cytoplasmic_expression-vs-promoter_binding.pdf")
+
+```
+RESULTS:
+(1) everything seems to be low abundance 
+(2) Some mRNAs are expressed in the nucleus -- we could look at this more later.
+(3) The same linear trend holds but is driven by mostly low expression events.
+
 Next we will directly test the lncRNA vs mRNA expression levels in total RNA. 
 ```{r determining lncRNA and mRNA expression levels in total RNA}
 
@@ -155,35 +200,6 @@ ggplot(promoter_features_df, aes(x = log2(tpm_total + 0.01), color = gene_type))
 ```
 RESULT:
 (1) This yet again confirms lncRNAs have lower expression levels than mRNAs.
-
-
-
-Next we will determine if the linear correlation of DBP binding to abundance
-holds across all the fractionation data.
-```{r}
-
-#TODO
-# Now plot this for each subcellular fraction
-
-# SOMETHING LIKE BELOW but with a facet for each fraction?
-
-
-ggplot(promoter_features_df, 
-            aes(y = log2(tpm_total + 0.001), x = number_of_dbp, color = gene_type)) + 
-  geom_point(data = promoter_features_df %>% filter(tpm_total < 0.001),
-             shape = 17, alpha = 0.7) +
-  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
-  stat_cor() +
-  scale_x_continuous(expand = c(0,0)) +
-  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
-  ggtitle("Expression vs. promoter binding events") + 
-  xlab(expression('Number of TFs')) +
-  ylab(expression(log[2](TPM))) +
-  
-
-```
-RESULTS:
-(1)
 
 
 
@@ -214,19 +230,36 @@ Now that we have defined reservoirs in hepG2 cells, we next want to determine ho
 are similar genomic regions in k562 and hepG2.
 ```{r reading in K%62 reservoirs}
 
-# TODO START HERE but found the DF -- thank goodness that was hard ::)
-
-k562_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/2020_peak_occurence_df.csv")
+k562_df <- read_csv("2020_k562_promoter_peak_df.csv")
 # saving for future use this was hard to find :)
 write_csv(k562_df, "2020_k562_promoter_peak_df.csv")
 
-# To compare these reservoirs to this year's dataset, we can just merge in the relevant columns
-k562_reservoir <- k562_df %>% 
-  dplyr::select(gene_id, reservoir, conservative_reservoir) %>%
-  dplyr::rename(k562_reservoir = reservoir, 
-                k562_conservative_reservoir = conservative_reservoir)
+# next we want to merge the k562 adn Hepg2 DFs 
+# first we should label what is k562 and what is Hepg2
 
-promoter_features_df <- merge(promoter_features_df, k562_reservoir)
+
+# renaming cols to have k562
+
+
+
+# To compare these reservoirs to this year's dataset, we can just merge in the relevant columns
+k562_df <- k562_df %>% 
+  dplyr::select(gene_id, reservoir, conservative_reservoir, tpm, expression, tf_binding, promoter_mean_tpm, promoter_median_tpm, promoter_max_tpm) %>%
+  dplyr::rename(k562_reservoir = reservoir, 
+                k562_conservative_reservoir = conservative_reservoir,
+                k562_expression = expression,
+                k562_tpm = tpm,
+                k562_tf_binding = tf_binding,
+                k562_promoter_mean_tpm =  promoter_mean_tpm,
+                k562_promoter_median_tpm = promoter_median_tpm,
+                k562_promoter_median_tpm = promoter_median_tpm,
+                k562_promoter_max_tpm = promoter_max_tpm)
+
+write.csv(k562_df,"k562_df.csv")
+
+# TODO rename Hepg2
+
+promoter_features_df <- merge(promoter_features_df, k562_df)
 
 
 # Make a table of reservoir status
