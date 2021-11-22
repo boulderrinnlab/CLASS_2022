@@ -188,9 +188,13 @@ promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.v
 # We are now going to convert promoter_peak_view to a matrix
 # we will do this by rowbinding the Irange list  with do.call (executor)
 
-# TODO why do.call
-
+# Base R
+#TODO retest with this
 promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
+
+# test this 
+promoter_peak_matrix <- promoter_peak_view %>%
+  bind_rows()
 
 # now we have a matrix of nrow_promoters by 6,000 cols
 ```
@@ -374,6 +378,8 @@ for(i in c(1:390, 392:length(consensus_peaks))) {
 # Let's save the df to make all meta plots of all DBPs !
 write_csv(metaplot_df, "metaplot_df.csv")
 
+write_rds(metaplot_df, "metaplot_df.rds")
+
 
 
 #TODO plot some meta plots here TP53, YY1
@@ -392,13 +398,18 @@ write_csv(metaplot_df, "metaplot_df.csv")
 passing_peaks <- names(consensus_peaks)[sapply(consensus_peaks, length) > 250]
 
 # Let's cluster the metaplots df. First we need to turn it into a matrix.
-metaplot_df <- read_csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_df.csv") %>%
-  filter(dbp %in% passing_peaks)
+metaplot_df <- read_rds("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_df.rds") %>%
+  filter(dbp %in% passing_peaks) %>%
+  distinct()
 
 
-# TODO this matrix is off 
+
+
 
 # Pivot wider into a matrix
+# careful you do have duplicated rows
+# we shouldn't since we ran distinct above.
+
 metaplot_matrix <- metaplot_df %>% 
   pivot_wider(names_from = x, values_from = dens) %>%
   column_to_rownames("dbp") %>%
@@ -432,8 +443,6 @@ Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE,
         column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
 dev.off()
-
-
 
 par(cex = 1)
 # Let's plot some individual TSS profiles
