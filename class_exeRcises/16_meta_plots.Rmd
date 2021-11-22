@@ -17,9 +17,9 @@ library(tidyverse)
 library(ComplexHeatmap)
 library(circlize)
 
-source("util/plotting_functions.R")
-source("util/intersect_functions.R")
-source("util/_setup.R")
+source("../../../util/plotting_functions.R")
+source("../../../util/intersect_functions.R")
+source("../../../util/_setup.R")
 ```
 
 Today our goal is to make "meta plots" of promoter binding profiles.
@@ -39,7 +39,8 @@ fl <- list.files("/Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_pea
 consensus_peaks <- lapply(fl, rtracklayer::import)
 
 # adding row names by removing the file path and .bed at end of each file.
-names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/data/consensus_peaks/|.bed", "", fl)
+
+names(consensus_peaks) <- gsub("Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks/|.bed|/|_consensus_peaks", "", fl)
 
 # saving this file for later
 write_rds(consensus_peaks, "consensus_peaks.rds")
@@ -91,16 +92,22 @@ In order to calculate what the peak coverage across each promoter is we'll conve
 
 ```{r transforming promoter windows into a coverage matrix}
 
-# We can use any binding protein here 
-peak_coverage <- coverage(consensus_peaks[["POLR2A"]])
+# We will use the coverage function to interpret if there is a 
+# given entry of 6,000 wide vectors over each promoter.
+# let's first do this for one DBP:
+
+peak_coverage <- coverage(consensus_peaks[["POLR2A"]]) 
+
+# ok now we have a 6,000 length vector with a 1 if a peak
+# overlaps the promoter window and 0 if not.
+
 ```
 
 ### Step 2.1: Some housekeeping to keep our chromosomes straight
 
 This step will accomplish two things: filter out promoters that fall outside the bounds of our coverage vectors and filter out chromosomes that are not in common between the promoters object and the peak coverage object. The reason we need to do this is because the peaks may not extend to the end of each chromosome and therefore there is likely to be promoters that fall outside of the peak coverage vectors -- since we know that there are no peaks on those promoters and therefore they don't give us any extra information about where peaks are relative to promoters we'll filter them out. Also, it creates problems for the Views command that we'll use to subset the coverage vectors to just the promoter windows.
 
-```{r}
-##### Filter promoters to bounds of peak coverage vectors
+```{r peak_coverage of all promoter windows : from GRanges to Iranges}
 
 # This is the length of each run-length encoded vector in the peak_coverage object
 # If the last peak on each chromosome falls near the end of that chromosome then
@@ -111,6 +118,7 @@ coverage_length <- elementNROWS(peak_coverage)
 # and it is the width of the coverage vector -- we can use these ranges to 
 # filter the promoters falling outside of these boundaries in the next step.
 # Each DBP will be different here.
+
 coverage_gr <- GRanges(seqnames = names(coverage_length),
                        IRanges(start = rep(1, length(coverage_length)), 
                                end = coverage_length))
@@ -122,80 +130,137 @@ all_promoters_gr <- subsetByOverlaps(all_promoters_gr,
                                   type="within", 
                                   ignore.strand=TRUE)
 
-##### Keep track of the chromosomes that are in common and filter/reorder to match
 
 # This creates a vector of the chromosomes that are in common between the peak_coverage and promoters.
 # Keeping track of this will fix a similar problem to the step above since this DBP may not
 # bind on all chromosomes. 
 chromosomes <- intersect(names(peak_coverage), unique(as.character(seqnames(all_promoters_gr))))
+
+
 # We can also ensure they're in the same order and contain the same chromosomes
 # by indexing with this vector
 peak_coverage <- peak_coverage[chromosomes]
+
+
 # In order to match the list format of the peak_coverage object
 # we'll also coerce the GRanges object into an IntegerRangesList.
 # If you recall, one of the main features of GRanges object is capturing
 # the chromosome information -- when converting to an IRanges list, 
 # each chromosome will be represented by a named element in the list.
+
 all_promoters_ir <- as(all_promoters_gr, "IntegerRangesList")[chromosomes]
+
+# nice now we have all the promoter windows as an Iranges object
 ```
 
 ## Step 3: Subset the peak coverage vector to just the promoter windows
 
 Here we'll use the Views function to mask the peak coverage object everywhere but in the windows of the promoters.
 
-```{r}
+```{r reducing data to jsut Iranges of promters and peak coverage }
+
+# let's look at vies
+?Views
+# ok so Views can store and access all the promoter vectors
+# We will end up with an index of all 'promoter windows'
+
+# indexing all the promter window vectors (6Kb)
 promoter_peak_view <- Views(peak_coverage, all_promoters_ir)
-# Note that these are still in run-length encoding format.
+
+#let's look at what we got
 promoter_peak_view
+# Note that these are still in run-length encoding format.
+
 ```
 
 ## Step 4: Contstruct a matrix of the coverage values of each promoter region
 
 We'll not just convert the run-length encoding vectors to actual vectors -- note how much larger the object becomes when represented as vectors (use object.size function). Then we'll row bind the vectors into one matrix.
 
-```{r}
-# Converts the Rle objects to vectors -- this is now a small enough size to do so
-# The t() function will transpose the vectors so that the each position in the promoter
-# 1 through 6000 is a column. 
+```{r converting RLE to large matrix extracting views to 1 and 0}
+
+# we will use viewApply to extract if there was a 1 or 0 in the RLE vector for an overlap.
+# This essentially will convert the RLE to 6000 length vecotrs of promoter windows -- with
+# a 1 for binding event and 0 if not.
+
 promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
-# Convert this to a matrix. 
+
+# We are now going to convert promoter_peak_view to a matrix
+# we will do this by rowbinding the Irange list  with do.call (executor)
+
+# TODO why do.call
+
 promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
+
+# now we have a matrix of nrow_promoters by 6,000 cols
 ```
 
 ## Step 5: Align the positive and negative strand promoters
 
 Since the genes that are transcribed from the minus strand will have their upstream and downstream values flipped relative to the plus strand promoters, we need to reverse those vectors so that upstream and downstream values are consistent.
 
-```{r}
+```{r setting all promoters to the same direction}
+
 # We're just going to flip one strand because we want to get them in the same orientation
+
+#TODO understand this?
+
 minus_idx <- which(as.character(strand(all_promoters_gr)) == "-")
 promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx, ncol(promoter_peak_matrix):1]
 
-# We can get rid of the rows that have no peaks -- notice
-# that this reduces the size of the data quite a bit
-# even Pol II is not bound to every promoter
+# Now we can get rid of the rows that have no peaks.
 promoter_peak_matrix <- promoter_peak_matrix[rowSums(promoter_peak_matrix) > 0,]
+
+# now we have a matrix of only promoter windows with at least 1 base overlap with
+# a promoter region for a given DBP. 
+
 ```
 
 ## Step 6: Sum the columns, normalize, and plot
 
 To summarize this matrix, we'll sum up the number of binding events at each position in this 6kb window. This vector represents the overall peak coverage of each posistion, for the purpose of visualizing this, we'll normalize by the total coverage so that the area under the curve in the plot sums to one. 
 
-```{r}
+```{r peak coverage for a given DBP over all promoter windows}
+
+# First, calculating the number of peak overlaps at each base of promoter window.
+
+# columns = 6,000 each a base in promoter window.
+# rows = all promoter windows.
+# sum of cols (colSums) = how many peak overlaps there were at each base (cols).
+
 peak_sums <- colSums(promoter_peak_matrix)
-# Normalization -- this makes it into a sort of density plot -- it sums to 1.
+
+# Normalization of binding events at each base of promoter window.
+# we will divide the number of peak sums at each base by the total
+# number of peak binding events.
+
+# noramkization of binding events to 1 across promoter window
 peak_dens <- peak_sums/sum(peak_sums)
 
 # Create a data frame in order to plot this. 
 metaplot_df <- data.frame(x = -3e3:(3e3-1), dens = peak_dens)
 
+# now we have a data frame of cols as base in promoter window
+# rows as each promoter window. Normalize by percentage of total binding events.
+```
+
+Plotting POLR2A binding coverage across all bound promoters
+```{R POLR2A binding coverage across all bound promoters}
+
+# plotting the data in the metaplot_df
 ggplot(metaplot_df, aes(x = x, y = dens)) + 
   geom_line(size = 1.5)
+
+# Nice, POL2RA has normal distribution of binding events
+# around the center of the promtoer window (TSS).
+
+# We have now done this for one DBP and can write the above as a function
+# to run across all DBPs later. More soon on that front!
 ```
 
 This plot is pretty basic, so let's add some more meangingful legends and a title.
+```{r Better POLR2A meta plot}
 
-```{r}
 # Plot it with ggplot geom_line
 ggplot(metaplot_df, aes(x = x, y = dens)) + 
   geom_vline(xintercept = 0, lty = 2) + 
@@ -204,8 +269,8 @@ ggplot(metaplot_df, aes(x = x, y = dens)) +
   scale_x_continuous(breaks = c(-3000, 0, 3000),
                      labels = c("-3kb", "TSS", "+3kb"),
                      name = "") + 
-  ylab("Peak frequency")
-ggsave("POLR2A_promoter_metaplot.pdf")
+  ylab("Peak frequency") +
+ggsave("figures/POLR2A_promoter_metaplot.pdf")
 ```
 
 # Let's put all this into a funciton so we can call it later conveniently.
@@ -289,10 +354,13 @@ ggplot(combined_metaplot_profile,
   scale_color_manual(values = c("#424242","#a8404c"))
 ```
 
-```{r}
+```{r creating coverage matrix for all DBPs }
+
 # Let's now run this for all off the DBPs and compile it into one data frame.
 # Let's first define an empty data.frame to which we can row_bind each new one created.
 metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+
 # Started run at 9:58 PM -- finished at 1am
 # SKIP ZNF382 -- only 19 peaks -- probably none overlap promoters
 # Number 391
@@ -302,7 +370,13 @@ for(i in c(1:390, 392:length(consensus_peaks))) {
   tmp_df$dbp <- names(consensus_peaks)[[i]]
   metaplot_df <- bind_rows(metaplot_df, tmp_df)
 }
+
+# Let's save the df to make all meta plots of all DBPs !
+
 write_csv(metaplot_df, "metaplot_df.csv")
+
+
+
 table(names(consensus_peaks) %in% unique(metaplot_df$dbp))
 which(names(consensus_peaks) == "ZNF382")
 Sys.time()
