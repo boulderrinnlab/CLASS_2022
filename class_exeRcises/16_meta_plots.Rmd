@@ -45,6 +45,9 @@ names(consensus_peaks) <- gsub("Shares/rinn_class/data/CLASS_2022/data/filtered_
 # saving this file for later
 write_rds(consensus_peaks, "consensus_peaks.rds")
 
+# START POINT: Consensus Peaks
+consensus_peaks <- read_rds("consensus_peaks.rds")
+
 ```
 
 
@@ -186,12 +189,12 @@ We'll not just convert the run-length encoding vectors to actual vectors -- note
 promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
 
 # We are now going to convert promoter_peak_view to a matrix
-# we will do this by rowbinding the Irange list  with do.call (executor)
+# we will do this by rowbinding the Irange list 
 
 # Base R
-#TODO retest with this
 promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
 
+# TODO this doesn't work but the above does
 # test this 
 promoter_peak_matrix <- promoter_peak_view %>%
   bind_rows()
@@ -247,6 +250,7 @@ metaplot_df <- data.frame(x = -3e3:(3e3-1), dens = peak_dens)
 # now we have a data frame of cols as base in promoter window
 # rows as each promoter window. Normalize by percentage of total binding events.
 ```
+
 
 Plotting POLR2A binding coverage across all bound promoters
 ```{R POLR2A binding coverage across all bound promoters}
@@ -333,6 +337,8 @@ First we'll create separate objects for lncRNA promoters and mRNA promoters, the
 lncrna_genes <- genes[genes$gene_type == "lncRNA"]
 lncrna_promoters <- promoters(lncrna_genes, upstream = 3e3, downstream = 3e3)
 
+
+# TODO keep this and add below to make more plots
 lncrna_metaplot_profile <- profile_tss(consensus_peaks[["POLR2A"]], lncrna_promoters)
 
 # mRNA promoter profiles
@@ -380,7 +386,7 @@ write_csv(metaplot_df, "metaplot_df.csv")
 
 write_rds(metaplot_df, "metaplot_df.rds")
 
-
+metaplot_df <- read_rds("metaplot_df.rds")
 
 #TODO plot some meta plots here TP53, YY1
 
@@ -401,9 +407,6 @@ passing_peaks <- names(consensus_peaks)[sapply(consensus_peaks, length) > 250]
 metaplot_df <- read_rds("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_df.rds") %>%
   filter(dbp %in% passing_peaks) %>%
   distinct()
-
-
-
 
 
 # Pivot wider into a matrix
