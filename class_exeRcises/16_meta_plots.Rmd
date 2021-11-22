@@ -3,6 +3,8 @@ title: "16_meta_plots"
 author: "JR"
 date: "10/11/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -20,41 +22,76 @@ source("util/intersect_functions.R")
 source("util/_setup.R")
 ```
 
-# TSS profile plots
+Today our goal is to make "meta plots" of promoter binding profiles.
+In simpler terms: we are going to determine the average binding of:
+(A) a given DBP across our promoter windows.
 
-## Import the data we need
+We'll be using the consensus peaks we generated previously (MACS peak calls filtered to those that are overlapping across replicates) and the Gencode gene annotations. This is STEP 0 : loading in required files.
 
-We'll be using the consensus peaks we generated previously (MACS peak calls filtered to those that are overlapping across replicates) and the Gencode gene annotations. 
+```{r import genome features & file list}
 
-```{r import}
-gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/data/gencode.v32.annotation.gtf")
+# laoding Gencode genome features
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
 
-fl <- list.files("/scratch/Shares/rinnclass/data/consensus_peaks", full.names = TRUE)
+
+# making a file list of our consensus peaks (filtered at 250 peaks minimum)
+fl <- list.files("/Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks/", full.names = TRUE)
 consensus_peaks <- lapply(fl, rtracklayer::import)
+
+# adding row names by removing the file path and .bed at end of each file.
 names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/data/consensus_peaks/|.bed", "", fl)
+
+# saving this file for later
+write_rds(consensus_peaks, "consensus_peaks.rds")
+
 ```
 
-## Step 1: Create promoter windows
+
+Overall our goal is to define a "promoter" window of a certain distance
+upstream and downstream of a transcription start site (TSS). This will result
+in a Xkb (to start 3Kb upstream and downstream) vector representing each base
+of the promoter. We will then be able to use this matrix to plot if a peak overlaps
+with a given base and do the same for all peaks of a given DBP. 
+
+In the end we will have a verstatil matrix to plot data across promoters. Also we can
+use this code to plot other aspects (expression etc) over similar windows. Finally, we can 
+use this code to make windows around other features of the geneome (e.g., transposons).
+
+We can accomplish all this in the following 6 steps:
+
+
+# Step 1: Create promoter windows
 
 Here we're going to create a GRanges object that contains 6kb promoter windows for each gene in the Gencode annotation. First we'll need to filter the Gencode GRanges object to just the genes and then we can use the promoter function from GRanges that will allow us to specify how big of a window we want upstream and downstream of the TSS (you can have asymmetrical windows).
 
-```{r}
-# Recall: The gencode annotation contains an entry for each exon, transcript, etc.
-# Use table(gencode_gr$type) to see how many of each entry there are. 
-# We don't want to create a "promoter" window around each exon for example
-# which is why we need to filter to just the genes.
+```{r desiging a promoter window of +/- 3Kb from TSS -- probably too big!}
+
+# let's look at where promoters are in gencode_gr
+table(gencode_gr$type)
+
+# we want to select the gene category that contains all genes
 genes <- gencode_gr[gencode_gr$type == "gene"]
-# This function is a convenience function built into GenomicRanges
+
+# now we will create promoter windows using genes.
+# we call the promoters function in GenomicRanges that defines TSS
+# then has a parameter for upstream and downstream sequence:
+
 all_promoters_gr <- promoters(genes, upstream = 3e3, downstream = 3e3)
+
+# results of promoter window definition
 table(width(all_promoters_gr))
+
+# now we have a equivalent 6,000 wide vector for each base of a promoter.
+
 ```
 
-## Step 2: Transform peaks into a coverage object
+# Step 2: Transform peaks into a coverage object
 
 In order to calculate what the peak coverage across each promoter is we'll convert the peaks GRanges object which currently holds a range for each peak into a run-length encoded list where 0 represents the genomic coordinates where there is no peak present and 1 represents the locations where a peak is present. The reason for run length encoding is that storing this vector without this compression means that we would be storing a numeric value for each of the 3.2 billion base pairs. This would mean allocating a vector in memory that's ~180 GB -- instead with run-length encoding we're in the ~100 KB range. 
 
-```{r}
-# We can use any binding protein here (use names(consensus_peaks) to see the available DBPs)
+```{r transforming promoter windows into a coverage matrix}
+
+# We can use any binding protein here 
 peak_coverage <- coverage(consensus_peaks[["POLR2A"]])
 ```
 
