@@ -360,38 +360,43 @@ ggplot(combined_metaplot_profile,
 # Let's first define an empty data.frame to which we can row_bind each new one created.
 metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
 
+# Writting a for loop to calculate promter coverage for all DBPs:
 
-# Started run at 9:58 PM -- finished at 1am
-# SKIP ZNF382 -- only 19 peaks -- probably none overlap promoters
-# Number 391
 for(i in c(1:390, 392:length(consensus_peaks))) {
+  # we skipped 391 as it breaks (only 19 peaks ?)
   print(names(consensus_peaks)[[i]])
   tmp_df <- profile_tss(consensus_peaks[[i]], promoters_gr = all_promoters_gr)
   tmp_df$dbp <- names(consensus_peaks)[[i]]
   metaplot_df <- bind_rows(metaplot_df, tmp_df)
+  
 }
 
 # Let's save the df to make all meta plots of all DBPs !
-
 write_csv(metaplot_df, "metaplot_df.csv")
 
 
 
-table(names(consensus_peaks) %in% unique(metaplot_df$dbp))
-which(names(consensus_peaks) == "ZNF382")
-Sys.time()
-Sys.Date()
+#TODO plot some meta plots here TP53, YY1
+
+
+
+
 ```
 
-```{r}
+```{r filtering consensus peaks to those > 250 peaks per DBP}
+
+
 # Let's filter out those peaks that don't pass the threshold, since
 # in particular here it will make a difference, since the 
 # average profile will be very lumpy for those DBPs with few peaks.
 passing_peaks <- names(consensus_peaks)[sapply(consensus_peaks, length) > 250]
 
 # Let's cluster the metaplots df. First we need to turn it into a matrix.
-metaplot_df <- read_csv("/scratch/Shares/rinnclass/data/metaplot_df.csv") %>%
+metaplot_df <- read_csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_df.csv") %>%
   filter(dbp %in% passing_peaks)
+
+
+# TODO this matrix is off 
 
 # Pivot wider into a matrix
 metaplot_matrix <- metaplot_df %>% 
