@@ -43,7 +43,7 @@ consensus_peaks <- lapply(fl, rtracklayer::import)
 names(consensus_peaks) <- gsub("Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks/|.bed|/|_consensus_peaks", "", fl)
 
 # saving this file for later
-write_rds(consensus_peaks, "consensus_peaks.rds")
+# write_rds(consensus_peaks, "consensus_peaks.rds")
 
 # START POINT: Consensus Peaks
 consensus_peaks <- read_rds("consensus_peaks.rds")
@@ -87,6 +87,12 @@ table(width(all_promoters_gr))
 
 # now we have a equivalent 6,000 wide vector for each base of a promoter.
 
+# We can also just focus on lncRNA and mRNA promoters -- there are 30K other genes
+# outside this that are mostly small RNAs pesudogenes .... let's not mix them in
+
+all_promoters_gr <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_mrna_promoters.gtf")
+
+
 ```
 
 # Step 2: Transform peaks into a coverage object
@@ -115,6 +121,8 @@ This step will accomplish two things: filter out promoters that fall outside the
 # This is the length of each run-length encoded vector in the peak_coverage object
 # If the last peak on each chromosome falls near the end of that chromosome then
 # these lengths will be approximately the length of the chromosomes.
+
+# elementNROWs can calculate coverage in RLE
 coverage_length <- elementNROWS(peak_coverage)
 
 # This will create a GRanges object where there is one range per chromosome
@@ -136,7 +144,11 @@ all_promoters_gr <- subsetByOverlaps(all_promoters_gr,
 
 # This creates a vector of the chromosomes that are in common between the peak_coverage and promoters.
 # Keeping track of this will fix a similar problem to the step above since this DBP may not
-# bind on all chromosomes. 
+# bind on all chromosomes.
+
+# An error will occur if there are not matching chromosomes. So if one chromosome wasn't bound it
+# would cause an error.
+
 chromosomes <- intersect(names(peak_coverage), unique(as.character(seqnames(all_promoters_gr))))
 
 
@@ -151,6 +163,7 @@ peak_coverage <- peak_coverage[chromosomes]
 # the chromosome information -- when converting to an IRanges list, 
 # each chromosome will be represented by a named element in the list.
 
+# using base R here with 'as' a coericing function. as takes one dataset
 all_promoters_ir <- as(all_promoters_gr, "IntegerRangesList")[chromosomes]
 
 # nice now we have all the promoter windows as an Iranges object
@@ -194,11 +207,12 @@ promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.v
 # Base R
 promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
 
-# TODO this doesn't work but the above does
-# test this 
-promoter_peak_matrix <- promoter_peak_view %>%
-  bind_rows()
+#### NOTE: this doesn't work because tidyverse requires data frames:
+ promoter_peak_matrix <- promoter_peak_view %>%
+ bind_rows()
 
+# good to note in a matrix sometimes to use do.call and "rbind"
+ 
 # now we have a matrix of nrow_promoters by 6,000 cols
 ```
 
@@ -209,10 +223,13 @@ Since the genes that are transcribed from the minus strand will have their upstr
 ```{r setting all promoters to the same direction}
 
 # We're just going to flip one strand because we want to get them in the same orientation
-
-#TODO understand this?
+# It really wouldn't matter for a sysmetric window size but good to keep in mind the strand
+# could matter.
 
 minus_idx <- which(as.character(strand(all_promoters_gr)) == "-")
+# taking only minus strand rows
+
+# we want to flip so instead of 1:ncol we will do ncol:1 
 promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx, ncol(promoter_peak_matrix):1]
 
 # Now we can get rid of the rows that have no peaks.
@@ -281,8 +298,8 @@ ggplot(metaplot_df, aes(x = x, y = dens)) +
 ggsave("figures/POLR2A_promoter_metaplot.pdf")
 ```
 
-# Let's put all this into a funciton so we can call it later conveniently.
 
+Let's put all this into a funciton so we can call it later conveniently.
 ```{r}
 profile_tss <- function(peaks, 
                         promoters_gr,
@@ -338,7 +355,7 @@ lncrna_genes <- genes[genes$gene_type == "lncRNA"]
 lncrna_promoters <- promoters(lncrna_genes, upstream = 3e3, downstream = 3e3)
 
 
-# TODO keep this and add below to make more plots
+# POLR2A meta-plot
 lncrna_metaplot_profile <- profile_tss(consensus_peaks[["POLR2A"]], lncrna_promoters)
 
 # mRNA promoter profiles
@@ -386,13 +403,6 @@ write_csv(metaplot_df, "metaplot_df.csv")
 
 write_rds(metaplot_df, "metaplot_df.rds")
 
-metaplot_df <- read_rds("metaplot_df.rds")
-
-#TODO plot some meta plots here TP53, YY1
-
-
-
-
 ```
 
 ```{r filtering consensus peaks to those > 250 peaks per DBP}
@@ -402,6 +412,14 @@ metaplot_df <- read_rds("metaplot_df.rds")
 # in particular here it will make a difference, since the 
 # average profile will be very lumpy for those DBPs with few peaks.
 passing_peaks <- names(consensus_peaks)[sapply(consensus_peaks, length) > 250]
+
+```
+
+
+# START POINT FOR MATRIX OF ALL DBPs BINDING PROFILE ACROSS PROMOTERS
+How do the binding profiles over promoters compare across DBPs?
+We can start to address this by 
+```{R clustering each DBP by their binding profile over promoters}
 
 # Let's cluster the metaplots df. First we need to turn it into a matrix.
 metaplot_df <- read_rds("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_df.rds") %>%
@@ -418,6 +436,8 @@ metaplot_matrix <- metaplot_df %>%
   column_to_rownames("dbp") %>%
   as.matrix()
 dim(metaplot_matrix)
+
+# Can go from here to making individual plots
 
 
 # Z-Scale the rows
@@ -448,11 +468,36 @@ Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE,
 dev.off()
 
 par(cex = 1)
-# Let's plot some individual TSS profiles
-plot_tss_profile(metaplot_matrix, "H3K4me1", save_pdf = TRUE)
-plot_tss_profile(metaplot_matrix, "TCF12", save_pdf = TRUE)
-
-# Look at what the average profiles look like in each cluster.
 
 ```
+
+
+Here is some fun code to pick your favorite DBP and check out the profile.
+I chose those DBPs that seemed to have the most different binding profiles.
+
+```{meta-plots of most different binding profiles by clustering}
+
+# H3K4me1 H4K20me1 H3K36me3 MBD4:
+
+# H3K4me1: shows inverse pattern to most with depletion at TSS
+
+plot_tss_profile(metaplot_matrix, "H3K4me1", save_pdf = TRUE)
+
+# H3K36me3: also depleted at TSS as expected marks genebodies 
+
+plot_tss_profile(metaplot_matrix, "H3K36me3", save_pdf = TRUE)
+
+
+# KAT2B, H3K9me3, NFIC cluster:
+
+
+# H3K9me3: seems to go into gene body
+plot_tss_profile(metaplot_matrix, "H3K9me3", save_pdf = TRUE)
+
+
+# EP300: shows a very wide profile.
+
+plot_tss_profile(metaplot_matrix, "EP300", save_pdf = TRUE)
+
+
 
