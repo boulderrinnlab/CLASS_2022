@@ -1,7 +1,7 @@
 ---
 title: "16_meta_plots"
 author: "JR"
-date: "10/11/2021"
+date: "11/26/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -76,19 +76,7 @@ table(gencode_gr$type)
 # we want to select the gene category that contains all genes
 genes <- gencode_gr[gencode_gr$type == "gene"]
 
-# now we will create promoter windows using genes.
-# we call the promoters function in GenomicRanges that defines TSS
-# then has a parameter for upstream and downstream sequence:
-
-all_promoters_gr <- promoters(genes, upstream = 3e3, downstream = 3e3)
-
-# results of promoter window definition
-table(width(all_promoters_gr))
-
-# now we have a equivalent 6,000 wide vector for each base of a promoter.
-
-# We can also just focus on lncRNA and mRNA promoters -- there are 30K other genes
-# outside this that are mostly small RNAs pesudogenes .... let's not mix them in
+# Loading in the promoter regions for lncRNAs and mRNAs 
 
 all_promoters_gr <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_mrna_promoters.gtf")
 
@@ -268,7 +256,6 @@ metaplot_df <- data.frame(x = -3e3:(3e3-1), dens = peak_dens)
 # rows as each promoter window. Normalize by percentage of total binding events.
 ```
 
-
 Plotting POLR2A binding coverage across all bound promoters
 ```{R POLR2A binding coverage across all bound promoters}
 
@@ -300,7 +287,8 @@ ggsave("figures/POLR2A_promoter_metaplot.pdf")
 
 
 Let's put all this into a funciton so we can call it later conveniently.
-```{r}
+```{r establishing the profile_tss function}
+
 profile_tss <- function(peaks, 
                         promoters_gr,
                         upstream = 3e3,
@@ -349,7 +337,8 @@ profile_tss <- function(peaks,
 
 First we'll create separate objects for lncRNA promoters and mRNA promoters, then we'll supply each of these to the new function we just made.
 
-```{r}
+```{r making seperate metaplots for lncRNAs and mRNAs}
+
 # lncRNA promoter profiles
 lncrna_genes <- genes[genes$gene_type == "lncRNA"]
 lncrna_promoters <- promoters(lncrna_genes, upstream = 3e3, downstream = 3e3)
@@ -381,6 +370,8 @@ ggplot(combined_metaplot_profile,
   scale_color_manual(values = c("#424242","#a8404c"))
 ```
 
+Making coverage matrix for all DBPs across mRNA and lncRNA promoters
+# NOTE THIS TAKES ~ 3hrs to run !
 ```{r creating coverage matrix for all DBPs }
 
 # Let's now run this for all off the DBPs and compile it into one data frame.
@@ -398,19 +389,19 @@ for(i in c(1:390, 392:length(consensus_peaks))) {
   
 }
 
-# Let's save the df to make all meta plots of all DBPs !
+# Let's save the df to make all meta plots of all DBPs with peaks > 250!
 write_csv(metaplot_df, "metaplot_df.csv")
 
 write_rds(metaplot_df, "metaplot_df.rds")
 
 ```
 
+
+Filter DBPs to those with at least 250 peaks (otherwise pointless to make metaplot)
 ```{r filtering consensus peaks to those > 250 peaks per DBP}
 
+# Let's filter out those peaks that don't pass the threshold
 
-# Let's filter out those peaks that don't pass the threshold, since
-# in particular here it will make a difference, since the 
-# average profile will be very lumpy for those DBPs with few peaks.
 passing_peaks <- names(consensus_peaks)[sapply(consensus_peaks, length) > 250]
 
 ```
@@ -419,6 +410,7 @@ passing_peaks <- names(consensus_peaks)[sapply(consensus_peaks, length) > 250]
 # START POINT FOR MATRIX OF ALL DBPs BINDING PROFILE ACROSS PROMOTERS
 How do the binding profiles over promoters compare across DBPs?
 We can start to address this by 
+
 ```{R clustering each DBP by their binding profile over promoters}
 
 # Let's cluster the metaplots df. First we need to turn it into a matrix.
@@ -426,9 +418,8 @@ metaplot_df <- read_rds("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/anal
   filter(dbp %in% passing_peaks) %>%
   distinct()
 
-
 # Pivot wider into a matrix
-# careful you do have duplicated rows
+# careful we don't have duplicated rows
 # we shouldn't since we ran distinct above.
 
 metaplot_matrix <- metaplot_df %>% 
@@ -437,13 +428,12 @@ metaplot_matrix <- metaplot_df %>%
   as.matrix()
 dim(metaplot_matrix)
 
-# Can go from here to making individual plots
 
-
-# Z-Scale the rows
+# Z-Scale the rows for clustering (not needed for profile plots)
 mm_scaled <- t(scale(t(metaplot_matrix)))
 
 
+# clustering
 metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
 
 # Plot the dendrogram
@@ -489,8 +479,6 @@ plot_tss_profile(metaplot_matrix, "H3K36me3", save_pdf = TRUE)
 
 
 # KAT2B, H3K9me3, NFIC cluster:
-
-
 # H3K9me3: seems to go into gene body
 plot_tss_profile(metaplot_matrix, "H3K9me3", save_pdf = TRUE)
 
@@ -498,6 +486,4 @@ plot_tss_profile(metaplot_matrix, "H3K9me3", save_pdf = TRUE)
 # EP300: shows a very wide profile.
 
 plot_tss_profile(metaplot_matrix, "EP300", save_pdf = TRUE)
-
-
 
