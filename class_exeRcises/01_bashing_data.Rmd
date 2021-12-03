@@ -37,13 +37,13 @@ Basically I typically always use these flags
 
 Now let's make a new file using touch
 
-```
+```{Bash}
 touch test.txt
 ls
 ```
 woah a new file shows up! What is in it? lets use Nano
 
-```
+```{Bash}
 nano test.txt
 # type whatever
 # ctrl + x, Y for yes -- then enter -- to exit nano
@@ -51,8 +51,16 @@ nano test.txt
 
 Now let's take a look at the file with cat
 
-```
+```{Bash}
 cat test.txt
+
+# here are the top 10 lines
+
+head -10 test.txt
+
+# bottom lines
+
+tail -10 test.txt
 ```
 
 
@@ -84,11 +92,18 @@ ls -lah
 
 let's move the files in there 
 
-```
+```{Bash}
 mv test2.txt /practice
 mv test3.txt /practice
 mv test.txt / practice
 ls
+
+# If we want to copy it we can use cp
+
+cp test2.txt /practice
+
+# note simply changes file path and cp recreates the entire directoy.
+
 ```
 
 Nice and tidy. However that could be quite laborious if you wanted to move a bunch of files. So we can use WILDCARDS
