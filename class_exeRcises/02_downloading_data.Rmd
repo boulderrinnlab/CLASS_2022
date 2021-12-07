@@ -1,8 +1,6 @@
-
-   
 ---
 title: "01_encode_portal"
-date: "19/25/2022"
+date: "12/7/2021"
 output: html_document
 ---
 
@@ -10,17 +8,39 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Description:
+The goal today will be to get familiar with TONS of GREAT
+DATA on the ENCODE portal.
 
-Here we will be downloading data from the ENCODE portal. Specifically, the 
-"chromatin" interaction data, then DNA binding data, cell line HEPG2, "TF-Chip-seq".
-We furhter selected "TF Chip seq", Control chip seq and histone chip seq. 
+# FIRST let's make a folder for everyone on fiji
 
-We further selected several different read lengths to cover as many DNA binding 
-proteins (DBPs) as possible. 
+```{BASH}
 
-Read lengths: 100, 76, 75, 36
-ONLY SINGLE END READS (this eliminates 54 samples)
+cd /scratch/Shares/rinnclass/
+  
+mkdir "Your name -- or whatever you want"
+
+```
+
+Next let's go to the ENCODE portal and check out what is there.
+
+For book keeping the final "query" is here:
+
+```{HTML ENCODE DATA}
+
+https://www.encodeproject.org/report/?type=Experiment&status=released&assay_slims=DNA+binding&biosample_ontology.term_name=HepG2&assay_title=TF+ChIP-seq&biosample_ontology.classification=cell+line&files.read_length=100&files.read_length=76&files.read_length=75&files.read_length=36&assay_title=Control+ChIP-seq&assay_title=Histone+ChIP-seq&files.run_type=single-ended
+
+```
+
+# Here is what we selected:
+
+# "chromatin" interaction data, then DNA binding data, cell line HEPG2, "TF-Chip-seq". 
+
+# We furhter selected "TF Chip seq", Control chip seq and histone chip seq. 
+
+# We selected several read lengths to get the most DNA binding proteins (DBPs)
+# Read lengths: 100, 76, 75, 36
+
+# ONLY SINGLE END READS (this eliminates 54 samples)
 
 We end up with a total of 554 biological samples, almost all have a biological replicate
 and some have technical replicates, which we won't use. 
@@ -28,137 +48,95 @@ and some have technical replicates, which we won't use.
 So now we need to make a sample sheet that connects the file id to the DBP and 
 then use that for batch download from ENCODE.
 
-First lets make working directory for each student on Fiji.
-
-```
-cd /scratch/Shares/rinnclass/
-mkdir "Your name"
-```
-
-The exact ENCODE report can be found here: 
-
-https://www.encodeproject.org/report/?type=Experiment&status=released&assay_slims=DNA+binding&biosample_ontology.term_name=HepG2&assay_title=TF+ChIP-seq&biosample_ontology.classification=cell+line&files.read_length=100&files.read_length=76&files.read_length=75&files.read_length=36&assay_title=Control+ChIP-seq&assay_title=Histone+ChIP-seq&files.run_type=single-ended
+# Step 1: download TSV with lots of information on each experiment
 
 On the top of the site there is a "download TSV" click that and we can get started!
 You now have a .TSV (tab seperated file or /t) 
 
+# Step 2: download FASTQ files (raw sequence files)
 Next we need to get the FASTQ link for each of the replicates.
 CLick on the "List" button on the top left.
 Click Download (select all files matching the criterian)
 
+# Step 3: bring these two files into your directory
 Use your file transfer system to move these files to your directory.
 
-```
-ls -lah
-```
+# Step 4: to download the data we need to use 'curl' or 'wget'
 
-The text file is a list of URLs for the FASTQs. Let's use unix to grab a file
-using curl and wget bash commands. First let's take a look at their manual. One
-of the best things in bash is the manual page for each command! We recommend 
-checking the manual for any function (google will have them too :).
+```{BASH}
 
-```
 man curl 
 man wget
-```
 
-These two commands will go to the internet and download a file(s) into your current
-directory.
-
-Let's use this to start playing with unix commands. First delete the URLS so there
-is are only two URLs to download (it would take a very long time otherwise)
-
-Navigate to a directory using your terminal. We can make a files.txt document using
-the command nano.
-
-Let's take a peak
+# These two commands will download the file(s) into your current directory.
 
 ```
+
+# TEST download 
+
+### First delete the URLS so there are only two URLs to download.
+### or cut and paste two URLS into a new file called files.txt (using nano)
+
+```{BASH}
+
 man nano
-```
 
-Basically a really easy to use text editor in BASH/unix
-
-So let's make our first file copy and paste the url file you downloaded (with only 2 urls)
-You can do this by these simple commands.
-NANO is very useful and we will use a lot! Vi and EMACS are alternatives.
-
-
-In the terminal type
+# Basically a really easy to use text editor in BASH/unix
 
 ```
+
+# Creating a new files.txt with only 2 urls 
+
+```{BASH}
+
 nano files_test.txt
-```
 
-This automatically opens a nano window, but also creates a new file at same time
-Now let's PASTE in the URL
-To escape the window hit cntrol X, then return
-Now let's see what happened:
+# paste these in
 
-```
-nano files_test.txt
-```
-
-Voila it's there! Just remmeber if you accidently hit a key there is no ctrol Z :)
-
-So now we have a text file in the directory we are in named files.txt
-
-Let's paste in some URLs from the ENCODE download list (just 2 for now :)
-
-Now let's paste these two URLs where we can download raw data files.
-
-
-```
 https://www.encodeproject.org/files/ENCFF212GYT/@@download/ENCFF212GYT.fastq.gz
 https://www.encodeproject.org/files/ENCFF434BJG/@@download/ENCFF434BJG.fastq.gz
-```
-
-Let's read the file with cat.
 
 ```
+
+# Let's read the file with cat.
+
+```{BASH}
+
 cat files_test.txt
+# Do you see the URLS?
+
 ```
 
-Do you see the URLS?
 
-Now we can use CURL or WGET to read this file and go grab the actual file from WWW
-we need to know some more BASH commands first:
-
-If we only had one URL in the file we could just do 
- 
-```
-man curl
-curl URL.com
-```
-
-But since we have a file with multiple lines we want to envoke the shell to 
+Since we have a file with multiple lines we want to envoke the shell to 
 read all of the URLS and then pass all those onto the CURL command.
-Let's take a look at xargs.
+Let's take a look at xargs that can do this for us.
 
-```
+```{BASH}
+
 man xargs
+
+# basically xargs passes the current memory to a task and then moves to the next task
 ```
 
-Xargs invokes the shell to redirect the output of a command as the argument of another command
-or in otherwords it passes whatever the computer is thinking about into the next
-argument or command.
+# This is the command encode suggested using to batch download files.
 
-This is the command encode suggested using to batch download files.
+```{BASH}
 
-```
 xargs -L 1 curl -O -J -L < files_test.txt
+
 ```
 This may look a bit scary at first but let's break it down.
 
 
-What is xargs thinking about?
+# What is xargs thinking about?
 -L is a argument for xargs termed "max lines" which is set to 1.
 this means that xargs will read one line and move it to curl.
 then xargs will repeat this for everyline in the "files_test.txt"
 xargs is given the input of files_test.txt by the < input symbol ( > for output)
 
 
-What is curl thinking about?
+# What is curl thinking about?
 
 Ultimately files.txt is put into the memory of the computer (xargs) and then sent to CURL.
 Curl will then retrieve the data hosted by each URL. The flags in the curl command do the 
@@ -184,41 +162,43 @@ location
 
 Ok now let's use this command to batch download data 
 (note the files will download in directory you are currently in -- good to use 'pwd')
-```
+
+```{BASH}
+
 xargs -L 1 curl -O -J -L < files_test.txt
-```
 
-If you just realized you are downloading a ton of data you can stop this process anytime with:
-ctrl-c
-
-
-What do you get in your directory?
-
-
-Sometimes if curl doesn't work wget will -- it's just good to have options
+# If you just realized you are downloading a ton of data you can stop this process anytime with: ctrl-c
 
 ```
-man wget
-```
-here we see there is a flag for a "list" or -i
-Try:
 
-```
+
+# Sometimes if curl doesn't work wget will -- it's just good to have options
+
+
+
+
+```{BASH}
+
 wget -i files_test.txt
+
+# here we see there is a flag for a "list" or -i
 ```
 
 Same result? This seems so much better but if urls changed or were updated etc
 we would want to move back to more of an arugment with xargs. 
 In short there are so many ways to do the same thing!
 
-# What if you were downloading a thousand files for a day or so? Do you turn you
-power savings to never turn off?
-
+# What if you were downloading a thousand files for a day or so? 
+# Do you turn you power savings to never turn off?
 # The bash solution: SCREEN
 
-```
+```{BASH}
+
 man screen
+
 ```
+
+# important syntax for screen session:
 control A is for attach
 D is for detach
 screen -r #session# is to reattach (to session number below)
@@ -242,8 +222,10 @@ sequencing platform -- you typically download through and FTP site. Do you know
 if your download was 100% successful? Not with out md5sum checks. Always request
 an md5sum for any sequencing data you download *** 
 
-```
+```{BASH}
+
 man md5sum
+
 ```
 
 *** In fact the pre-run 17 of 1099 downloads failed to have the exact same file!
@@ -252,30 +234,35 @@ man md5sum
 First let's get the md5sum values for the two URLS. Use "accession" in url 
 to search encode portal and see what the md5sum is for the two files.
 
-
 you may have another name for it on your computer such as md5 on macosx. but
 on most servers it will be md5sum
 
 # so lets run it.
 
-```
-md5sum *.gz 
-```
+```{BASH}
 
-note you can use md5sum on compressed files too such as .gz
-check to see if your md5sum matches that on encode website. 
+md5sum *.gz 
+
+# note you can use md5sum on compressed files too such as .gz
+
+# check to see if your md5sum matches that on encode website. 
+
+```
 
 # Would you want to do 1,099 times? 
 Probably not so luckily we can check a list! let's make a list with nano
 
-```
+```{BASH}
+
 nano md5sums.txt
+
 ```
 
 The syntax for this is md5sum# " two spaces " and file.
 For example:
 
-```
+```{BASH}
+
 55d41585faf7c7ba270bcf6b6366259a  ENCFF162ADN.fastq.gz
 ```
 
@@ -285,34 +272,41 @@ Let's check if this data file is properly downloaded:
 -Navigate to the data directory in CLASS_2022
 -run the md5sum check:
 
-```
-md5sum ENCFF162ADN.fastq.gz
-```
-The result should be: 55d41585faf7c7ba270bcf6b6366259a
+```{BASH}
 
-# Note this approach is not very useful for 1,000+ fastq files being downloaded in
-full class data set. In the design file lecture we will use BASH and ENCODE API to
+md5sum ENCFF162ADN.fastq.gz
+
+# the result should be: 55d41585faf7c7ba270bcf6b6366259a
+
+```
+
+# Note this approach is not very useful for 1,000+ fastq files being downloaded.
+
+In the design file lecture we will use BASH and ENCODE API to
 attach md5sums to each file automatically. Then download them all and check the
 files. So don't worry we will get there in a way that doesn't involve cutting 
 and pasting :) We are simply exploring the importance of these basic principles
 of data science. 
 
-Let's make a list of checksums and files. syntax again is md5sum -- two spaces -- file_name
-In the data directory lets test the 3 fastq files are not corrupted.
+Let's make a list of checksums and files. syntax again is md5sum -- two spaces -- file_name. In the data directory lets test the 3 fastq files are not corrupted.
 
-```
+```{BASH}
+
 nano md5sums.txt
+
 #paste in:
 55d41585faf7c7ba270bcf6b6366259a  ENCFF162ADN.fastq.gz
 34e772e69e41f9418d12ad568d1d50be  ENCFF210PXS.fastq.gz
 0d427ced85cca73d2e313c1146fa9033  ENCFF525AYL.fastq.gz
+
 ```
 
 Now we will use the -c flag to indicate we want to check a list of md5sums so synatx is:
 md5sum -c file_name.txt
 
 Let's run it:
-```
+
+```{BASH}
 md5sum -c md5sums.txt > md5sums_status.txt
 ```
 
@@ -336,14 +330,19 @@ command 2 etc...
 
 Once you have your commands in the .sh file you need to make it executable:
 
-```
+```{BASH}
+
 chmod u+x filename.sh
+
+# note this needs to be done each time a slurm job is submitted
 ```
 
 To run your shell script you will use 
 
-```
+```{BASH}
+
 ./filename.sh
+
 ```
 
 Thats it go have fun !
