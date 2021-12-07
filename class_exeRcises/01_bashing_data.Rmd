@@ -547,7 +547,7 @@ for f in $(cat encode_awk_lessons.tsv); do sed -i 's/USF2/USA/g' encode_awk_less
 
 ```
 
-This is a very silly for loop becuase sed already kinda has it built in...sed is just 
+This is a very silly for loop because sed already kinda has it built in...sed is just 
 like find and replace. 
 
 
