@@ -13,22 +13,28 @@ Let's start with some of the very basics of BASH to get everybody on the same pa
 cd - to change directories
 ls - list the files
 pwd - tells you the pathway you are currently at (very useful actually!)
-```
+
+```{BASH}
+
 cd /scratch/Shares/rinnclass/<identikey>
 ls
 pwd
 ```
 Wait could there be more? let's try:
 
-```
+```{BASH}
+
 ls -lah
+
 ```
 Do you see new files and folders that start with .X ? These are invisible files
 that are often very important. the -lah is called a flag that gives us more information. Let's see what they are 
 
-```
+```{BASH}
+
 man ls
 # Press q to escape
+
 ```
 -l for long
 -a for all
@@ -38,15 +44,19 @@ Basically I typically always use these flags
 Now let's make a new file using touch
 
 ```{Bash}
+
 touch test.txt
 ls
+
 ```
 woah a new file shows up! What is in it? lets use Nano
 
 ```{Bash}
+
 nano test.txt
 # type whatever
 # ctrl + x, Y for yes -- then enter -- to exit nano
+
 ```
 
 Now let's take a look at the file with cat
@@ -67,32 +77,39 @@ tail -10 test.txt
 Let's make another file and combine two files to highlight other functionality of the cat command
 First let's remove (using rm command) the test.txt file and make a new one.
 
-```
+```{BASH}
+
 rm test.txt
 touch test.txt
 nano test.txt
 "add whatever text"
+
 ```
 Now we will make a second file and merge the two files into one file with cat.
 
-```
+```{BASH}
+
 tocuh test2.txt
 nano test2.txt
 # type whatever
 cat test.txt test2.txt > test3.txt
 cat test3.txt
+
 ```
 
 now let's make a folder to put all these files in use mkdir
 
-```
+```{BASH}
+
 mkdir practice
 ls -lah
+
 ```
 
 let's move the files in there 
 
 ```{Bash}
+
 mv test2.txt /practice
 mv test3.txt /practice
 mv test.txt / practice
@@ -102,7 +119,7 @@ ls
 
 cp test2.txt /practice
 
-# note simply changes file path and cp recreates the entire directoy.
+# note simply changes file path and cp recreates the entire directory.
 
 ```
 
@@ -111,15 +128,18 @@ Nice and tidy. However that could be quite laborious if you wanted to move a bun
 
 http://www.linfo.org/wildcard.html
 
-```
+```{BASH}
+
 mv *.txt /practice
 ls
+
 ```
 This will move any file that ends in .txt the star means anything counts.
 
 Now let's say you want to move the files back to the orignal directory:
 
-```
+```{BASH}
+
 cd practice
 mv *.txt ../
 ```
@@ -132,16 +152,20 @@ Imagine how much time one uses typing long file paths in the terminal. For examp
 
 /Shares/rinn_class/data/CLASS_2021
 
-That is no fun to type everytime and then go to the directory of interest. 
+That is no fun to type every time and then go to the directory of interest. 
 
-Good news there is a solution (used by nextflow and just how useful later) its called a sym-link and you have probably used them beofre. 
+Good news there is a solution (used by nextflow and just how useful later) its called a sym-link and you have probably used them before. 
 
 Let's make a sym-link to the class folder in your home directory 
 
-```
+```{BASH}
+
 cd ~/
+# or some directoy you use a lot on your local computer
+
 ln -s /scratch/Shares/rinnclass CLASS 
 ls
+
 ```
 
 Now you see a simlink called CLASS. You just cd CLASS and voila you are in class :)
@@ -150,9 +174,11 @@ Another handy short cut is to see how big a folder is. Often you are downloading
 or working on a folder and need to see if it became bigger or smaller. This is best
 done wtih disk usage (du)
 
-```
+```{BASH}
+
 cd ~/
 du -sh ~/
+  
 ```
 
 The -sh flag is for "s"ummary and "h"uman readable
@@ -172,16 +198,18 @@ the files in a directory and pipe it to word count (wc) to count the number of f
 
 Let's see:
 
-```
+```{BASH}
+
 cd ~/
 ls | wc -l
+
 ```
 Here the list output becomes the standard input to the word count owing to the pipe.
 Or the pipe passed along the standard output of ls to standard input of wc. The 
 -l flag is for the line count. 
 
 
-#Let's move on the find and replace or the GREP command
+## Let's move on the find and replace or the GREP command
 
 ## Let's download the ENCODE experiments .tsv and upload it using FileZilla
 
@@ -199,21 +227,32 @@ But the reality it is so simple, elegnat and powerful we will use GREP a lot in 
 
 Let's download and play with the encode .TSV file. This is a file of ENCODE data we will learn more about soon. For now just think of it as a file
 
-[Download here](https://www.dropbox.com/s/ij798is442fyt3h/encode_awk_lessons.tsv?dl=0)
+```{BASH}
+
+[Download here](https://www.dropbox.com/s/ij798is442fyt3h/encode_awk_lessons.tsv)
+
+# wget URL to download (make sure you know which directory you are in etc)
+
+wget https://www.dropbox.com/s/ij798is442fyt3h/encode_awk_lessons.tsv
 
 Transfer this file to a directory and navigate there with your terminal.
 
+```
 
 Now let's take a look at the file with 'cat' 
-```
+```{BASH}
+
 cat encode_awk_lessons.tsv
+
 ```
 
 Cat will print all items in a file and sometimes they are very long. So there are other unix commands to get the head and tail of a file while specificying how many lines you want:
 
-```
+```{BASH}
+
 head -1 encode_awk_lessons.tsv
 tail -1 encode_awk_lessons.tsv
+
 ```
 
 Yikes ok, so you see all the "/" that means it is tab deliminated. We would see
@@ -223,31 +262,36 @@ So this is not very readable. Let's use GREP to get what we want. Let's say we a
 interested in all the samples that start with POL for POL II or POLR2A, there are 
 many ways to spell but we can search for anything that starts with POL.
 
-```
-grep -ia 'pol' encode_awk_lessons.tsv | wc -l
-```
-I guess we see that there are 11 enteries for anything matching the text of pol.
-We used the 
+```{BASH}
 
-#-i flag which is very useful to match any type of the same letters.
+grep -ia 'pol' encode_awk_lessons.tsv | wc -l
+
+```
+I guess we see that there are 11 entries for anything matching the text of pol.
+We used the -i flag which is very useful to match any type of the same letters.
+
 People spell gene names all kinds of different ways (with and with out capitals etc).
-So the -i will match Pol POl and POL as well as poL. Try running with out the -i (no matches!).
+So the -i will match Pol POl and POL as well as poL. 
+
+# Try running with out the -i (no matches!).
 
 Note that we piped to wc -l, if you take that out what happens?
 
-Now open up the same file in XCEL and search for pol -- do you find 11 enteries?
+# Now open up the same file in XCEL and search for pol -- do you find 11 enteries?
 
 So grep likes to go look but needs to be told where to disseminate what was found!
 So let's print the grep standard output to a file using ' > ' 
-'>' is a very powerful "pipe" if yoy will to say "take standard out to print"
+'>' is a very powerful "pipe" if you will to say "take standard out to print"
 
 Let's take a look at these 11 matches.
 
-```
+```{BASH}
+
 grep -i 'pol' encode_awk_lessons.tsv > grep_out.txt
 ls
 wc -l grep_out.txt
 cat grep_out.txt
+
 ```
 
 So we see a new file was printed, but let's open in xcel for ease.
@@ -257,9 +301,11 @@ search a bit too much and it turns out some of those weird encode acessions had 
 in the string (e.g., ENCFF744POL)! But we do see the samples we want are "POLR2A" -- let's revamp our
 grep.
 
-```
+```{GREP}
+
 grep -w 'POLR2A' encode_awk_lessons.tsv > grep_out.txt
 cat grep_out.txt
+
 ```
 Here the -w requires an exact match of the whole word.
 Now we see a file with just the POLR2A experiments -- as we wanted.
@@ -275,9 +321,11 @@ Alfred Aho peter Weinberger brian Kernighan = AWK
 
 So we can use AWK in a similar way to grep to get started:
 
-```
+```{BASH}
+
 man awk
 awk -F $'\t' '{if ($6 == "POLR2A") print $0;}' encode_awk_lessons.tsv | wc -l 
+
 ```
 
 The syntax for awk is:
@@ -292,31 +340,33 @@ match these arguments and ; means end. Then, somewhat counter intuitive we put t
 file we want to operate on and then > output file. 
 
 
-We see that we get only the two TRUE POLR2A and not the phospho samples. This is 
-why grep is better suited for this kind of thing. Let's now use awk to acomplish
-the goal of seeing how many unique DBPs are in this file.
+# Let's now use awk to acomplish the goal of seeing how many unique DBPs are in this file.
 
 First let's make a file with just the names of DBPs.
 * note there are many ways to do the same thing in awk.
 * discuss what this syntax is:
-```
+
+```{BASH}
+
 awk 'BEGIN {FS="\t"}; {print $6}' encode_awk_lessons.tsv > DBP.txt
 cat DBP.txt
 
 ? How many DBPs are we going to study?
+  
 ```
 
 The statement above is using the function print to "print" the column of choice.
 In this case we are choosing column 6 as it has the names of all the DBPs.
 
 The final argument after the awk instructions is the file in which to perform the
-awk instructions on -- data/encode_awk_lessons.tsv
+awk instructions on -- 'encode_awk_lessons.tsv'
 
 Cool, but it's all in standard output right now -- let's get back to the quesiton:
-How many unique DBPs could we analyze?
+
+# How many unique DBPs could we analyze?
 
 To do so we will just take advantage of the pipe and sort command.
-```
+```{BASH}
 man sort
 ```
 Let's put it together:
@@ -328,68 +378,75 @@ We piped out the awk arguments from standard in put to standard output of sort.
 We used the -u flag to sort and then collapse the sort to unique string names.
 then we simply count the lines to see if it worked?
 
-YES! How many??
+# How many?? And why could this number be less ??
 
 Let's print this out to a file:
 
-```
-awk 'BEGIN {FS="\t"}; {print $6}' encode_awk_lessons.tsv > dbp.tsv
-```
+```{BASH}
 
+awk 'BEGIN {FS="\t"}; {print $6}' encode_awk_lessons.tsv > dbp.tsv
+
+```
 
 
 ->O<-->O<-->O<-->O<-->O<-->O<-->O<-->O<-
 for loops in BASH
 ->O<-->O<-->O<-->O<-->O<-->O<-->O<-->O<-
 
-```
+
+# Syntax for all for loops in bash: For x (in) ; do ; done
+
+
+```{BASH}
+
 for x in $(seq 1 42); do echo bash is cool $x; done
-```
-
-For loops are probably one of the most fundemental aspects of computing. It allows 
-us to do many repetitive tasks with only a few instruction.
-
-The syntax in bash is:
-
-For X in $Y do 
-
-#For (in) ; do ; done
-will always be used in a for loop
-
-
-Let's start with a really simple example that helps us understand how the computer
-thinks about this:
-
 
 ```
+
+
+
+# Let's start with an example to understand how the computer thinks about this:
+
+
+```{BASH}
+
 for x in 1 1 1 1
 do 
 echo BCHM5631
 done
 
-or this can be combined with semicolan 
-
+# or
 for x in 1 1 1 1; do echo BCHM5631; done
-```
-
-
-What we get out is 4 prints of BCHM5631 -- what happens if we change the numbers?
 
 ```
-For x in 1 3 11 14
+
+
+What we get out is 4 prints of BCHM5631 -- 
+
+# what happens if we change the numbers?
+
+```{BASh}
+
+for x in 1 3 11 14
 do 
 echo BCHM5631 $x
 done
+
+# or
+for x in 1 3 11 14; do echo BCHM5631 $x; done
+
+# Notice the added "$x" this means it will print the value it's "in" currently.
+
 ```
 
 Same result, you could even change it to apple, banana or anything -- the number
 of objects after "in" are the inputs for each loop until there is nothing more to 
-be "in". Notice the added "$x" this means it will print the value it's "in" currently.
+be "in". 
 
+# Lets try a nested for loop
 
-Let's use the 'seq' command to set the variables to be "in"
+```{BASH}
 
-```
 for x in $(seq 1 5)
 do 
 for y in A B C
@@ -399,91 +456,94 @@ done
 done
 ** try copy and pasting the above into terminal 
 
-or we can type out as such:
-#for x in $(seq 1 5); do for y in A B C; do echo "$x:$y"; done ; done
+# or 
+for x in $(seq 1 5); do for y in A B C; do echo "$x:$y"; done ; done
+
 ```
 
 Let's try this one:
 
-```
+```{BASH}
+
 for x in $(seq 1 42)
 do 
 echo BCHM5631
 done
 
-#for x in $(seq 1 42); do echo BCHM5631 is great $x; done
-```
+# or
+for x in $(seq 1 42); do echo BCHM5631 is great $x; done
 
-Ok so there is a lot going on in this simple little loop. Notice that we didn't 
-have to type in 1 2 3 4 5 -- instead we used the $ to set a "variable" or string.
-inside the $ is the seq command which will go from 1 until it hits 5. This way 
-you can specify a range of your choosing. The other thing we see if the for loop 
-starts with 1 and then does another for loop with a new varible "y". In this order the 
-loop is going to stage itself in position 1 of the first for loop then go to position
-A in the second loop, then to B and C before it returns back to the first loop to 
-move to the next position 2.
+```
 
 
 We would probably rather do a for loop while reading in a file and changing something.
-Let's change the text in our encode practice file. 
 
-```
+# Let's change the text in our encode practice file. 
+
+```{BASH}
+
 for line in $(cat encode_awk_lessons.tsv)
 do 
 echo "$line"
 done
+
+# or
+
+for line in $(cat encode_awk_lessons.tsv); do echo "$line"; done
+
+# Woah in the blink of an eye we just used cat to print each line of the file :)
+# We basically just did cat but used a for loop to print one line at a time.
+
 ```
-Woah in the blink of an eye we just used cat to print each line of the file :)
-
-We basically just did cat but used a for loop to print one line at a time.
-
-This is identical to do this with "read" command too.
-
-```
-while read line
-do
-echo "$line"
-done < encode_awk_lessons.tsv
-```
-
-Notice we have the same structure but we are putting the input file at end with
-< arrow sort of counter intutively putting the input file last .... also line is
-still the new variable being made "while" is similar to the "for" statemetnt but 
-saying while there is something to read print each line :)
 
 Typically we would want to maniputate or change the name of a column in a file
 systematically with "sed". Sed is a simple elegant and powerful unix commnad that
-can parse and transform text. Let's give it a spin.
+can parse and transform text. 
 
-```
+```{BASH}
+
 man sed
-```
 
-This basically distills down to 
+# This basically distills down to 
 
 sed -i 's/old-word/new-word/g' *.txt 
 the s/ is a substitute command 
 
-Let's try changing POLR2A to POL2
-
 ```
+
+
+
+# Let's try changing POLR2A to POL2
+
+```{BASh}
+
 sed -i 's/POLR2A/POL2/g' data/encode_awk_lessons.tsv
+
+# Note you have changed the file forever -- there is no undo in bash 
+
 ```
 
-Did you see a change?
+# Did you see a change? 
+# How would you check?
+
 sed is a really nice way to change chromosome annotations that tend to change in time
-for example chromosome 1 maybe chr1 C1 or 1 -- in one file and a differnet spelling
+for example chromosome 1 maybe chr1 C1 or 1 -- in one file and a different spelling
 in another but if they ever need to connect you will want them in the same format.
 
-one line with sed and golden -- can also use in a for loop to replace many files.
 
-*Note you have changed the encode_awk_lessons.tsv file forever -- there is no undo in bash 
-```
+# Let's try sed in a for loop to change
+
+```{BASH}
+
 for f in $(cat encode_awk_lessons.tsv)
 do
 sed -i 's/USF2/USA/g' encode_awk_lessons.tsv
 echo "$f"
 done
+
+# or
+
+for f in $(cat encode_awk_lessons.tsv); do sed -i 's/USF2/USA/g' encode_awk_lessons.tsv; echo "$f"; done
 
 ```
 
@@ -498,26 +558,7 @@ EXCERCISE
 Use what you learned above to make a .tsv file of the Experiment ID, Accession ID and Target DNA binding protein being (hint it maybe easiest to find the header information first)
 
 
-
-
-
-
 _________________________ Bonus Bash Fun _________________________ 
-
-#### Bonus
-pipe with something fun -- download a youtube video
-from your terminal:
-
-```
-youtube-dl $1 -q -o - | ffmpeg -i - $2
-```
-
-downloads a video from the given youtube url passed by $1 and outputs it as the file given by $2. Note how the file is quietly -q output to STDOUT -o -, piped to ffmpeg and used as input there by -i -. The only downside is you have to install ffmpeg -- but it's not that bad:
-
-http://ericholsinger.com/install-ffmpeg-on-a-mac
-####
-
-
 
 
 ### Bonus. Have you ever had a folder of folders of folders? This is often the case
@@ -526,10 +567,15 @@ want to retreive all the photos on an app before the app goes extinct etc.
 
 You can do this very easily with BASH alone: with the powerful find command:
 
+```{BASH}
 
-```
+# check what find does
 man find
+
+# use find to dig out all the .jpg from directories of directories
+
 find . -type f -name '*.jpg' -exec mv -i {} ../compiled/ \;
+
 ```
 
 with this snippet we call find to look in the directory we are in (. = here)
