@@ -62,7 +62,7 @@ If you ever want to update nextflow just run the above. At the time of this doc
 it is at: v20.10.0
 
 ********************************
-Step 2: Add nextflow to $PATH
+Step 2: Add nextflow to $PATH 
 ********************************
 
 The $PATH is a default place the computer will look for commands. Imagine you
