@@ -25,9 +25,13 @@ The Config file tells nextflow how to run on fiji by giving some instructions.
 
 First let's navigate to where we are going to run the NF_CORE pipeline
 
-```{bash}
+```{bash nextflow.config file}
 
-cd scratch/Shares/rinnclass/'your_folder'/work
+# first make a new analysis directory for 06 then navigate to it:
+
+cd scratch/Shares/rinnclass/CLASS_2022/'your_folder'/class_exeRcises/analysis/06_CHIPSEQ
+
+# making the .config file
 nano nextflow.config
 
 # Paste in the following code into the nextflow.config file
@@ -49,26 +53,28 @@ SLURM is a simple job scheduler.
 
 queue : there is a long and short queue (<24h)
 
-memory : This sets RAM or memory SLURM can use to communicate with next flow (usual doesn't need much)
+memory : This sets RAM or memory SLURM can use to communicate
+with next flow (usual doesn't need much)
 
 maxforks : this tells nextflow how many processes can be run in parallel.
-
 
 
 *****************************
 2. Design file 
 *****************************
 
-The design file will tell NF_CORE ChIPseq pipeline which sameples are which in a non-negotiable in format.
+The design file will tell NF_CORE ChIPseq pipeline which samples are which.
+
 The design file will change depending on which NF_CORE Pipeline you are running
 
-Let's make a design file:
+Let's make a design file for chip-seq:
 
-```{bash}
+```{bash design file}
 
 nano design.csv
 
-#paste in the following required information for NF_CORE ChIPseq pipeline
+# paste in the following required information for NF_CORE ChIPseq pipeline
+# NF_core documentation will guide you to new changes in design file.
 
 group,replicate,fastq_1,fastq_2,antibody,control
 
@@ -124,7 +130,7 @@ Here is what is going on line by line:
 
 First step is the basic SLURM set up
 
-```{bash}
+```{bash slurm instructions}
 #!/bin/bash
 #SBATCH -p short
 #SBATCH --job-name=Hepg2_Pol_test
@@ -139,7 +145,7 @@ First step is the basic SLURM set up
 
 Now we are goint to set up the resources to be used on FIJI (be careful in practice
 
-```{BASH}
+```{bash slurm instructions}
 #SBATCH --nodes=1
 ### Fiji has multiple nodes and you will rarely want to run a job across more 
 ### than one node. 
@@ -165,20 +171,26 @@ Now we are goint to set up the resources to be used on FIJI (be careful in pract
 
 ```
 
-It is super useful when running so many tasks to have an output file that updates at each step.
-Also an error file that if something goes wrong explains exactly the line of code that broke.
+It is super useful when running so many tasks to have
+an output file that updates at each step.
+Also an error file that if something goes wrong explains exactly
+the line of code that broke.
 
-```{bash}
+```{bash out and err files}
 
 #SBATCH --output=nextflow.out
 #SBATCH --error=nextflow.err
 
 ```
 
-Second is the nextflow instructions for the NF_CORE pipeline
-Each line is a command ended by \ (make sure there are no extra spaces after \ -- a common bug)
 
-```{BASH}
+# NEXTFLOW Parameters 
+Second is the nextflow instructions for the NF_CORE pipeline
+Each line is a command ended by \ 
+(make sure there are no extra spaces after \ -- a common bug)
+
+```{BASH nextflow parameters}
+
 pwd; hostname; date
 echo "Here we go again $SLURM_CPUS_ON_NODE core."
 
@@ -193,7 +205,6 @@ module load singularity/3.1.1
 # What is Singularity: this creates a empty compute environment where packages can be installed,
 # run and version tracked. Thus, we are making a "container" of the nextflow pipeline
 # that is version tracked and is 100% reproducible.
-
 
 nextflow run nf-core/chipseq -r 1.1.0 \
 
