@@ -18,40 +18,49 @@ First thing we want to do is "run" a .sh file. Since we set this up in SBATCH we
 simply type:
 
 Don't run yet though
-```{BASH}
+```{BASH run.sh}
+
 sbatch run.sh
+
 ```
 This will have sbatch send the scripts in the run.sh file to slurm to run them. 
 
 
 --- what jobs are you running? You often want to see what job is running how long it is taking and other aspects. To that end we can use 'squeue' to see what is running
 
-```{BASH}
+```{BASH jobs in queue}
+
 squeue -u identikey
+
 ```
 
 the -u flag is for user.
 examine the information provided and google the column headers for more info.
 
----- canceling jobs
+# canceling jobs!
 
 
 Let's say you accidently hit the run button and want to cancel immediately.
 
 'scancel' is the command
 
-```{BASH}
+```{BASH scancel}
+
 squeue -u identikey # lists all jobs you are currently running
+
 scancel jobid #cancels a single job
+
 scancel -u identikey #cancels all running jobs (with nextflow pipelines this is commonly used)
 ```
 
---- canceling multiple jobs:
+# canceling multiple jobs:
 
-```{BASH}
+```{BASH canceling specific jobs}
+
 squeue -u identikey | grep commonjobid# | awk '{print $1}' | xargs -n 1 scancel
 
 squeue -u jori2700  | grep 591 | awk '{print $1}' | xargs -n 1 scancel
+
 ```
 
 Here we are using some bash to grab all the jobs running. They will typically have a common number (591 in example above -- would have aloso worked with just 5).
