@@ -1,8 +1,7 @@
-
 ---
 title: "R-eading_installing_files_for_R"
 author: "JR"
-date: "9/27/2022"
+date: "9/27/2021"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -21,7 +20,7 @@ source("util/intersect_functions.R")
 source("util/plotting_functions.R")
 ```
 
-Welcome to RStudio-viz! Let's take a little tour.
+# Welcome to RStudio-viz! Let's take a little tour.
 
 First we need to learn how to install packages. Let's find out what version of R we are using.
 
@@ -29,43 +28,55 @@ Simply type version in the console.
 
 Now we will use Install.packages() for most packages. This will install any packages in CRAN repository. Let's try one.
 
-```{r}
+```{R install packages}
+
 ?install.packages
 install.packages("tidyverse")
+
 ```
 
 Cool we have our first package installed.
 
-However sometimes we ned to install from Bioconductor and need to use BiocManager::install
-```{R}
+However sometimes we ned to install from Bioconductor and need to use BiocManager::install function
+
+```{R install BiocManager}
+
 if (!requireNamespace("BiocManager", quietly = TRUE))
 install.packages("BiocManager", version = '3.10')
 BiocManager::install("GenomicRanges")
+
 ```
 
-Now try installing the packages listed above. Just paste in the name above into 
-the install packages R function. Some packages like GenomicRanges are from Bioconductor and those will
+# Now try installing the packages listed above. 
+
+Some packages like GenomicRanges are from Bioconductor and those will
 need to be installed with the BiocManager::install function.
 
-------------------------- Reading_files -------------------------------------
+# ------------------------- R basic data analysis  -------------------------
+# All the files needed for this exeRcise can be downloaded here
+
+```{BASH DOWNLOAD DATA NEEDED FOR LESSON IF NOT IN CLASS}
+
+#  https://www.dropbox.com/sh/76etjxl10v2hcuc/AAAIk9a6aMhw8CvUtKlFnMn6a?dl=0
+
+wget (url_above) # check your directory.
+
+```
+
 
 Now let's use an example data file we will produce and how we can use R to do
-some quick analyses (e.g. how much space do exons take in the human genome?).
+some quick analyses.
 
+We will addres the following two questions as an example:
+# How many peaks does each DBP have? 
+# How much of the genome do they cover?
 
-Let's get started reading in a file "../../data/number_of_peaks_per_dbp.csv".
+```{r read in peaks per DBP}
 
-
-***
-All the files needed for this exeRcise can be downloaded here https://www.dropbox.com/sh/76etjxl10v2hcuc/AAAIk9a6aMhw8CvUtKlFnMn6a?dl=0
-***
-
-
-Let's start by reading a file that has all the DBPs we are investigating as a .csv file.
-```{r}
+# read in csv file that has number of peaks and genome coverage
 peaks_per_dbp <- read_csv("../data/number_of_peaks_per_dbp.csv")
-# Now we have an object in the environment that is called peaks_per_dbp -- click to look!
-# or we can take a peak with head
+
+# Now we have an object in the environment that is called 'peaks_per_dbp'
 head(peaks_per_dbp)
 
 # This is a tibble or data frame object you can think of like excel sheet for now
@@ -73,10 +84,13 @@ head(peaks_per_dbp)
 # https://tibble.tidyverse.org/
 ```
 
-```{R}
+# Using 'table' & 'summary to get information from files
+```{R table and summary}
+
 # Let's get more infomration about these peaks with table
 
 table(peaks_per_dbp$dbp)
+
 # Not very useful in this case because there is only one entry for each DBP
 
 summary(peaks_per_dbp$num_peaks)
@@ -84,26 +98,33 @@ summary(peaks_per_dbp$num_peaks)
 
 ```
 
-# Now let's do some investigation to see which of these genes has the largest
-# or smallest number of peaks
 
-```{r}
+# Which DBP has the most or least peaks?
+
+```{r DBP max min peaks}
+
 # We can take a shortcut using 'summary' to find out the smallest and largest
 summary(peaks_per_dbp$num_peaks)
 
 # Now we will use filter which will allow us to do much more.
 peaks_per_dbp$num_peaks > 40000
-# We see this produces the T and F for each DBP and we can see 2 DBPs (but we don't know the name :(
+
+```
+
+We see this produces the T and F for each DBP and we can see 2 DBPs (but we don't know the name :(
+
+```{R filter}
 
 #To solve this we can use filter and set a variable using <-
 max_peaks <- dplyr::filter(peaks_per_dbp, num_peaks > 40000)
-```
+
 
 # Let's see what else we can do with filter
-```{r}
+
 ?filter
 #Let's filter on a couple of factors
 max_peaks <- dplyr::filter(peaks_per_dbp, num_peaks > 30000, total_peak_length == 133310967)
+
 ```
 
 
