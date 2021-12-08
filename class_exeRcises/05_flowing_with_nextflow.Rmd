@@ -5,12 +5,17 @@ date: "9/29/2021"
 output: html_document
 ---
 
-Today we will install nextflow and install the nf-core/chip-seq pipeline. Briefly, Nextflow
-is a taks manager that will send thousands of tasks (some in parallel) to fiji. NF_CORE has
-developed pipelines for ChIPseq, RNAseq, ATACseq and pretty much anything with seq. We need 
-to install Nextflow on fiji so they can communicate. Ultimately we will use nextflow to task
-manage the NF_CORE pipeline that will run ChiP seq from genome alignment to calling peaks to
-providing all the QC needed for publication. 
+Today we will install nextflow and install the nf-core/chip-seq pipeline. 
+
+Briefly, Nextflow is a taks manager that will send and organize thousands of tasks.
+
+NF_CORE has developed pipelines for ChIPseq, RNAseq, ATACseq and pretty much anything with seq. 
+
+Firstt: We need to install Nextflow on fiji so they can communicate. 
+
+Ultimately we will use nextflow to task manage the NF_CORE pipeline(s)
+There are so many tasks in the pipelines that it has all the QC needed for publicaton.
+
 
 Nextflow has amazing documentation and a good place to start is here:
 https://www.nextflow.io/docs/latest/getstarted.html
@@ -32,7 +37,8 @@ A reasonable place to install it is in a "bin" directory within your home direct
 
 Alrighty, give it a go:
 
-```{bash}
+```{bash install nextflow}
+
 cd ~
 ls -lah
 cd bin
@@ -46,11 +52,11 @@ cd bin
 curl -s https://get.nextflow.io | bash
 ```
 
-Nice it's installed just like that! curl went and got a bash script (silent -s)
-and the results of that query were piped to bash which runs the script to install itself.
+Nice it's installed just like that! 
+curl went and got a bash script (silent -s)
+and the results of that query were piped to bash 
+which runs the script to install itself.
 
-This is nifty, but the fact that you can run a script from the internet highlights that you
-should be careful that you trust the website, etc.
 
 If you ever want to update nextflow just run the above. At the time of this doc
 it is at: v20.10.0
@@ -69,7 +75,7 @@ about until it becomes a bug :)
 
 Let's put nextflow in our path (just as ls, cd etc are) so we can call it from anywhere on fiji.
 
-```{bash}
+```{bash $PATH}
 
 echo $PATH
 # we can make it easier to read with TRANSFORM (tr) a powerful bash command to
@@ -77,29 +83,37 @@ echo $PATH
 
 echo $PATH | tr ":" "\n"
 # kinda hard to read with : seperated file
+
 ```
 
 
-Now let's add it to our .profile file which will load each time you login to the terminal
-```{R}
+Now let's add nextflow to our .profile 
+.profile is loaded each time you login to the terminal
+```{BASH .profile}
+
 cd ~/.profile
+
 ```
 
 To append a directory to PATH, we just need to overwrite the path variable
 To assign a variable in bash the assignment operator is the equals sign. 
 When referring to the contents saved in an environment variable, the $ is used
-```{bash}
+```{bash source .profile}
 
+# if you don't have a path in your .profile we can add
+
+cat .profile 
+# should look like this (paste in with nano if no .profile file)
 PATH=$PATH:~/bin
-```
 
-This will change the PATH environment variable during this session only,
-but now we want this in the profile that is loaded at each login 
+# then source the profile so it will be embedded each time your shell starts.
 
-```{bash}
-nano .profile
-PATH=$PATH:~/bin
 source ~/.profile
+
+# Since /bin is in our path then after we source it will automatically
+# load in each session (just like ls, cd etc..)
+
+
 ```
 
 
@@ -121,15 +135,21 @@ this set up is essentially you are going to clone the latest github for chipseq
 by default. Simply run:
 
 
-```
+```{BASH download chip-seq pipeline}
+
+# this is all you need to download the pipeline
+# note nextflow is the language being used to manage this task
 nextflow pull nf-core/chipseq
+
 ```
 
 If you want a specific version you can use the flag to call that version.
 At the time of this document chipseq is at 1.2.1. 
 
-```
+```{BASH specific nf_core pipeline version}
+
 nextflow pull -r 1.2.1 nf-core/chipseq
+
 ```
 
 Whenever the pipeline is run, it actually does this step behind the scenes,
@@ -145,13 +165,23 @@ Step 4: Think about your directory structure
 We have set up the class with the following directory structure -- let's make your directory nice and tidy.
 We will run our first test ChIP in the work directory.
 
-```{BASH}
-cd /scratch/Shares/rinnclass/your_folder.
+```{BASH setting up }
+cd /scratch/Shares/rinnclass/CLASS_2022/<your-folder>/class_exeRcises
+
+# first make a directory for all analyses in the class
+mdkir analysis
+
+# move to analysis 
+cd analysis
+
+# make a new directory associated with the .RMD 
+# e.g. 05_flowing_with_nextflow
+# in each dir associated with a given .RMD we will make:
+
 mkdir results
 mkdir work
-mkdir analysis
+mdir figures # if there are no figures this isn't needed.
 
-cd work
 ```
 
 
