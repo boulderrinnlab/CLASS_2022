@@ -15,9 +15,9 @@ library(rtracklayer)
 library(tidyverse)
 library(ggpubr)
 library(Gviz)
-source("util/_setup.R")
-source("util/intersect_functions.R")
-source("util/plotting_functions.R")
+source("../../../util/_setup.R")
+source("../../../util/intersect_functions.R")
+source("../../../util/plotting_functions.R")
 ```
 
 # Welcome to RStudio-viz! Let's take a little tour.
@@ -74,7 +74,7 @@ We will addres the following two questions as an example:
 ```{r read in peaks per DBP}
 
 # read in csv file that has number of peaks and genome coverage
-peaks_per_dbp <- read_csv("../data/number_of_peaks_per_dbp.csv")
+peaks_per_dbp <- read_csv("../../../../../data/number_of_peaks_per_dbp.csv")
 
 # Now we have an object in the environment that is called 'peaks_per_dbp'
 head(peaks_per_dbp)
@@ -106,14 +106,16 @@ summary(peaks_per_dbp$num_peaks)
 # We can take a shortcut using 'summary' to find out the smallest and largest
 summary(peaks_per_dbp$num_peaks)
 
-# Now we will use filter which will allow us to do much more.
+# we can use a greater or less than function to find the biggest one
 peaks_per_dbp$num_peaks > 40000
+
+# We see this produces the T and F for each DBP and we can see 2 DBPs (but we don't know the name :(
 
 ```
 
-We see this produces the T and F for each DBP and we can see 2 DBPs (but we don't know the name :(
+# Now we will use filter which will allow us to do much more.
 
-```{R filter}
+```{R filter largets number of peaks}
 
 #To solve this we can use filter and set a variable using <-
 max_peaks <- dplyr::filter(peaks_per_dbp, num_peaks > 40000)
@@ -122,6 +124,7 @@ max_peaks <- dplyr::filter(peaks_per_dbp, num_peaks > 40000)
 # Let's see what else we can do with filter
 
 ?filter
+
 #Let's filter on a couple of factors
 max_peaks <- dplyr::filter(peaks_per_dbp, num_peaks > 30000, total_peak_length == 133310967)
 
@@ -129,125 +132,176 @@ max_peaks <- dplyr::filter(peaks_per_dbp, num_peaks > 30000, total_peak_length =
 
 
 # Let's find the DBP(s) with the fewest peaks (we saw in summary it was 263)
-```{r}
+```{r filter smallest number of peaks}
+
 min_peaks <- filter(peaks_per_dbp, num_peaks < 264)
+
 ```
 
 # Let's find the number of peaks for a specific gene say POLR2A
-```{r}
+```{r peaks for a specific DBP}
+
+# let's pull out polr2a peaks 
 gene_pol2 <- filter(peaks_per_dbp, dbp == "POLR2A")
+
 ```
 
 
 # Now let's make a new column in the file table
-```{r}
+```{r making a new column and populating}
+
+# making a column of what
 peaks_per_dbp$newcol <- "What?"
+
 ```
 
 # Now let's assign a number to each DBP in another new column
-```{R}
+```{R new column populating with a function}
+
 peaks_per_dbp$id <- 1:nrow(peaks_per_dbp)
+
 ```
 
-# Now let's [INDEX] data to the console using []
-# Basic indexing syntax
-# More on R indexing https://stats.idre.ucla.edu/r/modules/subsetting-data/
-```{r}
+# Indexing
+```{r indexing rows 1:5 and column 1}
+
 peaks_per_dbp[1:5, 1]
+
+# More on R indexing https://stats.idre.ucla.edu/r/modules/subsetting-data/
+
 ```
 
 # Let's remove a column using indexing
-```{R}
+```{R remove a column using indexing}
+
+# let's remove the what column
 peaks_per_dbp <- peaks_per_dbp[,-4]
+
 ```
 
 
 # Now let's make a plot of the data. First a histogram of number of peaks for each DBP
 ```{r}
 ?hist
-hist(peaks_per_dbp$num_peaks, breaks = 40)
+
+hist(peaks_per_dbp$num_peaks, breaks = 40) 
+
+# saving the figure (we will do this over and over again :)
+# we will learn ggplot later but we use PDF and turn of null device (plot window) 
+
+pdf("figures/hist_of_peaks_per_dbp.pdf")
+hist(peaks_per_dbp$num_peaks, breaks = 40) 
+dev.off()
+
+# note always check working directory before saving.
 ```
 
 # Now let's plot the number of peaks versus peak width.
-```{r}
+```{r number of peaks versus genome coverage}
+
+# we will use base R to plot the num_peaks versus genome coverage
+
+pdf("figures/num_peaks_vs_coverage.pdf")
+
 plot(x = peaks_per_dbp$num_peaks, y = peaks_per_dbp$total_peak_length)
+
+dev.off()
+
 ```
 
 # Now let's dig into the data file to subset it into the genes we are interested in.
-```{r}
-# First let's make a list of genes we want. To make a vector of characters we use the c() function
+```{r selcting a list of genes from data frame}
+
+# First let's make a list of genes we want. 
+# To make a vector of characters we use the c() function
+
 genes <- c("POLR2A","POLR2B", "SUPT5H")
+
 # Now lets make it a searchable index with paste0 (?paste0)
 pattern_to_search <- paste0(genes, collapse = "|")
+
 ```
 
 # It's worth noting that things can be accomplished in many different ways in R.
 # Here we'll get to the same subset of row entries two different ways. 
 ```{r}
 #first let's use grepl
-?grepl
+# ?grepl
+
 grepl(pattern_to_search, peaks_per_dbp$dbp)
 
-# Let's get some information more succinctly with table added to the command
+# table will give us a way to test if we retrieve the three DBPs
+
 table(grepl(pattern_to_search, peaks_per_dbp$dbp))
 
 # Now let's get all the information for these genes by indexing peaks_per_dbp
-# Note that grepl is searching in the column indexed ($dbp) and then takes all rows and columns
-# R syntax is rows,columns. So df[,] = all rows/cols, df[1,] = first row all columns etc.
+
+# So df[,] = all rows/cols, df[1,] = first row all columns etc.
+
 ppdbp_subset <- peaks_per_dbp[grepl(pattern_to_search, peaks_per_dbp$dbp),]
+
+# note we only took the rows for the genes of interest. Then all the cols with (,)
+# R syntax is rows,columns.
+# df[,] = all rows/cols
+# df[1,] = first row all columns
+# df[,1] = all rows and column 1
+
 ```
 
-# Now let's do the same thing with filter in tidyverse syntax ' %in% ' (best to use when possible)
-```{R}
-#Let's play with tidyverse using %in%
+# Now let's do the same thing with filter in tidyverse syntax ' %in% ' 
+```{R using %in%}
+
+# %in% will find all the data "in" the list being searched "genes"
+
 peaks_per_dbp$dbp %in% genes
-# This is identical output to grepl(pattern_to_search, peaks_per_dbp$dbp) used above
-```
 
 # Now we will set a variable as the output using filter and then the code we just ran
-```{r}
+
 ppdbp_subset <- dplyr::filter(peaks_per_dbp, dbp %in% genes)
+
 ```
 
-# Here is a little more tidyverse in action using the pipe %>% and start fresh with a new peaks_per_dbp
-
-```{r}
-#TODO debug why error col to rownames?
-peaks_per_dbp <- read_csv("../data/number_of_peaks_per_dbp.csv") %>%
-peaks_per_dbp <- peaks_per_dbp %>%
-  rownames_to_column(var = "dbp")
-ppdbp_subset <- peaks_per_dbp[genes,]
-```
+# MUTATE !!
 
 
 # Now let's run functions on the data in a given column with MUTATE (my favorite function)
 # head(peaks_per_dbp) -- we can see that the total length is quite long, let's make it in Millions
-```{r}
+```{r mutate}
+
+#let's take a look at mutate
+?mutate
+
+# Now let's use mutate to divide the total coverage by 1M for every value
 peaks_per_dbp <- peaks_per_dbp %>%
   dplyr::mutate(tpl_m = total_peak_length / 1000000)
-```
 
-# instead of removing it we can just set the new col to the old col name
+# syntax is mutate(new_col_name = function(x) in this case divide :)
 
-```{r}
+# instead of making a new col we can set mutate output to old col name
+
 peaks_per_dbp <- peaks_per_dbp %>% 
   mutate(total_peak_length = total_peak_length / 1000000) 
 
 # Now let's plot it
 hist(peaks_per_dbp$total_peak_length)
+
 ```
+
+
 
 # Now let's explore the power of mutate syntax with a function.
-# Technically, what we just did was a function (division is a function :)
 # We will try it with a more complex function using ifelse logic
 
-```{r}
+```{r mutate if else statement}
 
 peaks_per_dbp <- peaks_per_dbp %>% 
-  mutate(peak_genome_coverage = ifelse(total_peak_length < 1, "small",
+  mutate(genome_coverage_size = ifelse(total_peak_length < 1, "small",
                           ifelse(total_peak_length < 30, "medium", "large")))
-```
 
+# that is really handy for changing stuff around in a data frame -- 
+# note that if else moves forward for greater that 30 and if true then returns large
+# In other words if else you only need to conditions to get three values ...
+```
 
 
 *********************
