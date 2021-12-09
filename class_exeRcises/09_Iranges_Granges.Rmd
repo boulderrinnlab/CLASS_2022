@@ -45,12 +45,67 @@ ir1
 start(ir1)
 end(ir1)
 width(ir1)
+
+```
+
+# Plotting Iranges
+
+```{R plotting Iranges}
+
+# https://stackoverflow.com/questions/21506724/how-to-plot-overlapping-ranges-with-ggplot2
+
+library(IRanges)   
+
+# example data
+ir <- IRanges(c(1, 8, 14, 15, 19, 34, 40),
+              width = c(12, 6, 6, 15, 6, 2, 7))
+# IRanges of length 7
+#     start end width
+# [1]     1  12    12
+# [2]     8  13     6
+# [3]    14  19     6
+# [4]    15  29    15
+# [5]    19  24     6
+# [6]    34  35     2
+# [7]    40  46     7    
+
+bins <- disjointBins(IRanges(start(ir1, end(ir1) + 1)))
+# [1] 1 2 1 2 3 1 1
+
+dat <- cbind(as.data.frame(ir1), bin = bins)
+
+library(ggplot2)
+ggplot(dat) + 
+         geom_rect(aes(xmin = start, xmax = end,
+                       ymin = bin, ymax = bin + 0.9)) +
+  theme_bw()
+
 plotRanges(ir1)
+
+```
+
+```{R plotting ranges}
 
 # Cool let's make a second set of peak ranges.
 
 ir2 <- IRanges(start = c(17,100, 1100), end = c(49, 199, 1201))
 ir2 
+
+
+bins <- disjointBins(IRanges(start(ir2, end(ir2) + 1)))
+# [1] 1 2 1 2 3 1 1
+
+dat <- cbind(as.data.frame(ir2), bin = bins)
+
+library(ggplot2)
+ggplot(dat) + 
+         geom_rect(aes(xmin = start, xmax = end,
+                       ymin = bin, ymax = bin + 0.9)) +
+  theme_bw()
+
+plotRanges(ir1)
+
+
 plotRanges(ir2)
 
 
