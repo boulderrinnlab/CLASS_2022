@@ -14,9 +14,9 @@ library(rtracklayer)
 library(tidyverse)
 library(ggpubr)
 library(Gviz)
-source("util/_setup.R")
-source("util/intersect_functions.R")
-source("util/plotting_functions.R")
+source("../../../util/_setup.R")
+source("../../../util/intersect_functions.R")
+source("../../../util/plotting_functions.R")
 ```
 
 ### Have you ever wanted to find overlaps between two lists of genes? Well
@@ -48,18 +48,20 @@ https://uswest.ensembl.org/info/website/upload/gff.html
 
 
 ## Ok enough background let's start exploring the features of the human genome!
-```{r}
-
-gencode_gr <- rtracklayer::import("data/gencode.v32.annotation.gtf")
-
-
+```{r loading in GENCODE GRanges annotation file}
 
 # we used rtracklayer::import to turn the annotations into start and stops (Iranges) w/ chr (Granges)
+
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
+
+# let's take a look @metadata to see what we have in here
+
 
 ```
 
 Now let's look at the gene_id indexable part of this GRanges
-```{r}
+# seqnames
+```{r seqnames}
 
 ?seqnames
   
@@ -69,7 +71,9 @@ seqnames(gencode_gr) %>% head()
 ```
 
 let's get more info with table to summary using tidy verse %>%
-```{R}
+# summary / table a GRanges object
+```{R summary/table GRanges}
+
 table(seqnames(gencode_gr)) %>% 
   summary()
 # this tells us how many features there are in the genome.
@@ -81,13 +85,17 @@ table(seqnames(gencode_gr)) %>%
 # Let's find out how many features the mitochondrial chr has (25th level)
 table(seqnames(gencode_gr))[25] 
 
-# Let's look in the environment at what is in @metadata that we can index into with $
+# we see this is the mitochondrial chromosome and has 143 elements
 
 ```
 
-Now let's dig in a little deeper
 
-```{R}
+# @elementMetadata$INDEXING
+```{R indexing GRanges}
+
+# we see a lot of good infromation in @elementMetadata -- let's index it.
+
+# let's see how many 'gene_id' values there are by indexing
 table(gencode_gr@elementMetadata$gene_id) %>% 
   head()
 # This tell us how many features are associated with each gene id.
@@ -99,10 +107,10 @@ table(gencode_gr@elementMetadata$gene_name)
 
 ```
 
-#TODO
-Let's analyze some of the features of our genome!
 
-```{r}
+Let's analyze some of the features of our genome!
+# Making a data frame of items in GRanges object
+```{r GRanges indexing to data.frame}
 
 #let's organize the data frame first and put it into a data frame.
 
@@ -118,7 +126,8 @@ Ok so now we have a new data frame with the information we want from gencode_gr
 Note we see that we can index the RANGES for each gene with @ranges "level"
 
 Let's look at the width for mRNA genes
-```{R}
+# mRNA gene width
+```{R mRNA gene width}
 
 mrna_df <- filter(gencode_gr_length, gene_type == "protein_coding", type == "gene")
 
@@ -137,10 +146,12 @@ hist(log10(lncrna_df$width), breaks = 60)
 mean(lncrna_df$width)
 mean(mrna_df$width)
 
+# this all points to mRNAs being 2x longer than lncRNAs.
 ```
 
-Now let's go find the widths associated with gene-length. Note difference between a DF and Ranges(GRanges)
-```{R}
+Now let's go find the widths associated with gene-length. 
+# How many types of "gene types" are there?
+```{R gene types}
 
 table(gencode_gr@elementMetadata$type)
 
@@ -149,10 +160,10 @@ table(gencode_gr@elementMetadata$type)
 ```
 
 let's find the longest and shortest genes in the genome!
-```{R} 
+# Finding smallest and largest gene in the genome
+```{R smallest and largest genes} 
 
 # Let's see the range of gene sizes
-
 summary(width(gencode_gr))
 
 # Let's turn gencode_gr into a data.frame and filter to only genes.
@@ -165,7 +176,6 @@ gencode_df <- gencode_gr %>%
 gencode_df %>% 
   arrange(gencode_df$width) %>%
   head()
-
 # Same thing in more tidyverse logic (pipe the DF through code)
 # Doing so we don't need to index columns with $width etc
 
@@ -203,8 +213,9 @@ We start by defining total_exon_length of all exons in genome.
 
 
 Ok let's find out what % of genome is exons!
-```{R}
+```{R % of genome that is exons}
 
+# first we will make an object of exons and reduce them as described above
 total_exon_length <- gencode_gr[gencode_gr$type == "exon"] %>%
   GenomicRanges::reduce() %>% 
   width() %>%
@@ -219,13 +230,9 @@ total_exon_length/3.2e9
 
 # We can do the same for gene bodies too
 
-total_gene_length <- gencode_gr[gencode_gr$type == "gene"] %>%
-  GenomicRanges::reduce() %>% 
-  width() %>%
-  sum()
 reduced_gene_bodies <- gencode_gr[gencode_gr$type == "gene"] %>%
   GenomicRanges::reduce()
-hist(width(reduced_gene_bodies))
+hist(width(reduced_gene_bodies), breaks = 100)
 
 ```
 
@@ -233,9 +240,10 @@ Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq
 This is probably one of the most commonly used functions in genome sciences!
 
 First we need to import POLR2A Chip-seq files -- a simple .bed file of peaks.
-```{r}
+# genome features overlapping chip data
+```{r import Pol2 chip data}
 
-pol2_chip <- rtracklayer::import("data/POLR2A_consensus_peaks_filter.bed")
+pol2_chip <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2A_consensus_peaks_filter.bed")
 
 ```
 
@@ -250,11 +258,12 @@ gencode_promoters <- promoters(gencode_gr[gencode_gr$type == "gene"],
 
 
 length(gencode_promoters)
+# there are ~60,000 promoters 
 
 ```
 
 Now we have promoter ranges and peak ranges let's use findOverlaps function
-```{R}
+```{R findoverlaps chip peaks &}
 
 promoter_overlaps <- findOverlaps(pol2_chip, gencode_promoters)
 # We get back a list of ranges of the overlaps -- kinda hard to read
