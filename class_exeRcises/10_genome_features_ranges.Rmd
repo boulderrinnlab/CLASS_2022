@@ -267,21 +267,31 @@ Now we have promoter ranges and peak ranges let's use findOverlaps function
 
 promoter_overlaps <- findOverlaps(pol2_chip, gencode_promoters)
 # We get back a list of ranges of the overlaps -- kinda hard to read
-
 # Note @from (subject) @to (query)
+# looks like 13,771 overlaps!
+
+table(table(promoter_overlaps@from))
+table(table(promoter_overlaps@to))
+# 4 peaks overlapped 3 promoters!
+
+# It's strange that so many promoters are overlapped by 1 peak
+# Let's see if this was a big peak?
+
+width(pol2_chip[1])
+# Ok it's kinda big, but this may mean all the promoters are close by.
 
 
 # sometimes it's easier to view these things in data frames
 promoter_overlaps_df <- data.frame(pol2_index = promoter_overlaps@from,
                                    promoter_index = promoter_overlaps@to)
 
-# Let's take a look at what we get
-# Note that peak one overlapped 3 promoters indexed as (32,52,53)
+# ok this is much easier to read :)
 
 ```
 
 How do we better conceptualize the overlaps? This get's confusing but is very simple :)
-```{R}
+# understanding overlaps
+```{R understanding overlaps}
 
 # let's verify that peak_1 overlaps promoter 32
 pol2_chip[1]
@@ -291,27 +301,8 @@ gencode_promoters[32]
 # promoter_32: chr1 824797-830796      - | 
 # Cool we see that they overlap and promoter is on - strand.
 
-# Let's look at another
 
-gencode_promoters[52]
-
-# chr1 822138-828137      + 
-# We see there is another promoter close by on the other strand and overlaps = cool.
-
-```
-
-It's strange that so many promoters are overlapped by 1 peak
-Let's see if this was a big peak?
-```{R}
-
-width(pol2_chip[1])
-
-# Ok it's kinda big, but this may mean all the promoters are close by.
-```
-
-Now let's get into the logic of overlaps in small steps as it can get confusing.
-
-```{R}
+# Now let's get into the logic of overlaps in small steps as it can get confusing.
 
 # reminder @from is peak file and @to is the promoter annotations
 table(promoter_overlaps@from)[1:3]
@@ -322,7 +313,8 @@ table(promoter_overlaps@from)[1:3]
 
 
 Let's dig into what information results from findOverlaps
-```{R}
+# digging deeper into overlaps
+```{R digging deeper into overlaps}
 
 # Total number of peaks (we can also see this in pol2_chip GRanges)
 length(pol2_chip)
@@ -396,7 +388,6 @@ promoter_overlaps_df$peak_name <- overlapping_pol2$name
 # Basically we can see 7,738 peaks overlapped 13,299 promoters.
 length(unique(promoter_overlaps_df$peak_name))
 length(unique(promoter_overlaps_df$promoter_gene_id))
-
 
 
 ```
