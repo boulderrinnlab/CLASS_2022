@@ -189,7 +189,7 @@ names(human_tfs)[4] <- "is_tf"
 
 # now let's intersect gene names that are in our ChIP data and has TF identity.
 
-length(which(tolower(num_peaks_df$dbp) %in% tolower(human_tfs$Name)))
+length(which(tolower(num_peaks_df$dbp) %in% tolower(human_tfs$dbp)))
 ```
 
 # merging annotation file to num_peaks_df

@@ -281,7 +281,25 @@ ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
 
 # We can get the slope and intercept from making a lm variable:
 
-# lm_fit <- lm(num_peaks_df$num_peaks ~ num_peaks_df$total_peak_length)
+lm_fit <- lm(num_peaks_df$total_peak_length ~ num_peaks_df$num_peaks)
+summary(lm_fit)
+# slope = 1,000 
+# ORDER MATTERS: if reversed the slope is 8 e -3!
+
+
+
+
+# let's convert the lm_fit data to a data_frame using tidy()
+# it's in the library broom:
+library(broom)
+
+lm_df <- tidy(lm_fit)
+# so much easier to read than summary :)
+
+# plotting with the actual lm fit:
+ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
+  geom_point() +
+  geom_abline(slope = lm_df$estimate[[2]], intercept = lm_df$estimate[[1]])
 
 ```
 

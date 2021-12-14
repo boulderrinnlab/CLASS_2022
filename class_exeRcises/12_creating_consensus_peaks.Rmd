@@ -51,7 +51,12 @@ summary(consensus_peaks)
 hist(sapply(consensus_peaks, length))
 
 # let's see how wide the peaks are for one example
-hist(width(consensus_peaks[[2]]), breaks = 100)
+hist(width(consensus_peaks[[2]]), breaks = 1000)
+
+# let's add a limit to the x-axis so we cna see this better
+hist(width(consensus_peaks[[2]]), breaks = 1000, xlim = c(0, 300))
+
+# phew the peaks are mostly bigger than 100 bp.
 
 ```
 
@@ -75,6 +80,24 @@ for(i in 1:length(filtered_consensus_peaks)) {
                              names(consensus_peaks)[i], 
                              "_filtrered_consensus_peaks.bed"))
 }
+
+# let's see what we lost and record it.
+# setdiff is a function to determine what is NOT in another list
+
+# order matters want the biggest list first to find what is not in it.
+lost_dbp <- setdiff(names(consensus_peaks), names(filtered_consensus_peaks))
+lost_dbp
+
+# let's see how order matters
+lost_dbp2 <- setdiff(names(filtered_consensus_peaks), names(consensus_peaks))
+
+# we can also do this by indexing too
+
+lost_dbp <- names(consensus_peaks)[!(names(consensus_peaks) %in% 
+                                       names(filtered_consensus_peaks))]
+
+# let's write this out for our results of which had < 250 peaks
+write.table(lost_dbp, "lost_dbps.csv")
 
 ```
 
@@ -117,10 +140,8 @@ rtracklayer::export(lncrna_mrna_promoters, "/scratch/Shares/rinnclass/CLASS_2022
 # let's do a test reimport as we will do this often too.
 lncrna_mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
-# note we need to add names!
-
-# TODO how to put in names for promoters and lncRNAs
-names(lncrna_mrna_promoters) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks/|_filtered_consensus_peaks.bed", "", filtered_consensus_peaks_files)
+# note we can add names!
+names(lncrna_mrna_promoters) <- lncrna_mrna_promoters$gene_id
 
 # creating lncRNAs promoter features
 lncrna_promoters <- get_promoter_regions(gencode_gr, biotype = "lncRNA")
@@ -129,7 +150,7 @@ rtracklayer::export(lncrna_promoters, "/scratch/Shares/rinnclass/CLASS_2022/JR/C
 # let's reimport and add names
 lncrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_promoters.gtf")
 
-# TODO how to put in names for promoters and lncRNAs (gene name is in there)
+
 
 # finally mRNA promoters
 
@@ -140,7 +161,6 @@ rtracklayer::export(mrna_promoters, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLA
 
 mrna_promoters <- rtracklayer::import( "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/mrna_promoters.gtf") 
 
-# TODO how to put in names for promoters and lncRNAs 
 
 mrna_promoters_df <- mrna_promoters %>%
   as.data.frame()
