@@ -12,43 +12,55 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
 ```
 
+# Exploring the genome features bound by DBPs
 Today we are going to explore where in the genome the 483(460) DBPs bind.
 
-From now on we will import all the data we made in "12_creating_consensus_peaks"
+From now on we will import all the data we made in "11_creating_consensus_peaks"
 Let's start importing all the files we need:
-```{r}
-# starting with filtered_consensus_peaks
+```{r importing needed data}
 
-filtered_consensus_peaks_files <- list.files("/Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks", 
+
+# first create a file list of filtered consensus peaks
+filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks", 
                                              pattern = "*.bed",
                                              full.names = TRUE)
+
+# lappy to import each file in file list
 filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
 
-names(filtered_consensus_peaks) <- gsub("/Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks/|_consensus_peaks.bed", "", filtered_consensus_peaks_files)
+# adding names to rows
+names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/|_filtrered_consensus_peaks.bed", "", filtered_consensus_peaks_files)
 
-names(filtered_consensus_peaks) <- gsub("/Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks/|_consensus_peaks.bed|.bed", "", filtered_consensus_peaks_files)
 ```
 
+# importing genome feature files
 Now we will import the GRanges of genome annotations:
-```{R}
+```{R importing genome featgures}
 
-lncrna_mrna_promoters <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_mrna_promoters.gtf")
+# lncRNA and mRNA promoters
+lncrna_mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_mrna_promoters.gtf")
 
-lncrna_mrna_genebody <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_mrna_genebody.gtf")
+# lncRNA and mRNA gene bodies
+lncrna_mrna_genebody <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_mrna_genebody.gtf")
 
-# Let's also make a list of gene_ids. Note the indexing.
+# Let's also make a list of lncRNA gene_ids. Note the indexing.
 lncrna_gene_ids <- lncrna_mrna_genebody$gene_id[lncrna_mrna_genebody$gene_type == "lncRNA"]
 
+# same for mRNAs
 mrna_gene_ids <- lncrna_mrna_genebody$gene_id[lncrna_mrna_genebody$gene_type == "protein_coding"]
+
 ```
 
 
+# creating a data frame of peak overlaps.
 Now we are going to start to make a really useful data-frame (df).
 For each property/overlap we will make a new column. 
-```{r}
+
+```{r creating an overlap features data.frame}
+
 # Let's start with loading in the number of peaks each DBP has -- using length.
 
 num_peaks_df <- data.frame("dbp" = names(filtered_consensus_peaks),
@@ -62,9 +74,11 @@ num_peaks_df$total_peak_length <- sapply(filtered_consensus_peaks, function(x) s
 # Let's take a look at what we have so far (which DBP, has most peaks? most genome coverage?)
 ```
 
+# expanding our num_peaks_df information
 Great we are starting to build an informative DF to incorporate our results.
 Now let's start looking at how many peaks overlap the genome feature files we made.
-```{r}
+
+```{r adding more info into num_peaks_df}
 
 # First let's get a count for each DBP that overlaps any promoter.
 ## This takes a minute to run :) Let's look count_peaks_per_feature function in meantime
@@ -75,11 +89,14 @@ promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_
 
 ```
 
+# extracting promoer_peak_counts data 
 Above we made the object "promoter_peak_counts" now we can extract information from it
-```{R}
 
-# First let's get a count of how many promter overlapped each DBP.
+```{R xtracting promoer_peak_counts data }
 
+# First let's get a count of how many promoter overlapped each DBP.
+# we are making a new col and populating on the other side of assignment operator
+# NOTE THIS TAKES ~10-15 min
 num_peaks_df$peaks_overlapping_promoters <- rowSums(promoter_peak_counts)
 
 # Now let's break these promoters into two groups "lncrna" and "mrna"
@@ -87,6 +104,7 @@ num_peaks_df$peaks_overlapping_promoters <- rowSums(promoter_peak_counts)
 
 num_peaks_df$peaks_overlapping_lncrna_promoters <- rowSums(promoter_peak_counts[,lncrna_gene_ids])
 
+# mrna promoter overlaps
 num_peaks_df$peaks_overlapping_mrna_promoters <- 
   rowSums(promoter_peak_counts[,mrna_gene_ids])
 
@@ -94,16 +112,17 @@ num_peaks_df$peaks_overlapping_mrna_promoters <-
 
 ```
 
+# extracting gene_body_peak_counts data 
 Now let's do the same thing for gene-bodies
 First we will make a gene-body object like we did for promoters above.
-```{r}
+
+```{r extracting genebody overlpas counts data }
 
 # Finding overlaps with gene_bodies (will take a few minutes again)
-
+# Note this takes 10-15 min
 genebody_peak_counts <- count_peaks_per_feature(lncrna_mrna_genebody, 
                                                 filtered_consensus_peaks, 
                                                 type = "counts")
-
 
 # Now let's extract the overlaps the same way we did for promoters above
 
@@ -123,7 +142,8 @@ num_peaks_df$peaks_overlapping_mrna_genebody <-
 # Now let's write it out to a file -- will load this moving forward in class
 # This is a time saver from having to regenerate the overlaps that took a bit ...
 
-write_csv(num_peaks_df, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/num_peaks_df.csv")
+# NOTE: SET WORKING DIRECTORY TO 12_
+write_csv(num_peaks_df, "num_peaks_df.csv")
 
 ```
 
@@ -139,7 +159,8 @@ Let's download the file using R (we could also use curl/wget in BASH)
 
 url <- "https://www.cell.com/cms/10.1016/j.cell.2018.01.029/attachment/ede37821-fd6f-41b7-9a0e-9d5410855ae6/mmc2.xlsx"
 
-destination_for_url <- "/Shares/rinn_class/data/CLASS_2022/data/TF_annotations.xlsx"
+destination_for_url <- "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/TF_annotations.xlsx"
+
 
 # to download we can use download.file
 
@@ -150,14 +171,14 @@ download.file(url, destination_for_url)
 # Download the file locally and let's look it over to see what we might want.
 ```
 
-
+# reading in DBP annotations as transcription factor
 Now that we have the file we need to read it in. Since it's excel file we will use
 a new 'read' function (we have used 'read.table' & 'read.csv' etc).
 
 To this end we will use readX1 'read_excel' function.
-```{R}
+```{R merging in TF annotation data}
 
-human_tfs <- readxl::read_excel("/Shares/rinn_class/data/CLASS_2022/data/TF_annotations.xlsx",
+human_tfs <- readxl::read_excel("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/TF_annotations.xlsx",
                                 sheet = 2, skip = 1)
 
 
@@ -170,9 +191,9 @@ names(human_tfs)[4] <- "is_tf"
 length(which(tolower(num_peaks_df$dbp) %in% tolower(human_tfs$Name)))
 ```
 
-
-Cool all 460 are in there so let's merge the tables
-```{R}
+# merging annotation file to num_peaks_df
+Cool 437 are in there so let's merge the tables
+```{R merging annotation file to num_peaks_df}
 
 # first let's filter and grab the first 4 columns that match DBPs in num_peaks_df
 human_tfs <- human_tfs[tolower(human_tfs$Name) %in% tolower(num_peaks_df$dbp), 1:4]
@@ -194,14 +215,14 @@ is.na(num_peaks_df$is_tf)
 
 # Ok looks good let's write it out:
 
-write_csv(num_peaks_df, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/num_peaks_df.csv")
+write_csv(num_peaks_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
 ```
 
-
+# Occurence matrix of overlaps
 Now let's also use our 'count_peaks_per_feature' function to use the 'occurence' parameter
 We will make a matrix that records all the overlaps with all promoters.
 
-```{r}
+```{r count_peaks_per_feature occurence matrix}
 promoter_peak_occurence <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_peaks, 
                                                type = "occurrence")
 
@@ -246,7 +267,9 @@ write_csv(peak_occurence_df, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises
 # Cool feel free to open this one -- even in excel :) 
 ```
 
+#############
 Excercise
+#############
 
 Take a look at the peak_occurence_df and num_peaks_df -- find 3 things new that we haven't done yet. 
 
