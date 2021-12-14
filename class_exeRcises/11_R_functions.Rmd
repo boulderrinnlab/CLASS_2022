@@ -281,7 +281,7 @@ This is the full function!
 ```{r reviewing the functions in the functions}
 
 # This is just setting up to name the funciton.
-create_consensus_peaks <- function(broadpeakfilepath = "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise") {
+create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclass/CLASS_2022/data/peaks/") {
   
 # For now we can set broadpeakfilepath
   
@@ -345,45 +345,6 @@ create_consensus_peaks <- function(broadpeakfilepath = "/Shares/rinn_class/data/
 
 ```
 
-Let's run consensus_peaks -- so the function is loaded. But let's do this in debugging mode!!
-Goto intersect_functions.R in util. then click on peak_list() line
-Source on save 
-then run create_consensus_peaks
-
-# Running consensus peaks function (CAREFUL this take a long time!)
-```{r run consensus peaks *WARNING TAKES 3HRS*}
-
-consensus_peaks <- create_consensus_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
-
-summary(consensus_peaks)
-
-# note CTCF went from 30,000 some peaks to 28,640 that overlap in all 8 replicates
-
-hist(sapply(consensu_peaks, length))
-sapply(consensus_peaks, length)
-hist(width(consensus_peaks[[2]]))
-
-```
-
-Now let's export the list of GRanges into individual .bed files of peak overlaps
-between replicates.
-```{r exporting consensus_peaks}
-
-# we use a for loop to export each GRange item in consensus_peaks
-# to a .bed file.
-
-for(i in 1:length(consensus_peaks)) {
-  rtracklayer::export(consensus_peaks[[i]], 
-                      paste0("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise/consensus_peaks/", 
-                             names(consensus_peaks)[i], 
-                             "_filtered_consensus_peaks.bed"))
-
-}
-
-# Voila we have a single consensus peak file for each DBP
-# We will use these alot moving forward.
-
-```
 
 *********************
 EXCERCISE
