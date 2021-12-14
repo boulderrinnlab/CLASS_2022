@@ -103,6 +103,12 @@ table(gencode_gr@elementMetadata$gene_id) %>%
 # Let's see what we get with gene_name
 table(gencode_gr@elementMetadata$gene_name)
 
+# For ensemble gene annotation (mroe transcripts)
+table(gencode_gr@elementMetadata$gene_id)
+
+# Typical gene symbols 
+table(gencode_gr@elementMetadata$transcript_name) 
+
 # it's basically memorization of what is a gene name or gene id 
 
 ```
@@ -132,13 +138,12 @@ Let's look at the width for mRNA genes
 mrna_df <- filter(gencode_gr_length, gene_type == "protein_coding", type == "gene")
 
 # we can easily plot a histogram of mRNA gene widths.
-
 hist(log10(mrna_df$width), breaks = 60)
 
 # same for lncRNAs
-
 lncrna_df <- filter(gencode_gr_length, gene_type == "lncRNA", type == "gene")
 
+# plotting lncRNA
 hist(log10(lncrna_df$width), breaks = 60)
 
 # Let's see what the average gene size is. Note we can no longer use width in a DF
@@ -153,72 +158,84 @@ Now let's go find the widths associated with gene-length.
 # How many types of "gene types" are there?
 ```{R gene types}
 
+# indexing into gene typse 
 table(gencode_gr@elementMetadata$type)
-
-
 
 ## cool this tell us a lot about the genome with one line!
 
 ```
 
+# Finding genome feature lengths
 let's find the longest and shortest genes in the genome!
-# Finding smallest and largest gene in the genome
-```{R smallest and largest genes} 
+But first let's see how to find the lengths of genome features.
+```{R annotation lengths} 
 
 # Let's see the range of gene sizes
 summary(width(gencode_gr))
 
+# interesting some genes are just 1 nt long!
+# let's look into that some more
 
-
+# we will use indexing and setting a value
 width_1_items <- gencode_gr[width(gencode_gr) == 1] %>%
   as.data.frame()
+
+# let's look
 table(width_1_items$type)
+# so weird that a CDS can be 1nt or an exon.
 
-weird_exons <- width_1_items %>% filter(type == "exon")
+# looking for weird exons
+weird_exons <- width_1_items %>% 
+  filter(type == "exon")
+# huh 33 exons are 1 nt -- annotations are never perfect :)
 
+
+# The one thing that should be 1nt long is a TSS
+# to get the TSS we need to use the promters function:
 tss <- promoters(gencode_gr[gencode_gr$type == "gene"], 
                  upstream = 0, downstream = 0) %>%
   as.data.frame()
 
-width(tss)
+# we see 60,609 TSS. Let's see if that is the same as # of genes
+summary(gencode_gr[gencode_gr$type == "gene"])
+# cool the same
 
+# More weird 1nt features
+length(which(width(start_codons) == 1))
+# 567 start codons 1nt long -- that can't be right :)
+
+# This code will search for any feature and see if any are 1nt
 start_codons <- gencode_gr[gencode_gr$type == "CDS"]
 summary(width(start_codons))
 
-length(which(width(start_codons) == 1))
+```
+
+# Longest and shortest genes
+```{longest and shortest gene in human genome}
 
 # Let's turn gencode_gr into a data.frame and filter to only genes.
-
 gencode_df <- gencode_gr %>%
   as.data.frame() %>%
   filter(type == "gene")
 
-# Let's find the smallest genes
+# Let's find the smallest genes using arrange function
 gencode_df %>% 
   arrange(gencode_df$width) %>%
   head()
-# Same thing in more tidyverse logic (pipe the DF through code)
-# Doing so we don't need to index columns with $width etc
-
-gencode_df %>% 
-  arrange(width) %>%
-  head()
 
 
-# Now let's find the Largest genes
+# Now let's find the Largest genes using arrange
 gencode_df %>%
   arrange(-width) %>%
   head()
 
 
-# We can also store the longest gene as an object
-
+# We can also store the longest gene as an object with max function
 longest_gene <- gencode_df %>%
   filter(width == max(width))
 
 
 # let's take a look at what information we have for this gene:
-
 longest_gene
 
 ```
@@ -250,26 +267,30 @@ total_exon_length/3.2e9
 # Boom we can see the human genome is about 4% exons!
 
 # We can do the same for gene bodies too
-
 reduced_gene_bodies <- gencode_gr[gencode_gr$type == "gene"] %>%
   GenomicRanges::reduce()
+
+# plotting
 hist(width(reduced_gene_bodies), breaks = 100)
 
 ```
 
+# genome features overlapping chip data
 Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq.
 This is probably one of the most commonly used functions in genome sciences!
-
 First we need to import POLR2A Chip-seq files -- a simple .bed file of peaks.
-# genome features overlapping chip data
+
 ```{r import Pol2 chip data}
 
 pol2_chip <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2A_consensus_peaks_filter.bed")
 
 ```
 
+# promoters function
 Now let's define the promoters using the handy promoters function in GRanges
-```{R}
+
+```{R promoters}
+
 ?promoters
 
 # let's add 3Kb upstream and downstream from the TSS to define "promoters"
@@ -283,6 +304,7 @@ length(gencode_promoters)
 
 ```
 
+#findOVerlaps function
 Now we have promoter ranges and peak ranges let's use findOverlaps function
 ```{R findoverlaps chip peaks &}
 
@@ -324,7 +346,6 @@ gencode_promoters[32]
 
 
 # Now let's get into the logic of overlaps in small steps as it can get confusing.
-
 # reminder @from is peak file and @to is the promoter annotations
 table(promoter_overlaps@from)[1:3]
 
@@ -332,9 +353,9 @@ table(promoter_overlaps@from)[1:3]
 
 ```
 
-
-Let's dig into what information results from findOverlaps
 # digging deeper into overlaps
+Let's dig into what information results from findOverlaps
+
 ```{R digging deeper into overlaps}
 
 # Total number of peaks (we can also see this in pol2_chip GRanges)
@@ -384,7 +405,7 @@ of 13,299 promoters were overlapped.
 
 
 Let's make some data frames to better understand what is happening
-```{R}
+```{R accounting oerlaps in @to and @from}
 
 # Let's look at all the peak overlaps (13,771) in two different data frames:
 # Data frame from peak perspective (@from)
@@ -410,6 +431,10 @@ promoter_overlaps_df$peak_name <- overlapping_pol2$name
 length(unique(promoter_overlaps_df$peak_name))
 length(unique(promoter_overlaps_df$promoter_gene_id))
 
+
+# all of this is to make the point -- be careful what you
+# count as an overlap when reporting in a paper
+# can easily be mislead on accident!
 
 ```
 
