@@ -28,25 +28,20 @@ In simpler terms: we are going to determine the average binding of:
 
 We'll be using the consensus peaks we generated previously (MACS peak calls filtered to those that are overlapping across replicates) and the Gencode gene annotations. This is STEP 0 : loading in required files.
 
+# Loading in data needed for meta plots
 ```{r import genome features & file list}
 
 # laoding Gencode genome features
 gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
 
-
 # making a file list of our consensus peaks (filtered at 250 peaks minimum)
-fl <- list.files("/Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks/", full.names = TRUE)
-consensus_peaks <- lapply(fl, rtracklayer::import)
+fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/", full.names = TRUE)
+
+# lapply to import into list of GRanges
+filtered_consensus_peaks <- lapply(fl, rtracklayer::import)
 
 # adding row names by removing the file path and .bed at end of each file.
-
-names(consensus_peaks) <- gsub("Shares/rinn_class/data/CLASS_2022/data/filtered_consensus_peaks/|.bed|/|_consensus_peaks", "", fl)
-
-# saving this file for later
-# write_rds(consensus_peaks, "consensus_peaks.rds")
-
-# START POINT: Consensus Peaks
-consensus_peaks <- read_rds("consensus_peaks.rds")
+names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/|.bed|_filtered_consensus_peaks", " ", fl)
 
 ```
 
@@ -78,7 +73,7 @@ genes <- gencode_gr[gencode_gr$type == "gene"]
 
 # Loading in the promoter regions for lncRNAs and mRNAs 
 
-all_promoters_gr <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_mrna_promoters.gtf")
+all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
 
 ```
@@ -93,7 +88,9 @@ In order to calculate what the peak coverage across each promoter is we'll conve
 # given entry of 6,000 wide vectors over each promoter.
 # let's first do this for one DBP:
 
-peak_coverage <- coverage(consensus_peaks[["POLR2A"]]) 
+?coverage
+
+peak_coverage <- coverage(filtered_consensus_peaks[["POLR2A"]]) 
 
 # ok now we have a 6,000 length vector with a 1 if a peak
 # overlaps the promoter window and 0 if not.
