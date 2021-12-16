@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggdendro)
 library(GenomicRanges)
+library(pheatmap)
 source("../../../util/intersect_functions.R")
 source("../../../util/plotting_functions.R")
 source("../../../util/_setup.R")
@@ -29,11 +30,15 @@ other considerations for clustering.
 We can use those vectors of 1 and 0 to determine how similar the binding profiles are.
 
 Ok let's get started by grabbing the peak_occurrence_matrix from 14_2_our_data_in_ranges.
+
+# loading in promoter peak occurence and convert to matrix
 ```{r loading in promoter_peak_occurence_df}
 
 #let's look at the promoter peak occurence matrix (takes a min to load)
 
-promoter_peak_occurence_matrix <- read.table("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+promoter_peak_occurence_matrix <- read.table("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+
+# ensuring in matrix format
 promoter_peak_occurence_matrix <- as.matrix(promoter_peak_occurence_matrix)
 # Ok we see this is a very large matrix of 1 and 0 if a DBP is bound to a promoter.
 # We can use these 36,000+ vectors of genes with 483 values of bound (1) or unbound (0)
@@ -44,8 +49,9 @@ peak_occurence_matrix <- promoter_peak_occurence_matrix[rowSums(promoter_peak_oc
 
 ```
 
+# calculating distnace matrix
 Let's get started by finding the 'distance' between each promtoer vector.
-We will make a distance matrix of 451 x451 and then use that for clustering.
+We will make a distance matrix of 437 x437 and then use that for clustering.
 ```{r calculating distance matrix}
 
 # First let's take a look at the matrix
@@ -75,14 +81,16 @@ peak_occurence_dist <- dist(peak_occurence_matrix, method = "binary")
 
 ```
 
+# Clustering distance matrix
+
 Now that we have that, we can do hierarchical clustering. In brief, this will cluster 
 vectors that have small distances (high correlation), and will iterate that process until
 everything is in the same cluster.
+
 ```{R hclust of distance matrix}
 # let's take a look at hclust
 
 ?hclust
-
 
 # Alright we are ready to cluster everything!
 
@@ -100,24 +108,28 @@ plot(bin_hier)
 # pdf() tell file path to save and properties then we plot
 # finally we call dev.off to take the output into PDF instead of plots.
 
+# We can order this before savin it
+# Now let's order the DBPs 
+bin_hier$labels[bin_hier$order]
+
+#  !! CHECK WORKING DIRECTORY & structure !!
+
 pdf("figures/dbp_hclust_dendro.pdf", height = 12, width = 70)
 plot(bin_hier)
 dev.off()
 
-
-# We can order this to save it
-# Now let's order the DBPs 
-bin_hier$labels[bin_hier$order]
-
-
-
 ```
 
 
+# HEATMAPS
 Nice so we now have object "bin_hier" that will contain all the cross correlation values across all the samples. 
+
 Now let's use ggdenro package that will plot the branch lengths that indicate how similar two samples are 
+
 ```{r ggdendro gram}
 
+# This is a lot of ggplot -- on purpose
+# please read through what is happening and parameter usage
 
  ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3, 
                        theme_dendro = TRUE) +
@@ -137,48 +149,59 @@ Now let's use ggdenro package that will plot the branch lengths that indicate ho
      panel.border = element_blank()
    )
 
-# Nice let's save this:
+# Nice let's save this using 'ggsave':
 
 ggsave("figures/ggdendro_plot.pdf", height = 50, width = 12, limitsize = F)
 
 ```
 
+
+# Heatmap of lncRNA and mRNA seperately
 Now let's compare how lncRNAs and mRNAs cluster differnently?
+Strategy: load annotations then index peak_occurrence for specific annotations
+
+#lncRNA promoters
 ```{r lncRNA promoter clustering}
 
 # We first need to load the .GTF we made for lncRNAs and mRNAs.
+# loading lncRNA promoters
 
-lncrna_promoters <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/genome_features/lncrna_promoters.gtf")
+lncrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_promoters.gtf")
+
+# loading mRNA promoters
 mrna_promoters <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/genome_features/mrna_promoters.gtf")
 
-
-# Now we will use indexing to separate peak_occurence_matrix in lncRNA and mRNA.
-
+# Now we will use indexing to separate peak_occurrence_matrix in lncRNA and mRNA.
+# note we are indexing and using indexing in indexing to get what we want.
 lncrna_peak_occurence <- peak_occurence_matrix[,lncrna_promoters$gene_id]
 
 # we do the clutering the same as above or we can combine the dist and hclust:
-
 bin_hier_lncrna <- hclust(dist(lncrna_peak_occurence, method = "binary"))
 
 # Now plot with ggdendro
 ggdendro::ggdendrogram(bin_hier_lncrna, rotate = TRUE,  size = 3)
  
 ggsave("figures/lncrna_hclust_binary_dist.pdf", height = 44, width = 6)
-
 # Cool we can see the Pol II S2 and S5 diff right away again!
 
 ```
 
+# mRNA promter heatmap
 Now for mRNA
 
 ```{R mRNA promoter clustering}
 
+# same strategy used very often:
+# indexing into larger file and filtering to a file of stuff you want.
 mrna_peak_occurence <- peak_occurence_matrix[,mrna_promoters$gene_id]
 
+# getting the distance matrix for only mRNA promoters  
 bin_hier_mrna <- hclust(dist(mrna_peak_occurence, method = "binary"))
  
+# plotting with ggdendro
 ggdendro::ggdendrogram(bin_hier, rotate = TRUE,  size = 3)
 
+# saving
 ggsave("figures/mrna_hclust_binary_dist.pdf", height = 44, width = 6)
 
 # Cool we are making some good figures -- now let's dig into the biology
@@ -187,25 +210,26 @@ ggsave("figures/mrna_hclust_binary_dist.pdf", height = 44, width = 6)
 
 ```
 
-
+# Clustering "high binder promoters"
 Let's make a heatmap of the promoters -- since it will take a long long time to plot we'll just plot the "super promoters"
 ```{r clustering high-binding promoters}
 
-# We'll start with the promoter peak occurrence and filter down to just those that have high numbers of dbps
-
+# first we filter promoter_peak_occurrence to just those that have high numbers of dbps
+# let's, for now, pick 300 DBPs on a given promoter.
+# Note another example of indexing a 'master file'  now using a function: colSums
 high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 300]
 
-# Could filter out the rows that have zeros, but we don't have any
+# Could filter out the rows that have zeros, but we don't have any (min = 1)
 min(rowSums(high_binders))
 
 # let's see the diversity of contributions of each DBP to high_binder_promoters
 # this means that one DBP is only part of 26 of the 5,661 high binder promoters
-
 hist(rowSums(high_binders))
 
 
-# Now let's make a heat map with pheatmap 
-library(pheatmap)
+# Now let's make a heat map with pheatmap, just to switch it up
+# also a bit faster -- complex heatmap even faster -- there are many options :)
+# library(pheatmap)
 ?pheatmap
 
 
@@ -218,13 +242,15 @@ ggsave("figures/high_binder_heatmap.pdf", height = 44, width = 6 )
 
 ```
 
-
+# Clustering ZFN proteins only 
 Let's just cluster Zinc Finger proteins (most of unknown function)
+There is a theme of take one file and index it with another subset file of interest.
+
 ```{R ZFN clustering}
 
 # If we want to just plot the zinc fingers for example, we can reference the num_peaks_df 
 # Let's read in num_peaks_df
-num_peaks_df <- read_csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/num_peaks_df.csv")
+num_peaks_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
 
 # now let's make a zinc_finger_dbd data frame
 zinc_finger_dbd <- num_peaks_df %>% filter(dbd == "C2H2 ZF")
@@ -237,6 +263,8 @@ zf_matrix <- high_binders[zinc_finger_dbd$dbp,]
 # now the heatmap!
 
 pheatmap(zf_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
+
+ggsave("figures/ZFN_high_binder_heatmap.pdf", height = 44, width = 6 )
 
 
 # We can also check out the dendrogram for just this matrix.
@@ -253,17 +281,21 @@ dev.off()
 
 ```
 
+# Adding to num_peaks_df 
 While we have all these objects in our environment
 let's go ahead and make another data frame.
 This will be which DBPs are bound to which promoter.
 Thus you can simply look up your favorite promoter 
 and retreive all the DBPs bound to it.
+
 ```{r DBPs bound to a given promoter}
 
 # We can either read in lncrna_mrna_promoters or merge from here
 
-DBPs_on_promoter <- bind_rows(lncrna_promoters %>% as.data.frame(),
-                 mrna_promoters %>% as.data.frame()) %>%
+DBPs_on_promoter <- bind_rows(lncrna_promoters %>% 
+                                 as.data.frame(),
+                 mrna_promoters %>% 
+                    as.data.frame()) %>%
   dplyr::select(gene_id, gene_name)
 
 # This merged the two objects in the environment and made them
@@ -272,12 +304,9 @@ DBPs_on_promoter <- bind_rows(lncrna_promoters %>% as.data.frame(),
 promoter_dbps <- promoter_peak_occurence_matrix %>%
   as.data.frame() %>%
   rownames_to_column("dbp") %>%
-
 # here we just made a column that has the DBP name
 # currently it is a "meta" name
-
-  pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
-
+pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
 # This now a very long matrix - let's get rid of all zero values
    
   filter(occurrence == 1) %>%
@@ -285,16 +314,21 @@ promoter_dbps <- promoter_peak_occurence_matrix %>%
   left_join(promoter_dbps)
 
 # let's write this out it's a very handy DF!
+# note saving in 12 where we read in this type of data
 
-write.csv(promoter_dbps, "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/promoter_dbps.csv")
+write.csv(promoter_dbps, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/promoter_dbps.csv")
 
+# note this is extremely large but equally useful.
 ```
 
+# Finding which DBPs are on which promoter
 Cool now we can select any gene and see what DBPs are bound?
-```{R}
+
+```{R DBPs on a given promoter}
 
 # In the future if we want to filter on genes we can just read this back in.
-# test <- read.csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/promoter_dbps.csv")
+
+promoter_dbps <- read.csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/promoter_dbps.csv")
 
 # let's see what's on FIRRE
 
