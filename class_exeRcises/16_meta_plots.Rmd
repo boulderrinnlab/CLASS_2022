@@ -429,52 +429,63 @@ for(i in c(1:390, 392:length(filtered_consensus_peaks))) {
   
 }
 
-# MAKE SURE IN RIGHT WORKING DIRECTORY
-# Let's save the df to make all meta plots of all DBPs with peaks > 250!
-
+# saving this
 write_rds(metaplot_df, "metaplot_df.rds")
 
+# MAKE SURE IN RIGHT WORKING DIRECTORY
+# Let's save the df to make all meta plots of all DBPs with peaks > 250!
+passing_peaks <- names(filtered_consensus_peaks)[sapply(filtered_consensus_peaks, length) > 250] %>%
+  as.data.frame()
+
+# finding those dbps "in" passing_peaks and metaplot_df
+metaplot_filtered_df <- metaplot_df %>%
+  filter(dbp %in% passing_peaks$.) %>%
+    distinct()
+
+# writing out
+write_rds(metaplot_df, "metaplot_filtered_df.rds")
+
+```
+
+# START POINT
+```{r start point reading in metaplot_filtered_df}
+
+# This is reading in the filtered even though we are 
+# setting to meta_plot_df
+
+metaplot_df <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_filtered_df.rds") 
+
+#metaplot_df <- subset(metaplot_df, select = -c(x))
+
 ```
 
 
-Filter DBPs to those with at least 250 peaks (otherwise pointless to make metaplot)
-```{r filtering consensus peaks to those > 250 peaks per DBP}
-
-# Let's filter out those peaks that don't pass the threshold
-
-passing_peaks <- names(consensus_peaks)[sapply(consensus_peaks, length) > 250]
-
-```
-
-
-# START POINT FOR MATRIX OF ALL DBPs BINDING PROFILE ACROSS PROMOTERS
-How do the binding profiles over promoters compare across DBPs?
-We can start to address this by 
+# clustering dbp by binding profile
 
 ```{R clustering each DBP by their binding profile over promoters}
 
 # Let's cluster the metaplots df. First we need to turn it into a matrix.
-metaplot_df <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_df.rds") %>%
-  filter(dbp %in% passing_peaks) %>%
-  distinct()
+
 
 # Pivot wider into a matrix
 # careful we don't have duplicated rows
 # we shouldn't since we ran distinct above.
 
-metaplot_matrix <- metaplot_df %>% 
+metaplot_filtered_matrix <- metaplot_filtered_df %>% 
   pivot_wider(names_from = x, values_from = dens) %>%
   column_to_rownames("dbp") %>%
   as.matrix()
-dim(metaplot_matrix)
+dim(metaplot_filtered_matrix)
 
-
+?hclust
 # Z-Scale the rows for clustering (not needed for profile plots)
-mm_scaled <- t(scale(t(metaplot_matrix)))
-
+mm_scaled <- t(scale(t(metaplot_filtered_matrix)))
 
 # clustering
 metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
+
+# plotting
+plot(metaplot_hclust)
 
 # Plot the dendrogram
 pdf("figures/tss_profile_dendrogram.pdf", height = 10, width = 27)
