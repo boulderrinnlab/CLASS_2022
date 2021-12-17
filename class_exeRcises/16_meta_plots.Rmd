@@ -41,7 +41,7 @@ fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRc
 filtered_consensus_peaks <- lapply(fl, rtracklayer::import)
 
 # adding row names by removing the file path and .bed at end of each file.
-names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/|.bed|_filtered_consensus_peaks", " ", fl)
+names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks//|_filtrered_consensus_peaks.bed", "", fl)
 
 ```
 
@@ -90,6 +90,7 @@ In order to calculate what the peak coverage across each promoter is we'll conve
 
 ?coverage
 
+# random but there needs to be spaces before and after gene_id ??
 peak_coverage <- coverage(filtered_consensus_peaks[["POLR2A"]]) 
 
 # ok now we have a 6,000 length vector with a 1 if a peak
@@ -127,15 +128,12 @@ all_promoters_gr <- subsetByOverlaps(all_promoters_gr,
                                   ignore.strand=TRUE)
 
 
-# This creates a vector of the chromosomes that are in common between the peak_coverage and promoters.
-# Keeping track of this will fix a similar problem to the step above since this DBP may not
-# bind on all chromosomes.
 
-# An error will occur if there are not matching chromosomes. So if one chromosome wasn't bound it
-# would cause an error.
 
+# IMPORTANT STEP: this will take names of chr with peaks and intersect with all chr
+# Then after this we will run coverage on our chromosome object. 
+# If we didn't do this an error would occur if a chromosome wasn't represented
 chromosomes <- intersect(names(peak_coverage), unique(as.character(seqnames(all_promoters_gr))))
-
 
 # We can also ensure they're in the same order and contain the same chromosomes
 # by indexing with this vector
@@ -147,8 +145,8 @@ peak_coverage <- peak_coverage[chromosomes]
 # If you recall, one of the main features of GRanges object is capturing
 # the chromosome information -- when converting to an IRanges list, 
 # each chromosome will be represented by a named element in the list.
-
-# using base R here with 'as' a coericing function. as takes one dataset
+?IntegerRangesList
+# using base R here with 'as' a coericing function. 
 all_promoters_ir <- as(all_promoters_gr, "IntegerRangesList")[chromosomes]
 
 # nice now we have all the promoter windows as an Iranges object
@@ -160,7 +158,7 @@ Here we'll use the Views function to mask the peak coverage object everywhere bu
 
 ```{r reducing data to jsut Iranges of promters and peak coverage }
 
-# let's look at vies
+# let's look at views
 ?Views
 # ok so Views can store and access all the promoter vectors
 # We will end up with an index of all 'promoter windows'
@@ -184,10 +182,16 @@ We'll not just convert the run-length encoding vectors to actual vectors -- note
 # This essentially will convert the RLE to 6000 length vecotrs of promoter windows -- with
 # a 1 for binding event and 0 if not.
 
+?viewApply
+# This performs functions on each of the vectors in view list.
+# kind of like mutate in vector space
+
+#TODO why turn upside down again?
 promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
 
 # We are now going to convert promoter_peak_view to a matrix
-# we will do this by rowbinding the Irange list 
+# we will do this by rowbinding the Irange list that viewApply
+# turned into a vector.
 
 # Base R
 promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
