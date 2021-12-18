@@ -447,15 +447,41 @@ write_rds(metaplot_df, "metaplot_filtered_df.rds")
 
 ```
 
+# convert to metaplot matrix
+```{r converting metaplot_df to matrix}
+
+# Pivot wider into a matrix
+# careful we don't have duplicated rows
+# we shouldn't since we ran distinct above.
+
+metaplot_filtered_matrix <- metaplot_filtered_df %>% 
+  pivot_wider(names_from = x, values_from = dens) %>%
+  column_to_rownames("dbp") %>%
+  as.matrix()
+
+
+dim(metaplot_filtered_matrix)
+
+write_rds(metaplot_filtered_matrix, "metaplot_filtered_matrix.rds")
+
+```
+
+
 # START POINT
 ```{r start point reading in metaplot_filtered_df}
 
+# TODO why doesn't it work reading in the .rds
 # This is reading in the filtered even though we are 
 # setting to meta_plot_df
 
-metaplot_df <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_filtered_df.rds") 
+# TODO this somehow doesn't work when read in -- but does work
+# TODO works when in environment -- think I will try and save matrix and see if it works.
 
-#metaplot_df <- subset(metaplot_df, select = -c(x))
+metaplot_filtered_matrix_test <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_filtered_matrix.rds")
+
+#metaplot_df <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_filtered_df.rds") 
+
+# metaplot_df <- subset(metaplot_df, select = -c(x))
 
 ```
 
@@ -471,15 +497,15 @@ metaplot_df <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/clas
 # careful we don't have duplicated rows
 # we shouldn't since we ran distinct above.
 
-metaplot_filtered_matrix <- metaplot_filtered_df %>% 
-  pivot_wider(names_from = x, values_from = dens) %>%
-  column_to_rownames("dbp") %>%
-  as.matrix()
-dim(metaplot_filtered_matrix)
+# metaplot_filtered_matrix <- metaplot_filtered_df %>% 
+#   pivot_wider(names_from = x, values_from = dens) %>%
+#   column_to_rownames("dbp") %>%
+#   as.matrix()
+# dim(metaplot_filtered_matrix)
 
 ?hclust
 # Z-Scale the rows for clustering (not needed for profile plots)
-mm_scaled <- t(scale(t(metaplot_filtered_matrix)))
+mm_scaled <- t(scale(t(metaplot_filtered_matrix_test)))
 
 # clustering
 metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
