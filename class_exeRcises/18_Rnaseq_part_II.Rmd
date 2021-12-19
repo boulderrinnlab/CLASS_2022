@@ -17,6 +17,8 @@ library(ggrepel)
 library(pheatmap)
 ```
 
+
+# Run NF_CORE RNaseq pipeline
 Let's do some RNAseq !
 
 Goal: Align reads and get the number of reads in each gene in the genome using nf-core/rnaseq 
@@ -28,18 +30,25 @@ design.csv
 nextflow.config file
 run.sh
 
-
+# config file
 Let's start with the config file -- very similar to nf-core/chipseq
-```{bash}
+```{bash config file}
 process {
   executor='slurm'
   queue='short'
   memory='16 GB'
   maxForks=10
 }
+
+# go to correct working directory
+nano nextflow.config
+
+# paste in text above
+
+
 ```
 
-
+# Run.sh file
 Now the run.sh file that gives nf-core/rnaseq all the instructions for nextflow to task.
 ```{bash run.sh file}
 
@@ -48,101 +57,107 @@ Now the run.sh file that gives nf-core/rnaseq all the instructions for nextflow 
 
 #!/bin/bash
 #SBATCH -p long
-#SBATCH --job-name=hepg2-fraction-RNAseq
+#SBATCH --job-name=HEPG2_rna_seq
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=x@colorado.edu
+#SBATCH --mail-user=john.rinn@colorado.edu
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
-#SBATCH --time=30:00:00
+#SBATCH --time=20:00:00
 #SBATCH --output=nextflow.out
 #SBATCH --error=nextflow.err
 
 pwd; hostname; date
-echo "You've requested $SLURM_CPUS_ON_NODE core."
+echo "Here we go You've requested $SLURM_CPUS_ON_NODE core."
 
 module load singularity/3.1.1
 
-nextflow run nf-core/rnaseq -r 3.4 \
--resume \
--profile singularity \
-
 # Now the inputs for nextflow.
+# I resorted to older version as data does 
+# not pass more recent versions -- thus
+# we don't need a design file after all but you will in your own work
 
-# Firs the design file that we just made.
---input /scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/design.csv \
-
-# The genome file
+# first telling which pipeline to run
+nextflow run nf-core/rnaseq -r 1.4.2 \
+# resume is awesome and let's us pick up where we left off
+-resume \
+# setting up a singularity container for reproducibility 
+-profile singularity \
+# wher is the data :)
+--reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
+# genome file
 --fasta /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/GRCh38.p13.genome.fa \
-
-# Genome annotation file
+# genome annotation file
 --gtf /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/gencode.v32.annotation.gtf \
-
-# Salmon will be doing all of the alignments and quantifications
---aligner star_salmon \
-
-# letting pipeline know which type of annotation we are using
+# aligner -- unique to 1.4.2 others use different parameters.
+# IMPORTANT TO CHECK ALIGNER INSTRUCTION (but will get an error if wrong :)
+--pseudo_aligner salmon \
+# Telling NF_CORE that we imported gencode genome annotations
 --gencode \
-
--- # PLESAE CHANGE TO YOUR EMAIL john.rinn@colorado.edu \
+# who to tell when job is done
+--email john.rinn@colorado.edu \
+# what the config file is named (note using c language)
 -c nextflow.config
 
+# date times out
 date
+
 ```
 
-Here is the run.sh in full form for nano adjustments
+# creating run.sh
+Here is the run.sh in full form for nano 
+Goto NF_CORE_RUN folder, nano and paste in below 
 ```{bash run.sh}
 
 #!/bin/bash
 #SBATCH -p long
-#SBATCH --job-name=rna-protein-rnaseq
+#SBATCH --job-name=HEPG2_rna_seq
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=john.rinnn@colorado.edu
+#SBATCH --mail-user=john.rinn@colorado.edu
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
-#SBATCH --time=30:00:00
+#SBATCH --time=20:00:00
 #SBATCH --output=nextflow.out
 #SBATCH --error=nextflow.err
 
 pwd; hostname; date
-echo "You've requested $SLURM_CPUS_ON_NODE core."
+echo "Here we go You've requested $SLURM_CPUS_ON_NODE core."
 
 module load singularity/3.1.1
 
-nextflow run nf-core/rnaseq -r 3.4 \
+nextflow run nf-core/rnaseq -r 1.4.2 \
 -resume \
 -profile singularity \
---input /scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/design.csv \
---fasta /scratch/Shares/rinn/genomes/Mus_musculus/Gencode/M25/GRCm38.p6.genome.fa \
---gtf /scratch/Shares/rinn/genomes/Mus_musculus/Gencode/M25/gencode.vM25.annotation.gtf \
---aligner star_salmon \
+--reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
+--fasta /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/GRCh38.p13.genome.fa \
+--gtf /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/gencode.v32.annotation.gtf \
+--pseudo_aligner salmon \
 --gencode \
 --email john.rinn@colorado.edu \
 -c nextflow.config
 
 date
-
 ```
 
+# design file 
+
+# We no longer need the design file since this data only runs on onlder pipeline.
+# However if you were to use the new 3.4 this would be required.
 
 Now we need the design file, similar to nf-core/chipseq it has to be very specific :)
 
 sample,replicate,fastq_1,fastq_2,strandedness
-Our data is not stranded, but this is an important consideration even if you don't have it.
 
-This is an example of good reproducibility. We made the design file in 17 from code someone else could
+We made the design file in 17 from code someone else could
 run and get the exact same design file !
 
+# move design file into NF_CORE_RUN dir
 
-# NEW PIPELINE HAS NUCLEAR FRACTION FAIL :(
+cd /scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ
+cp design.csv /scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN
 
-# Let's try and run as class on differnet versions
-
-
-Here is the information for running the original NF_CORE rnaseq 1.4
-This is what we ran last year.
-
+# Below are the other files again in case needed
 
 NEXTFLOW.CONFIG
 ```{bash}
@@ -178,7 +193,7 @@ module load singularity/3.1.1
 nextflow run nf-core/rnaseq -r 1.4.2 \
 -resume \
 -profile singularity \
---reads 'fastq/*{_read1,_read2}.fastq.gz' \
+--reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
 --fasta /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/GRCh38.p13.genome.fa \
 --gtf /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/gencode.v32.annotation.gtf \
 --pseudo_aligner salmon \
@@ -190,6 +205,14 @@ date
 
 ```
 
+# LET'S RUN THE PIPELINE!
 
+# go to right directory
+cd /scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN
 
+sbatch run.sh
+
+tail -f nextflow.out
+
+Voila you are doing RNAseq!
 
