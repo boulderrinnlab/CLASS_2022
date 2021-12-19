@@ -40,18 +40,25 @@ To be safe let's make an rnaseq directory somewhere on scratch that we can all a
 Then download everythign we need!
 
 ```{bash downloading file list and sample sheet}
-# You'll want to change directory to the rnaseq directory 
+# You'll want to change directory to 17_ and set as working directory 
 # this will get you a list of samples as a .txt file using wget.
 # We will use this to make the sample sheet.
+
+# open terminal (in working dir) and paste this in
 
 wget -O samples.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
 
 # This will give us a text file of the file names. We will use this to download the files.
+# open terminal (in working dir) and paste this in
 
 wget -O files.txt "https://www.encodeproject.org/batch_download/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
 
 # Now let's make a common directory called HEPG2_rnaseq so we only download this once :)
 # Download the fastq files -- ~50 GB 
+
+# first move files.txt into a new dir (inside 17_) called fastq
+# then run this ... or we can save time and read from my folder.
+
 xargs -L 1 curl -O -J -L < files.txt
 
 # Cool we have all the data we need for the NF_CORE RNAseq pipeline in 18_
@@ -67,6 +74,8 @@ Now, we will use ENCODE's API to retrieve additional file information from their
 ```{r examining encode API}
 
 # ENCODE base url: https://www.encodeproject.org/report.tsv?
+
+base_url <- "https://www.encodeproject.org/report.tsv?"
 
 # Let's look at an example request for this experiment accession: ENCSR541TIG
 request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=released&file_format=fastq&dataset=%2Fexperiments%2FENCSR541TIG%2F&field=accession&field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target"
@@ -186,7 +195,10 @@ Note that since all of the parameters except the accession number have default v
 If we want the defaults, we only need to provide the ENCODE accession of the experiment we want.
 
 
-```{r}
+# running encode_file_info example
+
+```{r encode_file_info function example}
+
 dat <- encode_file_info("ENCSR541TIG")
 
 # Nice we just retrieved all the information we wanted for this experiment accession!
@@ -204,33 +216,43 @@ One other way to think about map is the information we just got from:
 dat <- encode_file_info("ENCSR541TIG")
 is places on "cell" of an excel file. So each cell contains an excel sheet in the cell.
 
+# Using MAP
+```{r MAP example}
 
-```{r}
 # In this example we'll take the digits 1 through 10 and "map" each to the rnorm function. 
 
-map <- map_example <- 1:10 %>%
+map_example <- 1:10 %>%
   map(rnorm, n = 10) 
 
 # It returns a nested list, let's look:
 summary(map_example)
+
+# Let's look with table
 table(summary(map_example))
 
 # let's index and look
 map_example[[1]]
+
+# another one
 map_example[[2]]
 
-# if we want a specific index of a specifc rnorm array:
+# indexing to the first component of map vector
 map_example[[1]][[1]]
 
 ```
+
+
+# reading in sample sheet
 
 We can use map to call this encode_file_info function for each experiment accession and return each data.frame into a new column in our samples data.frame.
 
 First let's read in the samples we downloaded from ENCODE.
 
+
 ```{r reading in sample sheet}
+
 # We'll also rename this Accession column to clarify between experiment_accession and file_accession.
-samples <- read.table("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/samples.txt",
+samples <- read.table("samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
   dplyr::rename(experiment_accession = Accession) 
 
@@ -238,7 +260,12 @@ samples <- read.table("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/sa
 # Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
 ```
 
-```{r}
+# Mapping each experiment to the experiment_accession
+
+Each experiment accession has multiple files associated with the accession
+Let's use map to map each experiment to it's experiment accession and clean up sample sheet
+
+```{r MAP to experiment_accession}
 
 # We are making a new column in samples called file_info. This is created
 # by mapping experiment_accession and putting the variable through encode_file_info function.
@@ -252,10 +279,11 @@ samples <- samples %>%
 # each entry will be the information gained from the encode_file_info function
 ```
 
+# Unnesting the data from MAP
 This is a bit hard to read in this format, so we can unnest the data.frames in the file_info column using the unnest command.
 This will duplicate the remaining columns to match the number of lines in the nested data.frame.
 
-```{r}
+```{r unnesting MAP}
 # We also need to tell it which column we want to unnest.
 samples <- samples %>%
   unnest(cols = file_info)
@@ -264,12 +292,12 @@ samples <- samples %>%
 # we will use this to start making a sample_sheet.
 ```
 
+# cleaning up sample sheet
 Now we have all the information we neeed in this data.frame and we just need to clean it up.
 
-```{r}
-# Let's number our replicates and create a new column called sample id where we join the experiment accesion and the rep number
-
-#TODO somehow group by gets rid of the experiment_accession column
+```{r sample sheet curration}
+# Let's number our replicates and create a new column called sample id 
+# where we join the experiment accesion and the rep number
 
 samples <- samples %>%
   group_by(experiment_accession) %>%
@@ -281,10 +309,11 @@ samples <- samples %>%
   # This is a handy handle for the data to access later
 ```
 
+# getting rid of non essential data
 Now let's get rid of all that data we don't need! 
-```{r}
+```{r removing data from sample sheet}
 
-# We're just selecting a subset of columns from samples
+# We're just selecting a subset of columns from samples with dplyr::select
 samples <- samples %>%
    dplyr::select(accession, sample_id, experiment_accession, Assay.title,
                 Biosample.summary, md5sum, paired_end_identifier) %>%
@@ -292,24 +321,29 @@ samples <- samples %>%
   unite(fastq_file, sample_id, paired_end_identifier, sep = "_read", remove = F)
 ```
 
-Now let's make the full filename for the fastq files. For the nf-core/rnaseq pipeline, the paired-end reads need to be named with the read number in the filename. 
+# Setting up filename for NF_CORE rnaseq pipeline
+Now let's make the full filename for the fastq files. 
+For the nf-core/rnaseq pipeline, the paired-end reads need to be named 
+with the read number in the filename. 
 
-```{r}
+```{r filename for NF_CORE rnaseq pipeline}
 samples <- samples %>%
   mutate(fq_extension = ".fastq.gz") %>%
   unite(fastq_file, fastq_file, fq_extension, sep = "", remove = F) %>%
   # This original file column will be used along with the new name column to rename the fastq files.
   unite(original_file, accession, fq_extension, sep = "")
+
+# nice we see a fastq file column and can be used as input into NF_CORE
 ```
 
-We broke this down into parts, so you can understand what is happening, but just note that you can write all of this in one block and read it like a sentence.
+# all code above compiled in one chunk :)
 
+We broke this down into parts, so you can understand what is happening, 
+but just note that you can write all of this in one block and read it like a sentence.
 
-#TODO this runs where as the seperate chunks above do not :(
+```{r compiled code to get samplesheet}
 
-# TODO REFACTOR
-```{r}
-samples <- read.table("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/samples.txt",
+samples <- read.table("samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
   dplyr::rename(experiment_accession = Accession) %>%
   mutate(file_info = map(experiment_accession, ~ encode_file_info(.x))) %>%
@@ -323,11 +357,15 @@ samples <- read.table("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fa
   mutate(fq_extension = ".fastq.gz") %>%
   unite(fastq_file, fastq_file, fq_extension, sep = "", remove = F) %>%
   unite(original_file, accession, fq_extension, sep = "")
+
+
 ```
 
+# renaming fastq files to fit sample sheet
 This cleaned up version of the samplesheet is good to go!
 Now we want to rename the fastq files to the fastq name we just made.
-```{r}
+
+```{r rename fastq files to samplesheet id}
 # Rename the fastq files so that they contain the sample ID.
 rename_script <- samples %>%
   ungroup() %>%
@@ -339,32 +377,41 @@ rename_script <- samples %>%
 # We can write this out as a bash script with ?write_lines 
 # We include a shebang header line so that the script is interpreted by bash.
 
-write_lines(c("#!/bin/bash", rename_script$command), "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/rename.sh")
+write_lines(c("#!/bin/bash", rename_script$command), "fastq/rename.sh")
 
 # Here we use an R command to call bash and cd into that directory, then make the file executable, and then run it.
 
-# TODO doesn't rename all the files :(
- system("cd /scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/; chmod u+x rename.sh; ./rename.sh")
+# Now cd fastq and "chmod u+x rename.sh
+# then ./rename.sh
+
+# >>> voila all the files are renamed
 ```
 
+
+# md5sum check on file downloads
 Additionally from all of this information we've gathered we can create a text file to run the md5sum check.
 
-```{r}
+```{r md5sum of fastq}
 # Let's create an md5.txt to run the checksums
 md5 <- samples %>% 
   ungroup() %>%
-  dplyr::select(md5sum, fastq) %>%
-  unite(line, md5sum, fastq, sep = "  ")
-write_lines(md5$line, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/md5.txt")
+  dplyr::select(md5sum, fastq_file) %>%
+  unite(line, md5sum, fastq_file, sep = "  ")
+
+
+write_lines(md5$line, "fastq/md5.txt")
 # Now let's run it.
- md5_results <- system("cd /scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq; md5sum -c md5.txt")
+ md5_results <- system("cd fastq; md5sum -c md5.txt")
  
-# Nice they all look correct !
+# Nice they all look correct -- but let's save this result
+write.csv(md5, "fastq/md5_check.csv")
 ```
 
-Finally, we can write out a nicely formatted sample sheet that we will use downstream for further analysis of the read counts in R.
+# finalizing sample sheet for NF_CORE
+Finally, we can write out a nicely formatted sample sheet 
+that we will use downstream for further analysis of the read counts in R.
 
-```{r}
+```{r finalize samplesheet for NF_CORE}
 # Let's create the sample sheet that we will use later
 # to do the RNA-seq analysis in R.
 
@@ -377,9 +424,11 @@ samples <- samples %>%
 
 ```
 
+# final organization of sample sheet
 
-Now that we have it cleaned up, let's create one line for each replicate where the fastq read 1 and read 2 are in the same row.
-```{R}
+Now that we have it cleaned up, let's create one line for each replicate
+where the fastq read 1 and read 2 are in the same row.
+```{R organizing samplesheet }
 
 
 # For this we will use the pivot wider function
@@ -402,6 +451,8 @@ samplesheet <- samplesheet %>%
 
 # here we are just changing the hepg2 total name to hepg2_total
 samplesheet$condition[samplesheet$condition == "hepg2"] <- "hepg2_total"
+
+# final harmonization
 samplesheet <- samplesheet %>%
   mutate(cell_type = "hepg2",
          condition = gsub("hepg2_", "", condition)) %>%
@@ -409,26 +460,28 @@ samplesheet <- samplesheet %>%
                 cell_type, seq_type, fastq_1, fastq_2, md5sum_1,
                 md5sum_2)
 
-write_csv(samplesheet, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/samplesheet.csv")
+# that was a lot of work so let's save for future use :) 
+write_csv(samplesheet, "samplesheet.csv")
 ```
 
+
+# design file
 We also need to make a design file for the nf-core/rnaseq
 
 The design file needs to be in a specific format (as we saw with nf-core/chipseq)
 It needs the following columns:
 
-
-sample,fastq_1,fastq_2,strandedness
+# sample,fastq_1,fastq_2,strandedness
 Let's create a sample column using mutate -- and we'll clean up the names
-```{r}
+```{r creating design file}
 
 # There's spaces in the names currently and we need to get rid of those.
 design <- samplesheet %>%
-  # We also need to add the proper file path
+  # We also need to add the proper file path for NF_CORE to retrieve fastq
   mutate(sample = gsub(" ", "_", sample_name) %>% tolower(),
          strandedness = "unstranded",
-         fastq_1 = paste0("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/", fastq_1),
-         fastq_2 = paste0("/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/fastq/", fastq_2)) %>%
+         fastq_1 = paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/", fastq_1),
+         fastq_2 = paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/", fastq_2)) %>%
   # We have the replicate number already, but it's just a part of the sample id
   # We can use the separate function (opposite of unite) to retrieve it.
   separate(sample_id, into = c("experiment_accession", "replicate"), sep = "_", remove = FALSE) %>%
@@ -437,22 +490,23 @@ design <- samplesheet %>%
   dplyr::select(sample, fastq_1, fastq_2, strandedness)
 
 
-#TODO need to remove replicate from design ....
+# getting rid of _r1 and _r2 from sample name
 
 design <- design %>%
   mutate(sample = gsub("_r1", "", sample),
          sample = gsub("_r2", "", sample))
 
-
+# let's test that the path to fastq works:
 all(sapply(design$fastq_1, file.exists))
 all(sapply(design$fastq_2, file.exists))
+
 # Now we can write this out for input into nextflow
 
-write_csv(design, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/design.csv")
+write_csv(design, "design.csv")
 
-write_csv(samples, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/samples.csv")
+write_csv(samples, "samples.csv")
 
-write_csv(samplesheet, "/scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test/samplesheet.csv")
+write_csv(samplesheet, "samplesheet.csv")
 ```
 
 
