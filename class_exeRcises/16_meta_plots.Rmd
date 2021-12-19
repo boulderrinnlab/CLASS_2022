@@ -429,8 +429,22 @@ for(i in c(1:390, 392:length(filtered_consensus_peaks))) {
   
 }
 
+
+# TODO figure out how to save and read in
 # saving this
 write_rds(metaplot_df, "metaplot_df.rds")
+
+test2 <- read_rds("metaplot_df.rds")
+
+
+
+write.table(metaplot_df, "test_metaplot_df.rds")
+
+test_meta_plot_df <- read.table("test_metaplot_df.rds")
+
+metaplot_filtered_df <-test_meta_plot_df %>%
+  filter(dbp %in% passing_peaks$.) %>%
+    distinct()
 
 # MAKE SURE IN RIGHT WORKING DIRECTORY
 # Let's save the df to make all meta plots of all DBPs with peaks > 250!
@@ -442,8 +456,26 @@ metaplot_filtered_df <- metaplot_df %>%
   filter(dbp %in% passing_peaks$.) %>%
     distinct()
 
+test2_matrix <- test2 %>% 
+  pivot_wider(names_from = x, values_from = dens) %>%
+  column_to_rownames("dbp") %>%
+  as.matrix()
+
 # writing out
 write_rds(metaplot_df, "metaplot_filtered_df.rds")
+
+# table
+
+write.table(metaplot_filtered_matrix, "csv_metaplot_filtered_natrix.tsv" )
+test.tsv <- read.table("csv_metaplot_filtered_natrix.tsv")
+
+write.table(metaplot_filtered_matrix, "metaplot_filtered.rds" )
+
+write.table(metaplot_filtered_matrix, "metaplot_filtered.tsv" )
+
+test_read_table <- read.table("metaplot_filtered.tsv")
+
+test_read_table <- read.table("metaplot_filtered.rds")
 
 ```
 
@@ -457,7 +489,8 @@ write_rds(metaplot_df, "metaplot_filtered_df.rds")
 metaplot_filtered_matrix <- metaplot_filtered_df %>% 
   pivot_wider(names_from = x, values_from = dens) %>%
   column_to_rownames("dbp") %>%
-  as.matrix()
+  as.numeric() %>%
+  as.matrix() 
 
 
 dim(metaplot_filtered_matrix)
@@ -505,7 +538,7 @@ metaplot_filtered_matrix_test <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/
 
 ?hclust
 # Z-Scale the rows for clustering (not needed for profile plots)
-mm_scaled <- t(scale(t(metaplot_filtered_matrix_test)))
+mm_scaled <- t(scale(t(test2_matrix)))
 
 # clustering
 metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
