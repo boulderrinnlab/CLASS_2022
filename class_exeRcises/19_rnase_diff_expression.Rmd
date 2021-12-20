@@ -88,25 +88,29 @@ Ok, next step is to read in GENE COUNTS (not TPM) This was exported from the NF_
 This is in our results folder from 18_.Rmd
 ```{r reading in salmon counts convert to matrix}
 
-# DEseq requires a matrix of raw counts
-counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv") %>%
-  # this will remove the gene_id column and use it as 'meta' data in matrix
-  column_to_rownames("gene_id") %>%
-  as.matrix()
+# DEseq requires a matrix of raw counts so the following
+# will turn this from a data.frame to matrix 
+# NOTE: now common practice always think about adding "names" after import.
 
+counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
 
-
+# adding rownames
+counts <- column_to_rownames(counts, "gene_id") %>%
+as.matrix()
+  
 # Nice now we have a matrix we need to import to DeSeq
-# However it has all the samples so we need to orgnize a bit.
+# However it has all the samples so we need to organize a bit.
 ```
 
+# Connecting samplesheet to counts
+
 Making an rlog counts matrix for all samples -- can read in to start in future
-```{R making counts table and normalized Rlog counts}
+```{R sub-selecting counts_matrix to data only in samplesheet }
 
 # First let's put the counts columns in the same order as the samplesheet
 # If they are not then we would essentially be randomizing our data later!!
 
-
+# REMOVING POLYA-selection SAMPLES
 # NOTE: that right now, this pipeline run contains polyA and total RNA-seq
 # we can filter to just the total RNA-seq by taking only the columns
 # that are in the samplesheet (n = 10)
@@ -120,6 +124,17 @@ all(colnames(counts) == samplesheet$sample_id)
 # Now we know they're in the same order, and we can change the names
 # It is nicer to have more descriptive names.
 colnames(counts) <- samplesheet$sample_name
+
+```
+
+# creating and exporting normalized counts
+
+DeSeq needs things like:
+1) numbers to be rounded to an integer 
+2) Add "factor" levels to conditions being compared
+3) filter out any genes that don't have any counts
+
+```{R Getting counts organized for DeSeq }
 
 # Deseq wants round numbers so we are going to round them here:
 
@@ -140,7 +155,20 @@ samplesheet$condition <- as.factor(samplesheet$condition)
 
 # Now that the samplesheet is ready to used in DESeq2, 
 # we'll write it out for future use.
-write_rds(samplesheet, "sample_sheets/final_samplesheet.rds")
+write_rds(samplesheet, "final_samplesheet.rds")
+
+```
+
+# Running DeSeq to create rlog normalzied counts!
+
+Although a lot of normalization has already occured from
+Salmon (where we got the counts) we now need to determine the 
+distribution of expression values and normalize again to prevent
+low abundance genes from contributing to highly significant differential 
+expression. 
+
+Let's officially run DeSeq2!
+```{R essential set up to running DeSeq}
 
 # Next we want to normalize these counts 
 # mostly to account for low abundance and noisy genes
@@ -167,36 +195,42 @@ rlog_counts <- rlog(dds, blind = TRUE)
 rlog_counts_matrix <- assay(rlog_counts)
 
 # Now we can write this out and START from here in the future.
-write_rds(rlog_counts_matrix, "rlog_count_matrices/rlog_counts_all.rds")
+# create new folder 'rlog_count_matrices'
+
+write_rds(rlog_counts_matrix, "RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
 # reading back in to be sure we can start here in the future.
 rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all.rds")
 ```
 
+# Differential Expression (nuclear versus cytoplasmic)
+Above we got to normalized counts that are ready to compared across
+conditions. Note we "factored" the sample sheet so each fraction has
+a 'factor' value. So we can now factor nuclear and compare to cytoplasmic.
 
-Now let's make a sample sheet we can use to compare nuc/cyto samples.
+Let's specialize sample sheet we can use to compare nuc/cyto samples.
+
 ```{R nuclear and cytoplasmic samplesheet}
+
+# TODO BUG HERE ON OUT !!
 # Now we will filter the sample sheet to just nuclear and cytoplasmic
 
 samplesheet_nuc_cyto <- samplesheet %>%
-  filter(condition %in% c("cytosolic_fraction", "nuclear_fraction"))
-
+  filter(condition %in% c("homosapien_cytosolic_fraction", "homosapien_nuclear_fraction"))
 # Nice now we have a reduced sample sheet that is well organized.
 
 # Next, let's triple check that the counts data
 # contains the counts for the samples in the reduced sample sheet 
-
 samplesheet_nuc_cyto$sample_name %in% colnames(counts)
-
 # Cool, the 4 samples in filtered are same as counts
-# Now let's look at samplesheet_filtered.
-# Not the rownames are numbers -- this is 'meta' information we need.
-# So let's make the rownames the names of the samples.
 
-# To keep the rownames, we can make sure it's a data.frame
+# Again we need to think about "rownames"
+# Note the rownames are numbers -- this is 'meta' information we need.
+# To make rownames we will turn into data.frame and add rownames
 samplesheet_nuc_cyto <- samplesheet_nuc_cyto %>%
   as.data.frame()
 
+# IMPORTANT: adding rownames from nuc_cyto_samplesheet by indexing
 rownames(samplesheet_nuc_cyto) <- samplesheet_nuc_cyto$sample_name
 # Now if we look at this object we see rownames as sample_name - nice.
 
@@ -205,15 +239,13 @@ rownames(samplesheet_nuc_cyto) <- samplesheet_nuc_cyto$sample_name
 # will be compared back to it.
 
 # Let's make the condition a factor:
-
 samplesheet_nuc_cyto$condition <- factor(samplesheet_nuc_cyto$condition, 
                                          levels = c("nuclear_fraction",
                                                     "cytosolic_fraction"))
 
 
 # let's write out this samplesheet for future use
-
-write_rds(samplesheet_nuc_cyto, "sample_sheets/samplesheet_nuc_cyto.rds")
+write_rds(samplesheet_nuc_cyto, "samplesheet_nuc_cyto.rds")
 
 ```
 
@@ -227,13 +259,13 @@ reading in the following files.
 counts <- read_rds("counts_matrix/counts_matrix.rds")
 
 # All normalized counts 
-rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all.rds")
+rlog_counts_matrix <- read_rds("RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
 # full sample_sheet
-samplesheet <- read_rds("sample_sheets/final_samplesheet.rds")
+samplesheet <- read_rds("final_samplesheet.rds")
 
 # nuc/cyto sample sheet
-samplesheet_nuc_cyto <- read_rds("sample_sheets/samplesheet_nuc_cyto.rds")
+samplesheet_nuc_cyto <- read_rds("samplesheet_nuc_cyto.rds")
 
 
 # finally a gene_id and gene_names object
@@ -241,8 +273,8 @@ g2s <- read.csv("g2s.csv")
 
 ```
 
+# Heatmap of all samples
 First let's cluster all the data to see how the samples relate.
-
 ```{r heatmap of all data}
 
 # Now we can make a heatmap of all the different fractions
@@ -250,9 +282,12 @@ First let's cluster all the data to see how the samples relate.
 # First we will filter to genes that are variable across data.
 hist(rowVars(rlog_counts_matrix))
 
+# Filterting out genes that don't have variance of more than 2
 rlog_var_genes_all <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 2,]
 
-# row center
+# row center the counts -- we need to flip the matrix
+# we can only scale cols so we need to transmute (t)
+# then turn it back with (t)
 scaled_counts <- t(scale(t(rlog_var_genes_all))) %>%
   as.matrix()
 
@@ -265,6 +300,7 @@ pheatmap(scaled_counts, show_rownames = FALSE)
 dev.off()
 ```
 
+# Principal component analysis
 Now let's use Principle Component Analysis to determine sample similarity
 ```{r PCA analysis}
 
@@ -275,7 +311,6 @@ Now let's use Principle Component Analysis to determine sample similarity
 
 # let's calculate the values associated with 'prcomp'
 # install.packages("ggrepel") to move text so it doesn't overlap
-
 
 rld_pca <- prcomp(t(rlog_counts_matrix))
 rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
@@ -297,46 +332,12 @@ ggsave("figures/PCA_plot.pdf")
 
 ```
 
-
-Now let's cluster the data of differntially expressed genes in nuc/cyto.
-```{R heat map of differnetial genes in nuc_cyto}
-
-# Let's subset the rlog_counts to just the nuclear and cyto samples using sample_sheet
-rlog_counts_matrix_nuc_cyto <- rlog_counts_matrix[,samplesheet_nuc_cyto$sample_name]
-
-# first let's filter to variable genes 
-hist(rowVars(rlog_counts_matrix_nuc_cyto))
-
-# Based on this we see that most of the data is 0 or not differential across samples.
-# somewhere around 2 the distribution changes so let's filter there:
-
-rlog_var_genes_nuc_cyto <- rlog_counts_matrix_nuc_cyto[rowVars(rlog_counts_matrix_nuc_cyto) > 2,]
-# cool we have the top 1,000 ish genes that are variable between nuc/cyto.
-
-# Now we need to "row center" the values across samples. This simply means:
-# we take the mean of the row and divide it by each value. Tells where up and down.
-
-# r can only scale in columns so we are going to transmute the matrix (counts as cols)
-# then flip the matrix right back
-
-scaled_counts_nuc_cyto <- t(scale(t(rlog_var_genes_nuc_cyto)))
-
-# Nice and for all this hard work, how about a heatmap:
-
-pheatmap(scaled_counts_nuc_cyto, show_rownames = FALSE)
-# Awesome that looks just as it should let's save it!
-
-pdf("figures/nuc_cyto_var_genes_heatmap.pdf")
-pheatmap(scaled_counts_nuc_cyto, show_rownames = FALSE)
-dev.off()
-
-```
-
-
+# Nuclear versus cytoplasmic differential expression
 Next we will reduce out counts_matrix to just the values of nuc/cyto
+
 ```{r nuc/cyto  counts}
 
-# first reduce the counts matrix to just these 4 samples.
+# first reduce the counts matrix to just nuc and cyto samples.
 counts_nuc_cyto <- counts[, samplesheet_nuc_cyto$sample_name]
 
 # This is a good way to triple check everything is in order.
@@ -346,6 +347,7 @@ stopifnot(all(rownames(samplesheet_nuc_cyto) == colnames(counts_nuc_cyto)))
 
 ```
 
+# SwrrinG samplesheet for nuc vs cyto DEseq2
 We are almost ready, last things to check:
 
 1) DeSeq2 requires integer data 
@@ -369,12 +371,12 @@ nuc_cyto_counts_filtered <- counts_nuc_cyto[rowSums(counts_nuc_cyto) > 1,]
 
 ```
 
+# Differential expression of nuc -vs- cyto DEseq2
 Now let's look deeper into the results held in dds object
-```{r digging deeper into dds}
+```{r DEseq2 nuc versus cyto}
 
-# double check organization of input files to DESeq!
+# IMPORTANT: always double check organization of input files to DESeq!
 # If this is not true the results will be a mix of wrong samples!
-
 colnames(nuc_cyto_counts_filtered) == rownames(samplesheet_nuc_cyto)
 
 # looks good, now let's make the required DEseq raw counts
