@@ -23,10 +23,11 @@ source("../../../util/_setup.R")
 Today we will performing differential expression on HEPG2 RNAseq data. We will focus on comparing nuclear versus cytoplasmic RNAs. We can use this data to find genes that are nuclear or cytoplasmic enriched. We can use this data to determine if the high-binding promoters are biased for nuclear or cytoplasmic RNAs. Meaning the number of binding events indicates if the RNA product is sent to the cytoplasm (typically) or the nucleus. We can also use this data to determine if lncRNAs or mRNAs have similar or different nuclear/cytoplasmic localizations.
 
 
+# Reading in samplesheet form 17_.Rmd
+First let's read in th sample sheet we made in 17
 
-First let's read in th sample sheet in our data folder
 ```{r import sample sheet}
-samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/samplesheet.csv")
+samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/samplesheet.csv")
 
 # ENCODE swapped labels on one sample !! 
 
@@ -40,13 +41,22 @@ samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/samplesheet.c
 
 # Long story let's just fix it.
 
+# changing the condition column to insoluble 
+# note operation assignment comes last to just change text.
+
 samplesheet[which(samplesheet$sample_name == "hepg2_R1"), "condition"] <- "insoluble_cytoplasmic_fraction"
+
+# same for changing condition to total RNA
 samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "total"
 
 # saving this to sample_sheets folder
 
+write.csv(samplesheet, "corrected_samplesheet.csv")
+
 ```
 
+# Loading in Gencode annotations
+# also making gene_id to gene_symbol object 
 Now let's read in the genome features also in our data folder
 While we are at it, let's also print these out to make this go quicker in the future.
 ```{r import genome features}
@@ -72,11 +82,14 @@ write.csv(g2s, "g2s.csv")
 # Nice now we have a handy conversion table of gene_id & gene_name
 ```
 
+# reading in salmon merged gene counts.
 Ok, next step is to read in GENE COUNTS (not TPM) This was exported from the NF_CORE RNAseq pipeline in the salmon folder. We want "salmon_merged_gene_counts.csv
+
+This is in our results folder from 18_.Rmd
 ```{r reading in salmon counts convert to matrix}
 
 # DEseq requires a matrix of raw counts
-counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/rnaseq/results/salmon/salmon_merged_gene_counts.csv") %>%
+counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv") %>%
   # this will remove the gene_id column and use it as 'meta' data in matrix
   column_to_rownames("gene_id") %>%
   as.matrix()
