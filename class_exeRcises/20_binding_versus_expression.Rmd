@@ -14,48 +14,55 @@ options(stringsAsFactors = F)
 library(tidyverse)
 library(GenomicRanges)
 library(ggpubr)
-source("../util/intersect_functions.R")
-source("../util/_setup.R")
+source("../../../util/intersect_functions.R")
+source("../../../util/_setup.R")
 ```
 
 
+# Reading in sample sheet
 First let's read in the sample sheet to know what is what
 ```{r read in sample_sheet}
 
-samplesheet <- read_rds("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/19_differential_expression/sample_sheets/final_samplesheet.rds")
+samplesheet <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/final_samplesheet.rds")
 
 ```
 
-
+# reading in TPM values from Salmon
 Now let's read in the TPMs from salmon
 ```{r reading in salmon Salmon TPMs}
 
 # reading in salmon counts TPM (note we previously read in counts)
+# TPM is transcripts per million read -- so is a normalized abundance value
+salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_tpm.csv")
 
-salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/data/rnaseq/results/salmon/salmon_merged_gene_tpm.csv")
-
-# Taking the mean TPM of replicate values for each subcellular fraction
+# since we have replicates we will take the mean TPM for each fractionation.
 # while we are at it we will add more intuitive row and col names 
+# finally we are making sure the TPM table is in same order as samplesheet
 
-#TODO understand this fully -- good example
+
 tpm <- salmon_tpm %>% 
   pivot_longer(cols = 2:ncol(.), names_to = "sample_id", values_to = "tpm") %>%
   merge(samplesheet) %>%
   group_by(gene_id, condition) %>%
   summarize(tpm = mean(tpm, na.rm = T)) %>%
   pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
+
 ```
 
-Now let's read in the promoter features data:
+# reading in promoter peak features data.frame from 12_.Rmd
+Now let's read in the promoter overlaps (peak_occurrence_df)
 how many DBPs are bound at each promoter
-```{r}
-promoter_features_df <- read.csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/peak_occurence_dataframe.csv")
+
+```{r loading in peak features data frame }
+
+# loading peak_feature
+promoter_features_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
 
 # Now we can merge in the TPM data to this data.frame
 promoter_features_df <- merge(promoter_features_df, tpm)
 
 # saving this file
-write.csv(promoter_features_df, "results/promoter_feature_df_20_tpm.csv")
+write.csv(promoter_features_df, "promoter_feature_df_tpm.csv")
 
 # let's plot the number of DBPs bound as a densuty plot.
 
@@ -63,15 +70,19 @@ ggplot(promoter_features_df, aes(x = number_of_dbp)) +
   geom_density() +
   ggsave("figures/DBP_binding_density_plot.pdf")
 
+# This is a very cool result there must be two classes of promoters!
 # Remember this plot :) !
 
 ```
 RESULT: There is a bimodal distriubution of the number of DBPs bound
-to a given promoter. One that falls off around 100 DBPs and another
-that emerged at ~250 DBPs on a promter. That's a lot.
+to a given promoter!
+
+One that falls off around 100 DBPs and another
+that emerged at ~250 DBPs on a promter. That's a lot of proteins on
+one promoter!
 
 
-
+# Abundance of genes in each cellular fraction
 Plotting the abundance of genes in each cellular fraction.
 ```{r TPM of genes in each fraction}
 
@@ -94,18 +105,15 @@ summary(is.na(tpm_matrix))
 tpm_scaled <- tpm_scaled[complete.cases(tpm_scaled),]
 
 pheatmap::pheatmap(tpm_scaled, show_rownames = FALSE)
+# save this in the plots window
 
-# saving heatmap:
-pdf("figures/tpm_all_fraction_genes_heatmap.pdf")
-pheatmap::pheatmap(tpm_scaled, show_rownames = FALSE)
-dev.off()
-
+# compare to the heat map generated with counts in 19_.Rmd
 ```
 RESULT: 
 (1) Most RNAs are abundant in the nucleus
 (2) Some RNAs expressed in total that are not in other fractioins?
 
-
+# Plotting binding versus expression
 Now let's examine how binding effects expression.
 We have published previously that the more binding
 events at a promoter the more abundant the expression is.
@@ -117,8 +125,8 @@ Let's see if this holds for this larger number of DBPs
 # y-axis = expression level of that gene.
 
 ggplot(promoter_features_df, 
-            aes(y = log2(tpm_total + 0.001), x = number_of_dbp, color = gene_type)) + 
-  geom_point(data = promoter_features_df %>% filter(tpm_total < 0.001),
+            aes(y = log2(tpm_homo_sapiens_hepg2 + 0.001), x = number_of_dbp, color = gene_type)) + 
+  geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_hepg2 < 0.001),
              shape = 17, alpha = 0.7) +
   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
   stat_cor() +
@@ -126,7 +134,7 @@ ggplot(promoter_features_df,
   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
   ggtitle("Expression vs. promoter binding events") + 
   xlab(expression('Number of TFs')) +
-  ylab(expression(log[2](TPM))) +
+  ylab(expression(log[2](TPM))) 
   # saving figure
   ggsave("figures/expression-vs-promoter_binding.pdf")
 
@@ -144,12 +152,13 @@ This is also validates that lncRNAs are typically lower abundant.
 This means that there is a unique distribution of promoters that
 are bound by many DBPs (up to 400!).
 
+# Binding versus nuclear expression
 Let's see if the binding versus expression holds in the nuclear fraction
 ```{r binding versus nuclear expression}
 
 ggplot(promoter_features_df, 
-            aes(y = log2(tpm_nuclear_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
-  geom_point(data = promoter_features_df %>% filter(tpm_total < 0.001),
+            aes(y = log2(tpm_homo_sapiens_nuclear_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
+  geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_nuclear_fraction < 0.001),
              shape = 17, alpha = 0.7) +
   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
   stat_cor() +
@@ -157,13 +166,15 @@ ggplot(promoter_features_df,
   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
   ggtitle("Nuclear Expression vs. promoter binding events") + 
   xlab(expression('Number of TFs')) +
-  ylab(expression(log[2](TPM))) +
+  ylab(expression(log[2](TPM))) 
   # saving figure
   ggsave("figures/nuclear_expression-vs-promoter_binding.pdf")
 
-
 ```
+RESULT: looks very similar to total RNA binding versus expression
 
+
+# Binding versus cytoplasmic expression
 
 Next we will determine the DBP binding versus cytoplasmic expression
 ```{Binding versus cytoplasmic expression}
@@ -189,6 +200,7 @@ RESULTS:
 (2) Some mRNAs are expressed in the nucleus -- we could look at this more later.
 (3) The same linear trend holds but is driven by mostly low expression events.
 
+# lncRNA versus mRNA expression in total RNA
 Next we will directly test the lncRNA vs mRNA expression levels in total RNA. 
 ```{r determining lncRNA and mRNA expression levels in total RNA}
 
@@ -196,6 +208,12 @@ Next we will directly test the lncRNA vs mRNA expression levels in total RNA.
 # but here's another way of looking at that.
 ggplot(promoter_features_df, aes(x = log2(tpm_total + 0.01), color = gene_type))+
   geom_density()
+
+# let's also do the same for nuclear since lncRNAs are typically more nuclear
+
+ggplot(promoter_features_df, aes(x = log2(tpm_total + 0.01), color = gene_type))+
+  geom_density()
+
 
 ```
 RESULT:
