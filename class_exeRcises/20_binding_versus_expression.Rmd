@@ -180,9 +180,9 @@ Next we will determine the DBP binding versus cytoplasmic expression
 ```{Binding versus cytoplasmic expression}
 
 ggplot(promoter_features_df, 
-            aes(y = log2(tpm_cytosolic_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
+            aes(y = log2(tpm_homo_sapiens_cytosolic_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
             # note if we take off the log2 everything is very lowly expressed
-  geom_point(data = promoter_features_df %>% filter(tpm_total < 0.001),
+  geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_cytosolic_fraction < 0.001),
              shape = 17, alpha = 0.7) +
   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
   stat_cor() +
@@ -206,18 +206,22 @@ Next we will directly test the lncRNA vs mRNA expression levels in total RNA.
 
 # We can see this from the trend lines that lncRNAs are less expressed,
 # but here's another way of looking at that.
-ggplot(promoter_features_df, aes(x = log2(tpm_total + 0.01), color = gene_type))+
+ggplot(promoter_features_df, aes(x = log2(tpm_homo_sapiens_hepg2 + 0.01), color = gene_type))+
   geom_density()
+ggsave("figures/mrna_lncrna_tpm_total_rna.pdf")
 
 # let's also do the same for nuclear since lncRNAs are typically more nuclear
 
-ggplot(promoter_features_df, aes(x = log2(tpm_total + 0.01), color = gene_type))+
+ggplot(promoter_features_df, aes(x = log2(tpm_homo_sapiens_nuclear_fraction + 0.01), color = gene_type))+
   geom_density()
+ggsave("figures/mrna_lncrna_tpm_nuclear.pdf")
 
 
 ```
 RESULT:
 (1) This yet again confirms lncRNAs have lower expression levels than mRNAs.
+(2) In the nuclear fraction it shift's to closer.
+(3) lot's of mRNA with nuclear expression -- that seems odd
 
 
 
@@ -234,13 +238,13 @@ Based on this we next wanted to identify the 'reservoirs' in hepG2 cells.
 
 promoter_features_df$hepg2_reservoir <- 
   as.numeric(promoter_features_df$number_of_dbp > 100 & 
-               promoter_features_df$tpm_total < 0.001)
+               promoter_features_df$tpm_homo_sapiens_hepg2 < 0.001)
 
 table(promoter_features_df$hepg2_reservoir)
 
 ```
 RESULT:
-(1) There are 628 reservoirs in HEPG2.
+(1) There are 766 reservoirs in HEPG2.
 
 
 
@@ -248,7 +252,7 @@ Now that we have defined reservoirs in hepG2 cells, we next want to determine ho
 are similar genomic regions in k562 and hepG2.
 ```{r reading in K%62 reservoirs}
 
-k562_df <- read_csv("2020_k562_promoter_peak_df.csv")
+k562_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/2020_k562_promoter_peak_df.csv")
 # saving for future use this was hard to find :)
 write_csv(k562_df, "2020_k562_promoter_peak_df.csv")
 
@@ -276,16 +280,13 @@ k562_df <- read_csv("k562_df.csv")
 
 # renaming promoter_features_df to hepg2_df
 
-# TODO rerun with gene_id in both.
-
 hepg2_df <- promoter_features_df %>%
-  dplyr::select(gene_id, tpm_total, tpm_cytosolic_fraction, tpm_nuclear_fraction, tpm_insoluble_cytoplasmic_fraction, tpm_membrane_fraction, number_of_dbp) %>%
-   dplyr::rename(hepg2_tpm_total = tpm_total,
-                 hepg2_tpm_cytosolic_fraction = tpm_cytosolic_fraction,
-                 hepg2_tpm_nuclear_fraction = tpm_nuclear_fraction,
-                 hepg2_tpm_insoluble_cytoplasmic_fraction = tpm_insoluble_cytoplasmic_fraction,
-                 hepg2_tpm_membrane_fraction = tpm_membrane_fraction,
-                 hepg2_number_of_dbp = number_of_dbp)
+  dplyr::select(gene_id, gene_name, tpm_homo_sapiens_hepg2, tpm_homo_sapiens_cytosolic_fraction, tpm_homo_sapiens_nuclear_fraction, tpm_homo_sapiens_insoluble_cytoplasmic_fraction, tpm_homo_sapiens_membrane_fraction, number_of_dbp, hepg2_reservoir) %>%
+   dplyr::rename( tpm_total = tpm_homo_sapiens_hepg2,
+                 tpm_cytosolic_fraction =  tpm_homo_sapiens_cytosolic_fraction,
+                 tpm_nuclear_fraction = tpm_homo_sapiens_nuclear_fraction ,
+                 tpm_insoluble_cytoplasmic_fraction = tpm_homo_sapiens_insoluble_cytoplasmic_fraction ,
+                 tpm_membrane_fraction = tpm_homo_sapiens_membrane_fraction)
 
 write_csv(hepg2_df,"hepg2_df.csv")
 
@@ -297,12 +298,15 @@ hepg2_k562_promoter_features_df <- merge(hepg2_df, k562_df)
 write_csv(hepg2_k562_promoter_features_df, "hepg2_k562_promoter_features_df.csv")
 
 # Make a table of reservoir status
-res_status <- promoter_features_df %>% 
+res_status <- hepg2_k562_promoter_features_df %>% 
   group_by(hepg2_reservoir, k562_reservoir, k562_conservative_reservoir) %>%
   summarize(count = n())
+
+write_csv2(res_status, "reservoir_overlap_stats.csv")
 ```
 
-```{r}
+# Writting out files
+```{r saving files for future use}
 # We can now write these out for safekeeping / use in other analyses
 write_csv(promoter_features_df, "results/promoter_features_df.csv")
 write_csv(tpm, "results/mean_tpm_per_condition.csv")
