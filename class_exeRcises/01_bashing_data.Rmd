@@ -89,7 +89,7 @@ Now we will make a second file and merge the two files into one file with cat.
 
 ```{BASH}
 
-tocuh test2.txt
+touch test2.txt
 nano test2.txt
 # type whatever
 cat test.txt test2.txt > test3.txt
@@ -224,6 +224,10 @@ It's like the search bar, before there was a search bar. Grep will go look for
 the search key in a file. If there is a match then you can return just about anything
 in the file. If you have ever done Vlookup in Xcel it maybe familiar in that sense. 
 But the reality it is so simple, elegnat and powerful we will use GREP a lot in class.
+
+```{BASH}
+# copy file to current directory
+userID@fiji.colorado.edu:/Users/userID/scratch/class_2021/challenge1_Jan05/ENCODE/grep_out.txt ./
 
 Let's download and play with the encode .TSV file. This is a file of ENCODE data we will learn more about soon. For now just think of it as a file
 
