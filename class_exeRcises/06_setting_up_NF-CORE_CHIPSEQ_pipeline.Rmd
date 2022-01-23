@@ -97,13 +97,19 @@ Let's make a run.sh file
 nano run.sh
 
 # Paste the code below into the run.sh (note the #s are part of slurm speak)
-
+# Note that the pound sign is required.
 
 #!/bin/bash
 #SBATCH -p short
 #SBATCH --job-name=Hepg2_Pol_test
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=john.rinn@colorado.edu
+#SBATCH --output=nextflow.out
+#SBATCH --error=nextflow.err
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=6gb
+#SBATCH --time=10:00:00
 
 pwd; hostname; date
 echo "Lets do chipseq"
@@ -256,4 +262,16 @@ date
 # This is a bash command that simply prints the date
 ```
 
+Here is the full "run.sh" script with slurm instructions and nextflow.
+
+```{bash run.sh}
+
+
+
+```
+
+
+```{r}
+
+```
 
