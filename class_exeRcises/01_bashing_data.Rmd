@@ -17,33 +17,41 @@ pwd - tells you the pathway you are currently at (very useful actually!)
 
 ```{BASH}
 
-cd /scratch/Shares/rinnclass/<identikey>
+cd /scratch/Shares/rinnclass/CLASS_2022/
 ls
 pwd
-```
-Wait could there be more? let's try:
 
-```{BASH}
+# Wait could there be more? let's try:
 
 ls -lah
-
-```
-Do you see new files and folders that start with .X ? These are invisible files
-that are often very important. the -lah is called a flag that gives us more information. Let's see what they are 
-
-```{BASH}
-
-man ls
-# Press q to escape
-
 ```
 -l for long
 -a for all
 -h human readable
 Basically I typically always use these flags
 
-Now let's make a new file using touch
 
+let's create your directory
+
+```{BASH}
+
+mkdir NAME_of_dir
+
+cd NAME_of_dir
+
+# This is where we will be working all of class !
+```
+
+Every function has a manual entry (man)
+```{BASH}
+
+man mkdir
+# Press q to escape
+
+```
+
+
+Now let's make a new file using touch
 ```{Bash}
 
 touch test.txt
@@ -98,18 +106,11 @@ cat test3.txt
 
 ```
 
-now let's make a folder to put all these files in use mkdir
-
-```{BASH}
-
-mkdir practice
-ls -lah
-
-```
-
-let's move the files in there 
+let's move the files
 
 ```{Bash}
+
+mkdir practice
 
 mv test2.txt /practice
 mv test3.txt /practice
@@ -164,7 +165,7 @@ Let's make a sym-link to the class folder in your home directory
 cd ~/
 # or some directoy you use a lot on your local computer
 
-ln -s /scratch/Shares/rinnclass CLASS 
+ln -s /scratch/Shares/rinnclass/CLASS_2022/<identikey> CLASS 
 ls
 
 ```
