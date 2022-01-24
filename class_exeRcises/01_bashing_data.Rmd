@@ -211,10 +211,6 @@ Or the pipe passed along the standard output of ls to standard input of wc. The
 -l flag is for the line count. 
 
 
-## Let's move on the find and replace or the GREP command
-
-## Let's download the ENCODE experiments .tsv and upload it using FileZilla
-
 ||||||||||||||||||||||||||||||||||||||||||||||||
 General Regularized Expression Print (GREP)
 ||||||||||||||||||||||||||||||||||||||||||||||||
@@ -227,11 +223,10 @@ the search key in a file. If there is a match then you can return just about any
 in the file. If you have ever done Vlookup in Xcel it maybe familiar in that sense. 
 But the reality it is so simple, elegnat and powerful we will use GREP a lot in class.
 
-```{BASH}
-# copy file to current directory
-userID@fiji.colorado.edu:/Users/userID/scratch/class_2021/challenge1_Jan05/ENCODE/grep_out.txt ./
 
-Let's download and play with the encode .TSV file. This is a file of ENCODE data we will learn more about soon. For now just think of it as a file
+Let's download and play with the encode .TSV file. This is a file of ENCODE data 
+we will learn more about soon. 
+For now just think of it as a file
 
 ```{BASH}
 
@@ -241,7 +236,7 @@ Let's download and play with the encode .TSV file. This is a file of ENCODE data
 
 wget https://www.dropbox.com/s/ij798is442fyt3h/encode_awk_lessons.tsv
 
-Transfer this file to a directory and navigate there with your terminal.
+
 
 ```
 
