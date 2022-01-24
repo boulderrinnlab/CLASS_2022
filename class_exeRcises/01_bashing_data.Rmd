@@ -98,7 +98,8 @@ Now we will make a second file and merge the two files into one file with cat.
 
 ```{BASH}
 
-touch test2.txt
+
+
 nano test2.txt
 # type whatever
 cat test.txt test2.txt > test3.txt
@@ -112,9 +113,9 @@ let's move the files
 
 mkdir practice
 
-mv test2.txt /practice
-mv test3.txt /practice
-mv test.txt / practice
+mv test2.txt practice
+mv test3.txt practice
+mv test.txt practice
 ls
 
 # If we want to copy it we can use cp
@@ -132,7 +133,7 @@ http://www.linfo.org/wildcard.html
 
 ```{BASH}
 
-mv *.txt /practice
+mv *.txt practice
 ls
 
 ```
@@ -165,6 +166,7 @@ Let's make a sym-link to the class folder in your home directory
 cd ~/
 # or some directoy you use a lot on your local computer
 
+  
 ln -s /scratch/Shares/rinnclass/CLASS_2022/<identikey> CLASS 
 ls
 
@@ -413,7 +415,7 @@ for x in $(seq 1 42); do echo bash is cool $x; done
 
 for x in 1 1 1 1
 do 
-echo BCHM5631
+echo BCHM5631 
 done
 
 # or
@@ -472,7 +474,7 @@ echo BCHM5631
 done
 
 # or
-for x in $(seq 1 42); do echo BCHM5631 is great $x; done
+for x in $(seq 1 42); do echo BCHM5631; done
 
 ```
 
@@ -518,7 +520,7 @@ the s/ is a substitute command
 
 ```{BASh}
 
-sed -i 's/POLR2A/POL2/g' data/encode_awk_lessons.tsv
+sed -i 's/POLR2A/POL2/g' encode_awk_lessons.tsv
 
 # Note you have changed the file forever -- there is no undo in bash 
 
