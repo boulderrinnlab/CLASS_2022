@@ -222,7 +222,6 @@ man md5sum
 # Did we downloaded the right files? 
 First let's get the md5sum values for the two URLS. Use "accession" in url 
 to search encode portal and see what the md5sum is for the two files.
-
 you may have another name for it on your computer such as md5 on macosx. but
 on most servers it will be md5sum
 
@@ -252,7 +251,8 @@ For example:
 
 ```{BASH}
 
-55d41585faf7c7ba270bcf6b6366259a  ENCFF162ADN.fastq.gz
+4b3e7dc77448bc4971367a3b40196cc0  ENCFF212GYT.fastq.gz
+14fcf34bf1846ba82c4341838bc6e1b4  ENCFF434BJG.fastq.gz
 ```
 
 We can go back to the encode portal and find md5sum (not in downloaded info)
