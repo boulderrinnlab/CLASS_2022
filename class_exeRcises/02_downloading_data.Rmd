@@ -11,11 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 The goal today will be to get familiar with TONS of GREAT
 DATA on the ENCODE portal.
 
-# FIRST let's make a folder for everyone on fiji
+FIRST let's make a folder for everyone on fiji
 
 ```{BASH}
 
-cd /scratch/Shares/rinnclass/
+cd /scratch/Shares/rinnclass/CLASS_2022
   
 mkdir "Your name -- or whatever you want"
 
@@ -69,13 +69,12 @@ man curl
 man wget
 
 # These two commands will download the file(s) into your current directory.
-
 ```
 
 # TEST download 
 
-### First delete the URLS so there are only two URLs to download.
-### or cut and paste two URLS into a new file called files.txt (using nano)
+First delete the URLS so there are only two URLs to download.
+or cut and paste two URLS into a new file called files.txt (using nano)
 
 ```{BASH}
 
@@ -85,7 +84,7 @@ man nano
 
 ```
 
-# Creating a new files.txt with only 2 urls 
+Creating a new files.txt with only 2 urls 
 
 ```{BASH}
 
@@ -97,8 +96,7 @@ https://www.encodeproject.org/files/ENCFF212GYT/@@download/ENCFF212GYT.fastq.gz
 https://www.encodeproject.org/files/ENCFF434BJG/@@download/ENCFF434BJG.fastq.gz
 
 ```
-
-# Let's read the file with cat.
+Let's read the file with cat.
 
 ```{BASH}
 
@@ -106,7 +104,6 @@ cat files_test.txt
 # Do you see the URLS?
 
 ```
-
 
 Since we have a file with multiple lines we want to envoke the shell to 
 read all of the URLS and then pass all those onto the CURL command.
@@ -128,13 +125,11 @@ xargs -L 1 curl -O -J -L < files_test.txt
 ```
 This may look a bit scary at first but let's break it down.
 
-
 # What is xargs thinking about?
 -L is a argument for xargs termed "max lines" which is set to 1.
 this means that xargs will read one line and move it to curl.
 then xargs will repeat this for everyline in the "files_test.txt"
 xargs is given the input of files_test.txt by the < input symbol ( > for output)
-
 
 # What is curl thinking about?
 
@@ -159,7 +154,6 @@ one monster compiled file of all the URLS!
 if the URL has been changed to a new one it will be sent forward to the new
 location
 
-
 Ok now let's use this command to batch download data 
 (note the files will download in directory you are currently in -- good to use 'pwd')
 
@@ -167,15 +161,10 @@ Ok now let's use this command to batch download data
 
 xargs -L 1 curl -O -J -L < files_test.txt
 
-# If you just realized you are downloading a ton of data you can stop this process anytime with: ctrl-c
+# ****** If you just realized you are downloading a ton of data you can stop this process anytime with: ctrl-c ******
 
 ```
-
-
-# Sometimes if curl doesn't work wget will -- it's just good to have options
-
-
-
+Sometimes if curl doesn't work wget will -- it's just good to have options
 
 ```{BASH}
 
@@ -230,22 +219,22 @@ man md5sum
 
 *** In fact the pre-run 17 of 1099 downloads failed to have the exact same file!
 
-# So let's see if we downloaded the right files? 
+# Did we downloaded the right files? 
 First let's get the md5sum values for the two URLS. Use "accession" in url 
 to search encode portal and see what the md5sum is for the two files.
 
 you may have another name for it on your computer such as md5 on macosx. but
 on most servers it will be md5sum
 
-# so lets run it.
+# lets run md5sum to check if the files downloaded correctly.
 
 ```{BASH}
 
 md5sum *.gz 
 
-# note you can use md5sum on compressed files too such as .gz
-
 # check to see if your md5sum matches that on encode website. 
+
+# note you can use md5sum on compressed files too such as .gz
 
 ```
 
@@ -258,7 +247,7 @@ nano md5sums.txt
 
 ```
 
-The syntax for this is md5sum# " two spaces " and file.
+The syntax for this is md5sum# "  TWO  SPACES  " and file.
 For example:
 
 ```{BASH}
@@ -279,7 +268,6 @@ md5sum ENCFF162ADN.fastq.gz
 # the result should be: 55d41585faf7c7ba270bcf6b6366259a
 
 ```
-
 # Note this approach is not very useful for 1,000+ fastq files being downloaded.
 
 In the design file lecture we will use BASH and ENCODE API to
@@ -307,7 +295,9 @@ md5sum -c file_name.txt
 Let's run it:
 
 ```{BASH}
+
 md5sum -c md5sums.txt > md5sums_status.txt
+
 ```
 
 Congratulations -- all of ENCODE is now available ! Next we will continue
