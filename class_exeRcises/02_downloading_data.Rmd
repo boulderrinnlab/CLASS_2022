@@ -263,9 +263,13 @@ Let's check if this data file is properly downloaded:
 
 ```{BASH}
 
-md5sum ENCFF162ADN.fastq.gz
+md5sum ENCFF212GYT.fastq.gz
 
-# the result should be: 55d41585faf7c7ba270bcf6b6366259a
+# the result should be: 4b3e7dc77448bc4971367a3b40196cc0
+
+md5sum ENCFF434BJG.fastq.gz
+
+# the result should be: 14fcf34bf1846ba82c4341838bc6e1b4
 
 ```
 # Note this approach is not very useful for 1,000+ fastq files being downloaded.
@@ -283,9 +287,9 @@ Let's make a list of checksums and files. syntax again is md5sum -- two spaces -
 nano md5sums.txt
 
 #paste in:
-55d41585faf7c7ba270bcf6b6366259a  ENCFF162ADN.fastq.gz
-34e772e69e41f9418d12ad568d1d50be  ENCFF210PXS.fastq.gz
-0d427ced85cca73d2e313c1146fa9033  ENCFF525AYL.fastq.gz
+
+4b3e7dc77448bc4971367a3b40196cc0  ENCFF212GYT.fastq.gz
+14fcf34bf1846ba82c4341838bc6e1b4  ENCFF434BJG.fastq.gz
 
 ```
 
