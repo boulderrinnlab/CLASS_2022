@@ -184,7 +184,6 @@ mdir figures # if there are no figures this isn't needed.
 
 ```
 
-
 Sometimes nextflow versions don't work so well with a given pipeline. 
 
 1) You may need an edge release installed -- once installed all "self-update" commands will stay on edge
@@ -194,19 +193,5 @@ Sometimes nextflow versions don't work so well with a given pipeline.
 2) To updarte nextflow:
 
 Nextflow self-update
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
