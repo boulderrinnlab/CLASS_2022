@@ -43,7 +43,7 @@ However sometimes we ned to install from Bioconductor and need to use BiocManage
 
 if (!requireNamespace("BiocManager", quietly = TRUE))
 install.packages("BiocManager", version = '3.10')
-BiocManager::install("GenomicRanges")
+
 
 ```
 
@@ -52,17 +52,32 @@ BiocManager::install("GenomicRanges")
 Some packages like GenomicRanges are from Bioconductor and those will
 need to be installed with the BiocManager::install function.
 
+```{R install genomic ranges}
+
+# Here is an example BiocManager::install
+
+BiocManager::install("GenomicRanges")
+
+# try installing all the packages listed above.
+
+# note use either install.packages or BiocManager::install
+
+rtracklayer
+tidyverse
+
+```
+
+
 # ------------------------- R basic data analysis  -------------------------
-# All the files needed for this exeRcise can be downloaded here
+# All the files needed for this exeRcise can be downloaded here 
 
 ```{BASH DOWNLOAD DATA NEEDED FOR LESSON IF NOT IN CLASS}
 
 #  https://www.dropbox.com/sh/76etjxl10v2hcuc/AAAIk9a6aMhw8CvUtKlFnMn6a?dl=0
 
-wget (url_above) # check your directory.
+# wget (url_above) # check your directory.
 
 ```
-
 
 Now let's use an example data file we will produce and how we can use R to do
 some quick analyses.
@@ -98,7 +113,6 @@ summary(peaks_per_dbp$num_peaks)
 
 ```
 
-
 # Which DBP has the most or least peaks?
 
 ```{r DBP max min peaks}
@@ -120,7 +134,6 @@ peaks_per_dbp$num_peaks > 40000
 #To solve this we can use filter and set a variable using <-
 max_peaks <- dplyr::filter(peaks_per_dbp, num_peaks > 40000)
 
-
 # Let's see what else we can do with filter
 
 ?filter
@@ -133,6 +146,10 @@ max_peaks <- dplyr::filter(peaks_per_dbp, num_peaks > 30000, total_peak_length =
 
 # Let's find the DBP(s) with the fewest peaks (we saw in summary it was 263)
 ```{r filter smallest number of peaks}
+
+summary(peaks_per_dbp$num_peaks)
+
+# we see that 263 is the min number of peaks.
 
 min_peaks <- filter(peaks_per_dbp, num_peaks < 264)
 
@@ -167,6 +184,9 @@ peaks_per_dbp$id <- 1:nrow(peaks_per_dbp)
 
 peaks_per_dbp[1:5, 1]
 
+# IMPORTANT : R is always indexes by rows, then columns (comma seperates)
+# So above we see take rows one through five and column 1 information.
+
 # More on R indexing https://stats.idre.ucla.edu/r/modules/subsetting-data/
 
 ```
@@ -174,7 +194,7 @@ peaks_per_dbp[1:5, 1]
 # Let's remove a column using indexing
 ```{R remove a column using indexing}
 
-# let's remove the what column
+# let's remove the "what" column we just made above
 peaks_per_dbp <- peaks_per_dbp[,-4]
 
 ```
@@ -286,8 +306,6 @@ peaks_per_dbp <- peaks_per_dbp %>%
 hist(peaks_per_dbp$total_peak_length)
 
 ```
-
-
 
 # Now let's explore the power of mutate syntax with a function.
 # We will try it with a more complex function using ifelse logic
