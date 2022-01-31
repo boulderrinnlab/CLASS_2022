@@ -15,7 +15,7 @@ library(rtracklayer)
 library(tidyverse)
 library(ggpubr)
 library(Gviz)
-source("../../../util/_setup.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/BCHM5631/CLASS_2022/util/_setup.R")
 source("../../../util/intersect_functions.R")
 source("../../../util/plotting_functions.R")
 ```
@@ -39,7 +39,7 @@ install.packages("tidyverse")
 
 Cool we have our first package installed.
 
-However sometimes we ned to install from Bioconductor and need to use BiocManager::install function
+However sometimes we need to install from Bioconductor and need to use BiocManager::install function
 
 ```{R install BiocManager}
 
