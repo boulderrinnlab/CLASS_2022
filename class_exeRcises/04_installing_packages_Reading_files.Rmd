@@ -91,7 +91,7 @@ We will addres the following two questions as an example:
 ```{r read in peaks per DBP}
 
 # read in csv file that has number of peaks and genome coverage
-peaks_per_dbp <- read_csv("../../../../../data/number_of_peaks_per_dbp.csv")
+peaks_per_dbp <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/number_of_peaks_per_dbp.csv")
 
 # Now we have an object in the environment that is called 'peaks_per_dbp'
 head(peaks_per_dbp)
@@ -177,6 +177,7 @@ peaks_per_dbp$newcol <- "What?"
 # Now let's assign a number to each DBP in another new column
 ```{R new column populating with a function}
 
+#TODO start here
 peaks_per_dbp$id <- 1:nrow(peaks_per_dbp)
 
 ```
