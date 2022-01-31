@@ -262,16 +262,67 @@ date
 # This is a bash command that simply prints the date
 ```
 
-Here is the full "run.sh" script with slurm instructions and nextflow.
+Here is a full "run.sh" script with slurm instructions and nextflow.
 
-```{bash run.sh}
+```{SLURM and NEXTFLOW run.sh}
 
+#!/bin/bash
+#SBATCH -p short
+#SBATCH --job-name=CTCF_test
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=teva8543@colorado.edu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=6gb
+#SBATCH --time=10:00:00
+#SBATCH --output=nextflow.out
+#SBATCH --error=nextflow.err
+pwd; hostname; date
+echo "Lets go"
+module load singularity/3.1.1
+nextflow run nf-core/chipseq -r 1.2.1 \
+-profile singularity \
+--paired_end \
+--input design.csv \
+--fasta /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v38/GRCh38.primary_assembly.genome.fa \
+--gtf /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v38/gencode.v38.annotation.gtf \
+--macs_gsize 3.2e9 \
+--blacklist /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v38/hg38-blacklist.v2.bed \
+--email teva8543@colorado.edu \
+-resume \
+-c nextflow.config
+date
 
 
 ```
 
+Here is the full config file
+```{BASH}
 
-```{r}
+process {
+  executor='slurm'
+  queue='short'
+  memory='32 GB'
+  maxForks=10
+}
 
 ```
 
+Now all you need is a design file with correct headers.
+
+group,replicate,fastq_1,fastq_2,antibody,control
+
+### RUN TIME
+
+With these three files in the directory you want to run your analysis
+all you need to do is :
+
+```{SLURM running shell script}
+
+sbatch run.sh
+
+# Then to track progress :
+
+tail -f nextflow.out
+
+```
