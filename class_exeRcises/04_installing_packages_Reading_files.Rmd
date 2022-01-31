@@ -23,6 +23,7 @@ source("../../../util/plotting_functions.R")
 # Welcome to RStudio-viz! Let's take a little tour.
 
 
+
 First we need to learn how to install packages. Let's find out what version of R we are using.
 
 Simply type version in the console.
