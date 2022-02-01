@@ -217,6 +217,16 @@ git push
 git log
 git diff Xsum1 Xsum2
 
+# if you run into trouble you can always delete a commit.
+# For example if you delete your .gitignore file (see below)
+# hundreds of files will be staged to be committed.
+
+# to delete a given commit follow these commands:
+
+git log
+# find the "key" for the commit you want to delete.
+git reset --hard "key"
+
 ```
 
 This will show you all the changes -- you can also do this a bit more user friendly on git website.
@@ -258,6 +268,8 @@ nano .gitignore
 *.txt
 *.csv
 *archive*
+*.rds
+
 
 
 
