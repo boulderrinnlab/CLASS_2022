@@ -33,7 +33,7 @@ library(tidyverse)
 
 5) navigate to "class_exeRcises"
 
-5) Create a new folder called "analysis" (button bottom right pannel first tab on left)
+5) Create a new folder called "analysis" (button bottom right panel first tab on left)
 
 6) inside "analysis" create another folder called "04_instlaling_packages"
 
@@ -44,8 +44,6 @@ library(tidyverse)
 9) Make a change (enter a space whatever)
 
 10) Commit and push this to your git hub repository.
-
-
 
 
 
