@@ -132,8 +132,8 @@ head(peaks_per_dbp)
 
 # Let's get more infomration about these peaks with table
 
-table(peaks_per_dbp$dbp)
-sumarty(peaks_per_dbp$dbp)
+table(table(peaks_per_dbp$dbp))
+summary(peaks_per_dbp$dbp)
 
 # Not very useful in this case because there is only one entry for each DBP
 
@@ -150,7 +150,7 @@ summary(peaks_per_dbp$num_peaks)
 summary(peaks_per_dbp$num_peaks)
 
 # we can use a greater or less than function to find the biggest one
-peaks_per_dbp$num_peaks > 40000
+logical_test <- peaks_per_dbp$num_peaks > 40000
 
 # We see this produces the T and F for each DBP and we can see 2 DBPs (but we don't know the name :(
 
@@ -204,7 +204,6 @@ peaks_per_dbp$newcol <- "What?"
 # Now let's assign a number to each DBP in another new column
 ```{R new column populating with a function}
 
-#TODO start here
 peaks_per_dbp$id <- 1:nrow(peaks_per_dbp)
 
 ```
@@ -234,7 +233,7 @@ peaks_per_dbp <- peaks_per_dbp[,-4]
 ```{r}
 ?hist
 
-hist(peaks_per_dbp$num_peaks, breaks = 40) 
+hist(peaks_per_dbp$num_peaks, breaks = 100) 
 
 # saving the figure (we will do this over and over again :)
 # we will learn ggplot later but we use PDF and turn of null device (plot window) 
