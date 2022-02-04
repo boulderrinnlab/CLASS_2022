@@ -47,6 +47,7 @@ library(tidyverse)
 
 
 
+
 # Now that we are all set up we can start installing packges
 
 First we need to learn how to install packages. Let's find out what version of R we are using.
