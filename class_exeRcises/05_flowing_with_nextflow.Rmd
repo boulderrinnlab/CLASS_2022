@@ -108,7 +108,8 @@ PATH=$PATH:~/bin
 
 # then source the profile so it will be embedded each time your shell starts.
 
-source ~/.profile
+
+source ~/ .bash_profile
 
 # Since /bin is in our path then after we source it will automatically
 # load in each session (just like ls, cd etc..)
@@ -192,6 +193,6 @@ Sometimes nextflow versions don't work so well with a given pipeline.
 
 2) To updarte nextflow:
 
-Nextflow self-update
+nextflow self-update --version
 
 

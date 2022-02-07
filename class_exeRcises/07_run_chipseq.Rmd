@@ -9,7 +9,6 @@ We are about to run our first chipseq analysis!!
 
 First we need to know how to run jobs, check on them and most importantly cancel them!
 
-
 *******************************************
 Running and Checking on slurm jobs
 *******************************************
@@ -38,7 +37,6 @@ the -u flag is for user.
 examine the information provided and google the column headers for more info.
 
 # canceling jobs!
-
 
 Let's say you accidently hit the run button and want to cancel immediately.
 

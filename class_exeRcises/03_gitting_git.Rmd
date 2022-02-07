@@ -175,6 +175,17 @@ git commit -m "Created a new test file."
 
 ```
 
+sometimes you want to clone a repository and start working on it.
+But if it is someone else's repository you won't have permissions (nor would you want them)
+To 
+```{GIT BASH clone repository and push to a different one}
+
+#TODO find exact remote push 
+git -remote URL Ssh-URL
+
+```
+
+
 Typically you'll want to be very specific about what you write in the git commit.
 
 Now you should be on the students branch of the git site. Sometimes this can get
