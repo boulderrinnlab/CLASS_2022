@@ -156,9 +156,9 @@ Now we are goint to set up the resources to be used on FIJI (be careful in pract
 ### than one node. 
 
 #SBATCH --ntasks=1
-#### This is how many cpus you're requesting. We wil typically
-#### leave this at 1 so the nextflow runs only on one cpu (single-threaded). 
-#### For some software, they can by run multicore and you may want more that one cpu.
+#### This is how many cores you're requesting. We will typically
+#### leave this at 1 so the nextflow runs only on one core (single-threaded). 
+#### For some software, they can by run multicore and you may want more that one core.
 
 
 #SBATCH --mem=6gb
@@ -335,6 +335,13 @@ sbatch run.sh
 
 # Then to track progress :
 
+squeue -u <identikey> 
+# should see 10 jobs runnung
+
 tail -f nextflow.out
 
+
+# if you want to cancel a job:
+
+scancel -u <identikey>
 ```
