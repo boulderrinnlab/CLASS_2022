@@ -122,8 +122,8 @@ nextflow run nf-core/chipseq -r 1.2.1 \
 --fasta /Shares/rinn_class/data/genomes/human/gencode/v32/GRCh38.p13.genome.fa \
 --gtf /Shares/rinn_class/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf \
 --macs_gsize 3.2e9 \
---blacklist /scratch/Shares/rinnclass/data/hg38-blacklist.v2.bed \
---email john.rinn@colorado.edu \
+--blacklist /scratch/Shares/rinnclass/CLASS_2022/data/hg38-blacklist.v2.bed \
+--email your email \
 -resume \
 -c nextflow.config
 
@@ -267,13 +267,13 @@ Here is a full "run.sh" script with slurm instructions and nextflow.
 
 #!/bin/bash
 #SBATCH -p short
-#SBATCH --job-name=CTCF_test
+#SBATCH --job-name=PolII_test
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=your email 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
-#SBATCH --time=10:00:00
+#SBATCH --time=14:00:00
 #SBATCH --output=nextflow.out
 #SBATCH --error=nextflow.err
 pwd; hostname; date
@@ -296,7 +296,7 @@ date
 ```
 
 Here is the full config file
-```{BASH}
+```{BASH .config file}
 
 process {
   executor='slurm'
@@ -311,9 +311,9 @@ Now all you need is a design file with correct headers.
 
 group,replicate,fastq_1,fastq_2,antibody,control
 
-```{Text for design file .csv}
+```{Text for design.csv}
 
-group,replicate,fastq_1,fastq_2,antibody,control,,,,
+group,replicate,fastq_1,fastq_2,antibody,control
 POLR2A,3,/scratch/Shares/rinnclass/CLASS_2022/fastq/ENCFF000XWJ.fastq.gz,,POLR2A,ENCSR000EEN
 POLR2A,2,/scratch/Shares/rinnclass/CLASS_2022/fastq/ENCFF000PNT.fastq.gz,,POLR2A,ENCSR000BLH
 POLR2A,4,/scratch/Shares/rinnclass/CLASS_2022/fastq/ENCFF000XWR.fastq.gz,,POLR2A,ENCSR000EEN
