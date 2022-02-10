@@ -180,8 +180,9 @@ But if it is someone else's repository you won't have permissions (nor would you
 To 
 ```{GIT BASH clone repository and push to a different one}
 
-#TODO find exact remote push 
-git -remote URL Ssh-URL
+git remote set-url origin http://github.com/YOU/YOUR_REPO
+
+# The "url that follows 'origin' is the ssh URL on the code button of your repository.
 
 ```
 
