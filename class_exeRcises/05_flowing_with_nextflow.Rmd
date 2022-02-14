@@ -102,9 +102,9 @@ When referring to the contents saved in an environment variable, the $ is used
 
 # if you don't have a path in your .profile we can add
 
-cat .profile 
+cat .bash_profile 
 # should look like this (paste in with nano if no .profile file)
-Export PATH=$PATH:~/bin
+xport PATH=$PATH:~/bin
 
 # then source the profile so it will be embedded each time your shell starts.
 
