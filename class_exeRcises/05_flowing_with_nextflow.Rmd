@@ -91,7 +91,7 @@ Now let's add nextflow to our .profile
 .profile is loaded each time you login to the terminal
 ```{BASH .profile}
 
-cd ~/.profile
+cd ~/.bash_profile
 
 ```
 
@@ -104,7 +104,7 @@ When referring to the contents saved in an environment variable, the $ is used
 
 cat .profile 
 # should look like this (paste in with nano if no .profile file)
-PATH=$PATH:~/bin
+Export PATH=$PATH:~/bin
 
 # then source the profile so it will be embedded each time your shell starts.
 
