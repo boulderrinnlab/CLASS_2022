@@ -5,6 +5,32 @@ Date: "09/29/2021
 output: html_document
 ---
 
+Let's look at our results:
+
+Basepath: 
+"/scratch/Shares/rinnclass/CLASS_2022/Your_FOLDER/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/"
+
+# Here is the individual qc files:
+
+results/fastqc/ *.html
+
+# All QC combined and more:
+
+results/multiqc/broadPeak/multiqc_report.html
+
+# Here are the peak files:
+
+results/bwa/mergedLibrary/macs/broadPeak
+
+# Pipeline run information:
+
+results/pipeline_info/pipeline_report.html
+
+results/pipeline_info/results_description.html
+
+
+NOW:
+
 We are about to run our first chipseq analysis!! 
 
 First we need to know how to run jobs, check on them and most importantly cancel them!
