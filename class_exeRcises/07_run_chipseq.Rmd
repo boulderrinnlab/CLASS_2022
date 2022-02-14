@@ -95,6 +95,7 @@ to perform scancel on the output of awk, the -n is telling xargs how many argume
 Voila your jobs are gone :)
 
 
+
 ******************************************
 RUN YOUR FIRST CHIPseq ANALYSIS
 ******************************************
