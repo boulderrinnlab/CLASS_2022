@@ -104,7 +104,7 @@ When referring to the contents saved in an environment variable, the $ is used
 
 cat .bash_profile 
 # should look like this (paste in with nano if no .profile file)
-xport PATH=$PATH:~/bin
+export PATH=$PATH:~/bin
 
 # then source the profile so it will be embedded each time your shell starts.
 
