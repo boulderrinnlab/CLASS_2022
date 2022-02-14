@@ -18,9 +18,13 @@ results/fastqc/ *.html
 
 results/multiqc/broadPeak/multiqc_report.html
 
-# Here are the peak files:
+# Here are the peak files (we want the broad.peak files - not gapped or XLS)
 
 results/bwa/mergedLibrary/macs/broadPeak
+
+# Here are the bigwig files
+
+results/bwa/mergedLibrary/bigwig
 
 # Pipeline run information:
 
