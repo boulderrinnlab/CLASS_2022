@@ -91,7 +91,9 @@ First make a list of file names with list.files.
 # mkdir broad_peak
 # mv *.broadPeak broad_peak
 
-fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2", full.names = T)
+fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/<YOUR_FOLDER>/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2", full.names = T)
+
+# fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2", full.names = T)
 
 summary(fl)
 
@@ -119,7 +121,9 @@ gsub: cleaning up file names
 
 # gsub to remove file path and _peak.broadPeak
 
-names(fl) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2/|.broadPeak", "", fl)
+names(fl) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/<YOUR_FOLDER>/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2/|.broadPeak", "", fl)
+
+# names(fl) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2/|.broadPeak", "", fl)
 
 # Let's look at it 
 
@@ -191,7 +195,9 @@ headers <- paste0("track type=broadPeak name=", names(fl))
 # we are going to prepare the file names for a for loop to write them all out.
 
 
-new_filenames <- paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2/", names(fl), ".broadPeak")
+new_filenames <- paste0("/scratch/Shares/rinnclass/CLASS_2022/<YOUR_FOLDER>/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2/", names(fl), ".broadPeak")
+
+# new_filenames <- paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2/", names(fl), ".broadPeak")
 
 ```
 
