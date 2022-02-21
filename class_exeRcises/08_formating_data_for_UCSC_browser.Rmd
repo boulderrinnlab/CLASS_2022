@@ -11,7 +11,6 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("../../../util/intersect_functions.R")
 ```
 
 
@@ -25,11 +24,10 @@ These files are here:
 
 ```{bash}
 
-cd /scratch/Shares/rinnclass/CLASS_2022/data/peaks
+cd /scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/bigwig
 
-# Let's see how many there are:
+# cd /scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/bigwig
 
-cd .. | ls | wc -l
 
 ```
 
@@ -56,6 +54,9 @@ So we see this peak is on chromosome 1 and the range of the peaks starts at
 We see additional information here now:
 
 ```
+Column 1: chromosome
+Column 2: start
+Column 3: stop
 Column 4: peak name
 Column 5: peak score  #int(-10*log10pvalue) 
 Column 6: strand
@@ -87,7 +88,12 @@ Well this sounds simple but we need several steps to get there:
 First make a list of file names with list.files. 
 ```{r make a list of file names}
 
-fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/peaks", full.names = T)
+# make a new directory called broad_peaks
+# mkdir broad_peak
+# mv *.broadPeak broad_peak
+
+fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak", full.names = T)
+
 summary(fl)
 
 # table will let us see what these files are labeled as
@@ -99,8 +105,8 @@ table(fl)
 
 ```
 
+gsub: cleaning up file names 
 
-# gsub: cleaning up file names 
 ```{R cleaning up file names}
 
 ?names
@@ -114,7 +120,7 @@ table(fl)
 
 # gsub to remove file path and _peak.broadPeak
 
-names(fl) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/peaks/|_peaks.broadPeak", "", fl)
+names(fl) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak/|_peaks.broadPeak", "", fl)
 
 # Let's look at it 
 
@@ -137,12 +143,12 @@ then we can print them out with header next
 # running lapply to use function 'read.table' to get the values in each peak file 
 # note fl is just file path list
 
-peaks <- lapply(fl[1:3], read.table, col.names = c("chr", "start", "end", "name", "score", "strand", "signal_value", "pval", "qval"))
+peaks <- lapply(fl, read.table, col.names = c("chr", "start", "end", "name", "score", "strand", "signal_value", "pval", "qval"))
 
 # let's take a look
 summary(peaks)
 names(peaks)
-fl[1:3] 
+fl
 
 # note that read.table is still using the file path to read in each file 
 # and names is a meta-header
@@ -182,14 +188,13 @@ The header we need is : track type=broadPeak name="
 # we are using paste0 to print the header text
 # then we are adding the names as the value the header equals with 'names' function
 
-headers <- paste0("track type=broadPeak name=", names(fl)[1:3])
+headers <- paste0("track type=broadPeak name=", names(fl))
 
 # we are going to prepare the file names for a for loop to write them all out.
-# however we are only indexing the first 3 files in fl (fl[1:3])
 
-new_filenames <- paste0("/scratch/Shares/rinnclass/CLASS_2022/data/ucsc/broadPeak/", names(fl)[1:3], ".broadPeak")
 
-new_filenames
+new_filenames <- paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak/", names(fl), ".broadPeak")
+
 ```
 
 Cool, now we have an object "new_filenames" that has 
@@ -198,7 +203,7 @@ Let's use a for loop to print each file out separately and append the header.
 ```{R}
 # let's do so more indexing and only print out the first two of the three files.
 
-for(i in 1:length(peaks[1:2])) {
+for(i in 1:length(peaks)) {
   # Write the header line
   writeLines(headers[[i]], new_filenames[[i]])
   # Append the broadPeak table data
