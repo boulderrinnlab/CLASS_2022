@@ -13,7 +13,6 @@ library(tidyverse)
 library(GenomicRanges)
 ```
 
-
 The goal today is to learn more about our "peak files" and
 data formatting (typical first steps)
 
@@ -24,9 +23,9 @@ These files are here:
 
 ```{bash}
 
-cd /scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/bigwig
+cd /scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/
 
-# cd /scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/bigwig
+# cd /scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/
 
 
 ```
