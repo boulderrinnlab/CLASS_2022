@@ -14,9 +14,7 @@ library(GenomicRanges)
 library(tidyverse)
 library(Gviz)
 library(IRanges)
-source("../../../util/_setup.R")
-source("../../../util/intersect_functions.R")
-source("../../../util/plotting_functions.R")
+
 ```
 
 Goal: to understand the basic usage of Iranges and Granges. These are core to almost
@@ -97,8 +95,13 @@ https://stackoverflow.com/questions/21506724/how-to-plot-overlapping-ranges-with
 ```{R overlaps in Iranges}
 
 # first let's use union to "merge" peaks.
+# Remaking range 1 since we changed above
 
-# union (Iranges function)
+ir1 <- IRanges(start = c(1,200, 1000), end = c(30, 299, 1200))
+ir2 <- IRanges(start = c(17,100, 1100), end = c(49, 199, 1201))
+
+# union (Iranges function) 
+# note: forces the union even if not overlapping!
 ov1 <- union(ir1, ir2)
 
 # let's look with ir3 to reference
@@ -107,6 +110,7 @@ ov1
 # not exactly what we want but useful let's use intersect:
 
 # intersect (min overlap)
+# will only work on overlapping ranges
 
 ov3 <- intersect(ir1, ir2)
 
@@ -188,6 +192,8 @@ peaks2 <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2B_
 ?findOverlaps
 
 ovf <- findOverlaps(peaks1, peaks2)
+ovf
+
 ```
 
 for findOverlaps it is important to remember: 
@@ -202,7 +208,10 @@ summary(ovf)
 # Huh 11,000 overlaps -- let's see what we stared with
 
 summary(peaks1)
+# Only 10,000 peaks
+
 summary(peaks2)
+# 19,000 peaks
 
 # How did we get more than 10,255 peak overlaps (min number of peaks in peaks1)?
 
@@ -230,7 +239,11 @@ We can get more information from then results of findOverlaps. Let's look at env
 
 # let's understand this more deeply there are some subtilties we should cover
 # let's table the @from index
-table(table(ovf@from))
+
+table(ovf@from) 
+# bit too much info -- let's table the table
+
+table(table(table(table(table(ovf@from)))))
 
 # NOTE: we see how many peaks in peak1 file had multiple overlaps
 # thus there is one peak in peak1 that overlaps 14 peaks in peak2
