@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(echo = TRUE)
 library(GenomicRanges)
 library(tidyverse)
-library(Gviz)
+# library(Gviz)
 library(IRanges)
 
 ```
@@ -42,7 +42,7 @@ Let's make a list of ranges and see what this looks like.
 ir1 <- IRanges(start = c(1,200, 1000), end = c(30, 299, 1200))
 
 # take a look
-ir1
+ir1@
 
 # we can use a lot of Iranges functions to look at what we just made
 start(ir1)
@@ -76,7 +76,7 @@ ir1
 
 # Let's do the same for ir2.
 names(ir2) <- paste("replicate_2", 1:3, sep = " ")
-
+ir2
 # now concatenate  
 ir3 <- c(ir1, ir2)
 
@@ -190,7 +190,7 @@ peaks2 <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2B_
  
 # now we can use the findOverlaps function to see what overlaps!
 ?findOverlaps
-
+?import
 ovf <- findOverlaps(peaks1, peaks2)
 ovf
 
@@ -241,6 +241,8 @@ We can get more information from then results of findOverlaps. Let's look at env
 # let's table the @from index
 
 table(ovf@from) 
+table(table(ovf@from))
+table(table(table(ovf@from)))
 # bit too much info -- let's table the table
 
 table(table(table(table(table(ovf@from)))))
