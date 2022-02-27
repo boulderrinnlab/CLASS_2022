@@ -12,8 +12,12 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("../../../util/intersect_functions.R")
-source("../../../util/class_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
+
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder./CLASS_2022/util/class_functions.R")
+
 ```
 
 Today we will go over a "function" in R. This is a really nice feature of 
@@ -118,8 +122,9 @@ let's make this into a real function that is re-usable "import_peaks" and name f
 
 ```{R function to rename files by DBP}
 
-# estbalishing the function using "function()"
+# establishing the function using "function()"
 # establishing the parameter consensus_file_path is needed
+# extracting TF name as a variable along the way (check env)
 
 import_peaks <- function(consensus_file_path = "/scratch/Shares/rinnclass/CLASS_2022/data/peaks") {
   
@@ -131,6 +136,7 @@ import_peaks <- function(consensus_file_path = "/scratch/Shares/rinnclass/CLASS_
   })
 
 # Here is the heart of the function that will import each file as GRanges (we can use for overlaps)
+# takes 
   
   peak_list <- c()
   for(i in 1:length(peak_files)) {
@@ -144,17 +150,17 @@ import_peaks <- function(consensus_file_path = "/scratch/Shares/rinnclass/CLASS_
   return(peak_list)
 }
 
-# ?? Why did nothing come back in the global environment ??
-
 ```
-
+# ?? Why did nothing come back in the global environment ??
 # running import peaks function we just made
 Let's use import_peaks function but assign the local output to global output! Then recreate "peak_list"
 
-```{R using import_peaks function -- takes a few min to run}
+```{R using import_peaks function -- takes a 8ish min to run}
 
 # for didactic purposes we need to create "peak_list" to continue from the functions above 
 # This is another good example of how a function only returns local vars and need to assign a global var ( <-)
+# take aprox 8 min
+
 peak_list <- import_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
   
 # cool we have a list of Granges nicely named where each entry in the list is a 
