@@ -12,7 +12,8 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("../../../util/intersect_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util")
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util")
 ```
 
 Today we are going to practice running the create_consensus_peaks function. Then import the full dataset of 486 DBPs!
