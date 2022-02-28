@@ -14,9 +14,9 @@ library(rtracklayer)
 library(tidyverse)
 library(ggpubr)
 library(Gviz)
-source("../../../util/_setup.R")
-source("../../../util/intersect_functions.R")
-source("../../../util/plotting_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/_setup.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+# source("./scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/plotting_functions.R")
 ```
 
 ### Have you ever wanted to find overlaps between two lists of genes? Well
@@ -51,11 +51,11 @@ https://uswest.ensembl.org/info/website/upload/gff.html
 ```{r loading in GENCODE GRanges annotation file}
 
 # we used rtracklayer::import to turn the annotations into start and stops (Iranges) w/ chr (Granges)
+# This takes ~5min
 
 gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
 
 # let's take a look @metadata to see what we have in here
-
 
 ```
 
@@ -74,13 +74,13 @@ let's get more info with table to summary using tidy verse %>%
 # summary / table a GRanges object
 ```{R summary/table GRanges}
 
-table(seqnames(gencode_gr)) %>% 
-  summary()
-# this tells us how many features there are in the genome.
-
 table(seqnames(gencode_gr)) %>%
   head()
 # This is telling us how many features are associated with each chromosome.
+
+table(seqnames(gencode_gr)) %>% 
+  summary()
+# this tells us how many features there are in the genome.
 
 # Let's find out how many features the mitochondrial chr has (25th level)
 table(seqnames(gencode_gr))[25] 
@@ -89,8 +89,7 @@ table(seqnames(gencode_gr))[25]
 
 ```
 
-
-# @elementMetadata$INDEXING
+# Indexing Granges (@elementMetadata$INDEXING)
 ```{R indexing GRanges}
 
 # we see a lot of good infromation in @elementMetadata -- let's index it.
@@ -101,13 +100,16 @@ table(gencode_gr@elementMetadata$gene_id) %>%
 # This tell us how many features are associated with each gene id.
 
 # Let's see what we get with gene_name
-table(gencode_gr@elementMetadata$gene_name)
+table(gencode_gr@elementMetadata$gene_name) %>% 
+  head()
 
 # For ensemble gene annotation (mroe transcripts)
-table(gencode_gr@elementMetadata$gene_id)
+table(gencode_gr@elementMetadata$gene_id) %>% 
+  head()
 
 # Typical gene symbols 
-table(gencode_gr@elementMetadata$transcript_name) 
+table(gencode_gr@elementMetadata$transcript_name) %>%
+  head()
 
 # it's basically memorization of what is a gene name or gene id 
 
@@ -187,6 +189,7 @@ table(width_1_items$type)
 # looking for weird exons
 weird_exons <- width_1_items %>% 
   filter(type == "exon")
+
 # huh 33 exons are 1 nt -- annotations are never perfect :)
 
 
@@ -196,17 +199,18 @@ tss <- promoters(gencode_gr[gencode_gr$type == "gene"],
                  upstream = 0, downstream = 0) %>%
   as.data.frame()
 
+
 # we see 60,609 TSS. Let's see if that is the same as # of genes
 summary(gencode_gr[gencode_gr$type == "gene"])
 # cool the same
 
-# More weird 1nt features
-length(which(width(start_codons) == 1))
-# 567 start codons 1nt long -- that can't be right :)
-
 # This code will search for any feature and see if any are 1nt
 start_codons <- gencode_gr[gencode_gr$type == "CDS"]
 summary(width(start_codons))
+
+# More weird 1nt features
+length(which(width(start_codons) == 1))
+# 567 start codons 1nt long -- that can't be right :)
 
 ```
 
@@ -223,17 +227,14 @@ gencode_df %>%
   arrange(gencode_df$width) %>%
   head()
 
-
 # Now let's find the Largest genes using arrange
 gencode_df %>%
   arrange(-width) %>%
   head()
 
-
 # We can also store the longest gene as an object with max function
 longest_gene <- gencode_df %>%
   filter(width == max(width))
-
 
 # let's take a look at what information we have for this gene:
 longest_gene
@@ -259,7 +260,7 @@ total_exon_length <- gencode_gr[gencode_gr$type == "exon"] %>%
   width() %>%
   sum()
 
-summary(total_exon_length)
+table(total_exon_length)
 # We now have the total bases covered by exons in the human genome. We also know
 # the human genome is 3.9B base pairs so let's find the percentage by division:
 
@@ -394,6 +395,7 @@ See this is a bit confusing, we have:
 7,738 peaks overlapped in @to
 13,771 promoters overlaps @from
 13,299 promoter overlaps @to
+= 472 difference in @to 
 
 So we have 472 promoters that had more than one overlap (464 + 8) !!
 
