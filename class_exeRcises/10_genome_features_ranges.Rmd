@@ -191,7 +191,6 @@ table(width_1_items$type)
 # looking for weird exons
 weird_exons <- width_1_items %>% 
   filter(type == "exon")
-
 # huh 33 exons are 1 nt -- annotations are never perfect :)
 
 
@@ -201,18 +200,22 @@ tss <- promoters(gencode_gr[gencode_gr$type == "gene"],
                  upstream = 0, downstream = 0) %>%
   as.data.frame()
 
-
 # we see 60,609 TSS. Let's see if that is the same as # of genes
 summary(gencode_gr[gencode_gr$type == "gene"])
 # cool the same
 
 # This code will search for any feature and see if any are 1nt
-start_codons <- gencode_gr[gencode_gr$type == "CDS"]
+#TODO refactor to CDS
+start_codons <- gencode_gr[gencode_gr$type == "CDS"] 
+
 summary(width(start_codons))
 
 # More weird 1nt features
 length(which(width(start_codons) == 1))
+
 # 567 start codons 1nt long -- that can't be right :)
+
+?which
 
 ```
 
@@ -271,7 +274,11 @@ total_exon_length/3.2e9
 
 # We can do the same for gene bodies too
 reduced_gene_bodies <- gencode_gr[gencode_gr$type == "gene"] %>%
-  GenomicRanges::reduce()
+  GenomicRanges::reduce() %>%
+  width() %>%
+  sum()
+
+reduced_gene_bodies/3.2e9
 
 # plotting
 hist(width(reduced_gene_bodies), breaks = 100)
@@ -312,9 +319,13 @@ Now we have promoter ranges and peak ranges let's use findOverlaps function
 ```{R findoverlaps chip peaks &}
 
 promoter_overlaps <- findOverlaps(pol2_chip, gencode_promoters)
+length(promoter_overlaps)
 # We get back a list of ranges of the overlaps -- kinda hard to read
 # Note @from (subject) @to (query)
 # looks like 13,771 overlaps!
+
+length(promoter_overlaps@from)
+length(promoter_overlaps@to)
 
 table(table(promoter_overlaps@from))
 table(table(promoter_overlaps@to))
@@ -366,7 +377,7 @@ length(pol2_chip)
 # 10,255
 
 # Let's see a larger overlap index
-table(promoter_overlaps@from)
+length(promoter_overlaps@from)
 
 # let's make a data-frame and get acquainted 
 at_from_table <- table(promoter_overlaps@from) %>% as.data.frame()
