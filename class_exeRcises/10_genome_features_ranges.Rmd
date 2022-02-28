@@ -65,7 +65,9 @@ Now let's look at the gene_id indexable part of this GRanges
 
 ?seqnames
   
-seqnames(gencode_gr) %>% head()
+seqnames(gencode_gr) %>% 
+  head()
+
 
 # we can see that "levels" are the chromosome names and are a meta-level
 ```
@@ -103,10 +105,6 @@ table(gencode_gr@elementMetadata$gene_id) %>%
 table(gencode_gr@elementMetadata$gene_name) %>% 
   head()
 
-# For ensemble gene annotation (mroe transcripts)
-table(gencode_gr@elementMetadata$gene_id) %>% 
-  head()
-
 # Typical gene symbols 
 table(gencode_gr@elementMetadata$transcript_name) %>%
   head()
@@ -128,6 +126,8 @@ gencode_gr_length <- data.frame("gene_id" = gencode_gr@elementMetadata$gene_id,
                            "type" = gencode_gr@elementMetadata$type,
                            "start" = gencode_gr@ranges@start,
                            "width" = gencode_gr@ranges@width)
+
+#TODO add chrm and search for genes per chr
                            
 ```
 Ok so now we have a new data frame with the information we want from gencode_gr
@@ -138,6 +138,8 @@ Let's look at the width for mRNA genes
 ```{R mRNA gene width}
 
 mrna_df <- filter(gencode_gr_length, gene_type == "protein_coding", type == "gene")
+
+# table(gencode_gr@elementMetadata$gene_type)
 
 # we can easily plot a histogram of mRNA gene widths.
 hist(log10(mrna_df$width), breaks = 60)
