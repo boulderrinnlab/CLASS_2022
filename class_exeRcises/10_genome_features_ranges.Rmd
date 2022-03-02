@@ -292,8 +292,7 @@ Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq
 This is probably one of the most commonly used functions in genome sciences!
 First we need to import POLR2A Chip-seq files -- a simple .bed file of peaks.
 
-```{r import Pol2 chip data}
-#TODO start here
+```{r start point : import Pol2 chip data}
 
 # Load Gencode-v32 : 
 gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
@@ -321,8 +320,9 @@ length(gencode_promoters)
 
 ```
 
-#findOVerlaps function
+# findOVerlaps function
 Now we have promoter ranges and peak ranges let's use findOverlaps function
+
 ```{R findoverlaps chip peaks &}
 
 # Promoter overlap function requires two parameters:
@@ -360,6 +360,7 @@ table(table(promoter_overlaps@from))
 table(table(promoter_overlaps@to))
 # We see 12,831 promoters had an overlap with one peak and
 # 4 promoters had an overlap with 3 peaks.
+# *** the sum is 13,299 ***
 
 ```
 
@@ -376,10 +377,14 @@ promoter_overlaps_df
 
 
 # let's make a data-frame of what we just did above seperate for @from & @to
+
 # @from data frame (look in env)
-at_from_table <- table(promoter_overlaps@from) %>% as.data.frame()
+at_from_table <- table(promoter_overlaps@from) %>% 
+  as.data.frame()
+
 #@to data frame (look in env)
-at_to_table <- table(promoter_overlaps@to) %>% as.data.frame()
+at_to_table <- table(promoter_overlaps@to) %>% 
+  as.data.frame()
 ```
 
 # digging deeper into @to adn @from
@@ -420,7 +425,7 @@ overlapping_pol2 <- pol2_chip[promoter_overlaps_df$pol2_index] %>%
 # Data frame from promoter perspective (@to)
 overlapping_promoters <- gencode_promoters[promoter_overlaps_df$promoter_index] %>% 
   as.data.frame()
-
+# note most promoters are unique
 # >> Note both are 13,771 long
 
 # Now let's merge these two data frames (they both have the same gene_id)
