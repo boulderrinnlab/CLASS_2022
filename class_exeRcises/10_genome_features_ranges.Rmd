@@ -285,8 +285,6 @@ hist(width(reduced_gene_bodies), breaks = 100)
 
 ```
 
-
-
 # genome features overlapping chip data
 Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq.
 This is probably one of the most commonly used functions in genome sciences!
@@ -294,7 +292,7 @@ First we need to import POLR2A Chip-seq files -- a simple .bed file of peaks.
 
 ```{r start point : import Pol2 chip data}
 
-# Load Gencode-v32 : 
+# Load Gencode-v32: 
 gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
 
 # Import Pol2 "consensus peaks" file
@@ -376,7 +374,7 @@ promoter_overlaps_df
 # look at env
 
 
-# let's make a data-frame of what we just did above seperate for @from & @to
+# let's make a data-frame of what we just did above separate for @from & @to
 
 # @from data frame (look in env)
 at_from_table <- table(promoter_overlaps@from) %>% 
@@ -399,7 +397,7 @@ length(pol2_chip)
 
 # Number of peaks that overlap promoters
 length(table(promoter_overlaps@from))
-# 13,771 -- how is this possible?? There are only 10,000 peaks ??
+
 
 table(table(promoter_overlaps@to))
 #  1     2     3 
