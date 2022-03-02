@@ -285,12 +285,20 @@ hist(width(reduced_gene_bodies), breaks = 100)
 
 ```
 
+
+
 # genome features overlapping chip data
 Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq.
 This is probably one of the most commonly used functions in genome sciences!
 First we need to import POLR2A Chip-seq files -- a simple .bed file of peaks.
 
 ```{r import Pol2 chip data}
+#TODO start here
+
+# Load Gencode-v32 : 
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
+
+# Import Pol2 "consensus peaks" file
 
 pol2_chip <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2A_consensus_peaks_filter.bed")
 
@@ -319,52 +327,54 @@ Now we have promoter ranges and peak ranges let's use findOverlaps function
 ```{R findoverlaps chip peaks &}
 
 promoter_overlaps <- findOverlaps(pol2_chip, gencode_promoters)
-length(promoter_overlaps)
-# We get back a list of ranges of the overlaps -- kinda hard to read
+# We get back a list of ranges of the overlaps 
+# This is a single Grange that has "indexable" @from & @to
 # Note @from (subject) @to (query)
+
+
+# What is the length of the Grange (overlaps)?
+length(promoter_overlaps)
+# We can find how many overlaps there were by the length function:
+# "length" of the resulting overlap list
 # looks like 13,771 overlaps!
+```
+
+```{R @from and @to of G(ranges)}
 
 length(promoter_overlaps@from)
+# This tell us there are 13,771 overlaps of chip-peaks (from promoters)
+# This doesn't tell us how many promoters had overlaps
+
 length(promoter_overlaps@to)
+# This tell us there are 13,771 overlaps with promoters (to chip-peaks)
+# Look in env variable and we see both are the same
 
+
+# Let's dig deeper into @from and @to with table
 table(table(promoter_overlaps@from))
-table(table(promoter_overlaps@to))
-# 4 peaks overlapped 3 promoters!
-
-# It's strange that so many promoters are overlapped by 1 peak
+# We see ONE chip-peak overlapped 16 promoters (the sum of these numbers is 13,771)
 # Let's see if this was a big peak?
-
 width(pol2_chip[1])
-# Ok it's kinda big, but this may mean all the promoters are close by.
 
+# Now for @ to
+table(table(promoter_overlaps@to))
+# We see 12,831 promoters had an overlap with one peak and
+# 4 promoters had an overlap with 3 peaks.
 
-# sometimes it's easier to view these things in data frames
+```
+
+# Sometimes it's easier to view these things in data frames
+```{R data frame view of @from & @to}
+
+# Turning single Grange to data frame 
 promoter_overlaps_df <- data.frame(pol2_index = promoter_overlaps@from,
                                    promoter_index = promoter_overlaps@to)
 
 # ok this is much easier to read :)
 
-```
-
-How do we better conceptualize the overlaps? This get's confusing but is very simple :)
-# understanding overlaps
-```{R understanding overlaps}
-
-# let's verify that peak_1 overlaps promoter 32
-pol2_chip[1]
-gencode_promoters[32]
-
-# peak_1: chr1 826595-828348      * |    POLR2A_1
-# promoter_32: chr1 824797-830796      - | 
-# Cool we see that they overlap and promoter is on - strand.
-
-
-# Now let's get into the logic of overlaps in small steps as it can get confusing.
-# reminder @from is peak file and @to is the promoter annotations
-table(promoter_overlaps@from)[1:3]
-
-# This tells us that peak 1 had 3 overlaps, peak 2 had 2 and 3 had 2 overlaps with promoters.
-
+# let's make a data-frame of what we just did above seperate for @from & @to
+at_from_table <- table(promoter_overlaps@from) %>% as.data.frame()
+at_to_table <- table(promoter_overlaps@to) %>% as.data.frame()
 ```
 
 # digging deeper into overlaps
@@ -372,55 +382,31 @@ Let's dig into what information results from findOverlaps
 
 ```{R digging deeper into overlaps}
 
-# Total number of peaks (we can also see this in pol2_chip GRanges)
+# let's determine the length of our pol2_chip Grange (number of peaks)
 length(pol2_chip)
-# 10,255
+# 10,255 peaks 
 
-# Let's see a larger overlap index
-length(promoter_overlaps@from)
-
-# let's make a data-frame and get acquainted 
-at_from_table <- table(promoter_overlaps@from) %>% as.data.frame()
-at_to_table <- table(promoter_overlaps@to) %>% as.data.frame()
 
 # Number of peaks that overlap promoters
 length(table(promoter_overlaps@from))
-length(unique(promoter_overlaps@from))
-# 10,255 peaks, have 7,738 overlaps in @to (promoters)
-
-# Now let's see the total number of events that occurred (sum of all #'s in table)
-length(promoter_overlaps@from)
 # 13,771 -- how is this possible?? There are only 10,000 peaks ??
-# Let's look in table
+
 table(table(promoter_overlaps@to))
+#  1     2     3 
+# 12831   464     4 
 
-# Thus, 13,771 = 12,831 + 464 + 464 + 4 + 4 + 4
-
-# Let's see the same from the promoter perspective
-length(table(promoter_overlaps@to))
-# 13,299 promoters were overlapped in total (note indexing by promoter #)
+# Thus, 13,771 = 12,831 + 2*464(=928) + 3*4(=12) -> 13,771
+# or 12,831 + 928 + 12 = 13,771
 
 ```
 
-See this is a bit confusing, we have:
-
-10,255 peaks
-7,738 peaks overlapped in @to
-13,771 promoters overlaps @from
-13,299 promoter overlaps @to
-= 472 difference in @to 
-
-So we have 472 promoters that had more than one overlap (464 + 8) !!
-
-# How do we make sense of this
-
-So 7,738 overlapping peaks resulted in 13,771 overlaps with promoters.
-This is because some peaks overlapped more than one promoter. And a total
-of 13,299 promoters were overlapped.
 
 
 Let's make some data frames to better understand what is happening
 ```{R accounting oerlaps in @to and @from}
+
+#TODO ADD THIS TO ABOVE in smaller steps
+
 
 # Let's look at all the peak overlaps (13,771) in two different data frames:
 # Data frame from peak perspective (@from)
@@ -453,6 +439,25 @@ length(unique(promoter_overlaps_df$promoter_gene_id))
 
 ```
 
+See this is a bit confusing, we have:
+
+10,255 peaks
+7,738 peaks overlapped in @to
+13,771 promoters overlaps @from
+13,299 promoter overlaps @to
+= 472 difference in @to 
+
+So we have 472 promoters that had more than one overlap (464 + 8) !!
+
+# How do we make sense of this
+
+So 7,738 overlapping peaks resulted in 13,771 overlaps with promoters.
+This is because some peaks overlapped more than one promoter. And a total
+of 13,299 promoters were overlapped.
+
+
+
+
 
 *********************
 EXCERCISE
@@ -463,3 +468,25 @@ What happens if we shrink the promoter windows? Some standards are 2Kb upstream 
 Some could be as small as 1Kb upstream 500Kb downstream. Try two different promter window sizes and record
 @from and @to values as well as unique peaks. 
 
+
+
+How do we better conceptualize the overlaps? This get's confusing but is very simple :)
+# understanding overlaps
+```{R understanding overlaps}
+
+# let's verify that peak_1 overlaps promoter 32
+pol2_chip[1]
+gencode_promoters[32]
+
+# peak_1: chr1 826595-828348      * |    POLR2A_1
+# promoter_32: chr1 824797-830796      - | 
+# Cool we see that they overlap and promoter is on - strand.
+
+
+# Now let's get into the logic of overlaps in small steps as it can get confusing.
+# reminder @from is peak file and @to is the promoter annotations
+table(promoter_overlaps@from)[1:3]
+
+# This tells us that peak 1 had 3 overlaps, peak 2 had 2 and 3 had 2 overlaps with promoters.
+
+```
