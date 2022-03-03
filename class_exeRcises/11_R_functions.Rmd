@@ -15,7 +15,7 @@ library(GenomicRanges)
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
 
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
 
 source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
 source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder./CLASS_2022/util/class_functions.R")

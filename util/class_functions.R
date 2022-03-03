@@ -180,4 +180,3 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
   }
   return(consensus_peaks)
 }
-```
