@@ -35,13 +35,14 @@ We'll be using the consensus peaks we generated previously (MACS peak calls filt
 gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
 
 # making a file list of our consensus peaks (filtered at 250 peaks minimum)
-fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/", full.names = TRUE)
+fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks", full.names = TRUE)
 
 # lapply to import into list of GRanges
 filtered_consensus_peaks <- lapply(fl, rtracklayer::import)
 
 # adding row names by removing the file path and .bed at end of each file.
-names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks//|_filtrered_consensus_peaks.bed", "", fl)
+# names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks//|_filtrered_consensus_peaks.bed", "", fl)
+names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks/|.bed", "", fl)
 
 ```
 
@@ -434,48 +435,41 @@ for(i in c(1:390, 392:length(filtered_consensus_peaks))) {
 # saving this
 write_rds(metaplot_df, "metaplot_df.rds")
 
-test2 <- read_rds("metaplot_df.rds")
 
 
 
-write.table(metaplot_df, "test_metaplot_df.rds")
+########*#*#*#*#*#*#*#*##*#*#*#*#*#*#*
+##### START THURS MAR 3
+metaplot_df <- read_rds("metaplot_df.rds")
 
-test_meta_plot_df <- read.table("test_metaplot_df.rds")
 
-metaplot_filtered_df <-test_meta_plot_df %>%
-  filter(dbp %in% passing_peaks$.) %>%
-    distinct()
 
+# write.table(metaplot_df, "test_metaplot_df.tsv")
+
+# test_meta_plot_df <- read.table("test_metaplot_df.tsv")
 # MAKE SURE IN RIGHT WORKING DIRECTORY
 # Let's save the df to make all meta plots of all DBPs with peaks > 250!
-passing_peaks <- names(filtered_consensus_peaks)[sapply(filtered_consensus_peaks, length) > 250] %>%
-  as.data.frame()
+passing_peaks <- names(filtered_consensus_peaks)[sapply(filtered_consensus_peaks, length) > 250]
 
-# finding those dbps "in" passing_peaks and metaplot_df
 metaplot_filtered_df <- metaplot_df %>%
-  filter(dbp %in% passing_peaks$.) %>%
+  filter(dbp %in% passing_peaks) %>%
     distinct()
-
-test2_matrix <- test2 %>% 
-  pivot_wider(names_from = x, values_from = dens) %>%
-  column_to_rownames("dbp") %>%
-  as.matrix()
 
 # writing out
 write_rds(metaplot_df, "metaplot_filtered_df.rds")
 
 # table
 
-write.table(metaplot_filtered_matrix, "csv_metaplot_filtered_natrix.tsv" )
-test.tsv <- read.table("csv_metaplot_filtered_natrix.tsv")
-
-write.table(metaplot_filtered_matrix, "metaplot_filtered.rds" )
-
-write.table(metaplot_filtered_matrix, "metaplot_filtered.tsv" )
-
-test_read_table <- read.table("metaplot_filtered.tsv")
-
-test_read_table <- read.table("metaplot_filtered.rds")
+# write.table(metaplot_filtered_matrix, "csv_metaplot_filtered_natrix.tsv" )
+# test.tsv <- read.table("csv_metaplot_filtered_natrix.tsv")
+# 
+# write.table(metaplot_filtered_matrix, "metaplot_filtered.rds" )
+# 
+# write.table(metaplot_filtered_matrix, "metaplot_filtered.tsv" )
+# 
+# test_read_table <- read.table("metaplot_filtered.tsv")
+# 
+# test_read_table <- read.table("metaplot_filtered.rds")
 
 ```
 
@@ -489,14 +483,21 @@ test_read_table <- read.table("metaplot_filtered.rds")
 metaplot_filtered_matrix <- metaplot_filtered_df %>% 
   pivot_wider(names_from = x, values_from = dens) %>%
   column_to_rownames("dbp") %>%
-  as.numeric() %>%
-  as.matrix() 
+  as.matrix()
+
+# metaplot_filtered_matrix <- metaplot_filtered_df %>% 
+#   pivot_wider(names_from = x, values_from = dens) %>%
+#   column_to_rownames("dbp") %>%
+#   as.numeric() %>%
+#   as.matrix() 
 
 
 dim(metaplot_filtered_matrix)
 
 write_rds(metaplot_filtered_matrix, "metaplot_filtered_matrix.rds")
 
+
+hmm <- read_rds("metaplot_filtered_matrix.rds")
 ```
 
 
@@ -510,7 +511,9 @@ write_rds(metaplot_filtered_matrix, "metaplot_filtered_matrix.rds")
 # TODO this somehow doesn't work when read in -- but does work
 # TODO works when in environment -- think I will try and save matrix and see if it works.
 
-metaplot_filtered_matrix_test <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_filtered_matrix.rds")
+# metaplot_filtered_matrix_test <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_filtered_matrix.rds")
+
+# hmm <- read_tsv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_filtered.tsv")
 
 #metaplot_df <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/16_meta_plots/metaplot_filtered_df.rds") 
 
@@ -538,7 +541,7 @@ metaplot_filtered_matrix_test <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/
 
 ?hclust
 # Z-Scale the rows for clustering (not needed for profile plots)
-mm_scaled <- t(scale(t(test2_matrix)))
+mm_scaled <- t(scale(t(metaplot_filtered_matrix)))
 
 # clustering
 metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
@@ -581,11 +584,11 @@ I chose those DBPs that seemed to have the most different binding profiles.
 
 # H3K4me1: shows inverse pattern to most with depletion at TSS
 
-plot_tss_profile(metaplot_matrix, "H3K4me1", save_pdf = TRUE)
+plot_tss_profile(metaplot_filtered_matrix, "H3K4me1", save_pdf = TRUE)
 
 # H3K36me3: also depleted at TSS as expected marks genebodies 
 
-plot_tss_profile(metaplot_matrix, "H3K36me3", save_pdf = TRUE)
+plot_tss_profile(metaplot_filtered_matrix, "H3K36me3", save_pdf = TRUE)
 
 
 # KAT2B, H3K9me3, NFIC cluster:
