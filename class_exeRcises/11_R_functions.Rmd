@@ -372,7 +372,7 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
 
 # *** let's add to util and run !***
 
-create_consensus_peaks(broadpeakfilepath)
+create_consensus_peaks(broadpeakfilepath = "/scratch/Shares/rinnclass/CLASS_2022/data/peaks/") 
 
 
 ```
