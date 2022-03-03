@@ -369,10 +369,21 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
   }
   return(consensus_peaks)
 }
+```
 
+
+```{R running consensus peaks for test run ~3hrs}
 # *** let's add to util and run !***
 
 create_consensus_peaks(broadpeakfilepath = "/scratch/Shares/rinnclass/CLASS_2022/data/peaks/") 
+
+# export consensus peaks to CORRECT DIRECTORY!
+for(i in 1:length(consensus_peaks)) {
+  rtracklayer::export(consensus_peaks[[i]], 
+                      paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks/", 
+                             names(consensus_peaks)[i], 
+                             "_consensus_peaks.bed"))
+}
 
 
 ```
