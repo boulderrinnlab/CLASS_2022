@@ -15,7 +15,7 @@ library(GenomicRanges)
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
 
-# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
 
 source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
 source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder./CLASS_2022/util/class_functions.R")
@@ -250,48 +250,32 @@ read_peaks <- function(broad_peak_file, filter_to_canonical_chr = TRUE) {
 
 # *** let's add this to our util ***
 
-
 ```
 
-
-
-
-
-The above functions are all part of another function we will get to soon:
-'create_consensus_peaks'
-
-This overall function to find overlaps between all 560 
-replicates will use the custom functions we just made together:
-
-import_peaks
-intersect_peaks 
-read_peaks
-
-We did the first two already (in concept) now let's look at read_peaks
-
+```{r looking deeper into read peaks}
 
 # Let's see where the V1-V3 come from in read.table:
 test <- read.table("/scratch/Shares/rinnclass/CLASS_2022/data/peaks/CTCF_R1_peaks.broadPeak")
 
-# let's run the function
-test2 <- read_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks/CTCF_R1_peaks.broadPeak", filter_to_canonical_chr = TRUE)
+# let's run the read_peaks function on one file
+test2 <- read_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks/CTCF_R1_peaks.broadPeak", filter_to_canonical_chr = TRUE) 
 
-# Let's take a look at what we got
-table(test2)
-# how many peaks are there?
-table(table(test2))
+# This is hard to read because read_peaks returns a GenomicRange
+# Let's convert to a data.frame
 
-# Let's make sure the contigs are gone
-test3 <- test2 %>% 
-as.data.frame()
+test2 <- read_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks/CTCF_R1_peaks.broadPeak", filter_to_canonical_chr = TRUE) %>%
+  as.data.frame()
 
-# Another way to do the same.
-table(test2@seqnames)
-
-# Overall read_peaks filters to normal chromosomes and makes a granges for a given peak file.
-# This will be used in a for loop in create_consensus_peaks to filter chromosomes and great a GRanges object -- that will be passed along the for loop to "intersect_peaks" or "findOverlaps"
+# Compare test and test2 now -- we see 60 peaks are lost
 
 ```
+
+The above functions are all part of another function 'create_consensus_peaks'
+It is comprised of:
+import_peaks
+intersect_peaks 
+read_peaks
+
 
 # create_consensus_peaks function
 Now let's look at the functions involved in creating consensus peaks.
@@ -311,8 +295,10 @@ It is also going to call other custom functions (read_peaks, intersect_peaks )
 ```
 
 # Review the entire function !
+
 Ok let's go through the code that is a function of functions we went over above.
 This is the full function!
+
 ```{r reviewing the functions in the functions}
 
 # This is just setting up to name the funciton.
@@ -322,7 +308,7 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
   
 # broadpeakfilepath <- "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise"
 
-# making a list of file paths to the 
+# making a list of file paths to the (similar to import_peaks function)
   fl <- list.files(broadpeakfilepath, 
                    full.names=TRUE)
   fl <- fl[grep("peaks.broadPeak", fl)]
@@ -334,13 +320,15 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
   })
   
  
-  # making sure there is a replicate
+  # making sure there is a replicate and creating "unique_tf" index
+  # This will be used in a forloop
   tf_df <- data.frame(table(tf_name)) %>%  # data.frame(table(tf_name))
     filter(Freq > 1)
   unique_tf <- as.character(tf_df$tf_name) # unique_tf
   
 
 # Now a nested for loop (2 for loops) to make GRanges of peak files.
+  # This is similar to read_peaks
   consensus_peaks <- list()
   for(i in 1:length(unique_tf)) {
     
@@ -350,9 +338,11 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
     print(tf)
     # indexing unique DBP name to file path (e.g., first 8 are CTCF files)
     tf_index <- grep(tf, tf_name)
+    # takes the TF name and grabs the index in fl for those replicates
     tf_files <- fl[tf_index]
     
     # now make a list of GRanges in a peak_list using another for loop
+    # READ_PEAKS being used 
     peak_list <- c()
     for(j in 1:length(tf_files)) {
       # See the read peaks function to know what subfunctions are called.
@@ -360,6 +350,7 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
       # same read peaks function and we now have each DBP indexed in tf_files
     }
 
+    # READ_PEAKS now being used
 # filtering chromosomes -- redundant since read peaks does this too -- oh well.
     canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
     for(i in 1:length(peak_list)) {
@@ -367,6 +358,7 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
     }
 
 # Now we use intersect_peaks functino to find overlaps 
+    # INTERSECT_PEAKS now being used
     final_peakset <- intersect_peaks(peak_list = peak_list)
     if(length(final_peakset) > 0) {
       final_peakset$name <- paste0(tf, "_", 1:length(final_peakset))
@@ -377,6 +369,11 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
   }
   return(consensus_peaks)
 }
+
+# *** let's add to util and run !***
+
+create_consensus_peaks(broadpeakfilepath)
+
 
 ```
 
