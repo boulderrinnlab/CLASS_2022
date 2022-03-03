@@ -15,6 +15,8 @@ library(GenomicRanges)
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
 
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
+
 source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
 source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder./CLASS_2022/util/class_functions.R")
 
@@ -44,6 +46,8 @@ fun(2,-4)
 # ans is a local variable that is erased after used. global variables are in our environment.
 # It's good to remember the "scope" of vars in a function don't really exist outside the function.
 # Finally note a function can only return one thing!
+
+# **** now let's make a util function *****
 ```
 
 When creating a function, you can also add documentation about what that function 
@@ -130,6 +134,8 @@ import_peaks <- function(consensus_file_path = "/scratch/Shares/rinnclass/CLASS_
   
   # Setting some variables needed in main part of function (same as above -- peak_files & tf_name)
   peak_files <- list.files(consensus_file_path, full.names = T)
+  
+  # Make an object with each TF name for indexing and merging later
   tf_name <- sapply(peak_files, function(x){
     y <-  str_extract(x, "([^\\/]+$)")
     unlist(strsplit(y, "_"))[[1]]
@@ -175,7 +181,7 @@ Let's add import peaks to util using this header (can take out all the markdown 
 #' import peak .bed files as a list
 #' 
 #' @description 
-#' this function will take consensus peak files and name them by the DBP
+#' this function will take each peak file and name them by the DBP
 #' and return a list of GRanges peaks for each ChiPseq experiment
 #' 
 #' @param consensus_file_path the path to consensus peak files
@@ -240,6 +246,9 @@ read_peaks <- function(broad_peak_file, filter_to_canonical_chr = TRUE) {
                 ranges = IRanges(start=dat$V2,end=dat$V3))
   return(gr)
 }
+
+# *** Let's make this a function in our util
+
 
 # Let's see where the V1-V3 come from in read.table:
 test <- read.table("/scratch/Shares/rinnclass/CLASS_2022/data/peaks/CTCF_R1_peaks.broadPeak")
