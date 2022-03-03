@@ -12,16 +12,13 @@ fun <- function(x, y) {
 
 
 
-
-
-
-#' import peak .bed files as a list
+#' *** import peak .bed files as a list ***
 #' 
 #' @description 
 #' this function will take each peak file and name them by the DBP
 #' and return a list of GRanges peaks for each ChiPseq experiment
 #' 
-#' @param consensus_file_path the path to consensus peak files
+#' @param consensus_file_path the path to each peak file
 #' 
 
 import_peaks <- function(consensus_file_path = "/scratch/Shares/rinnclass/CLASS_2022/data/peaks") {
@@ -48,6 +45,54 @@ import_peaks <- function(consensus_file_path = "/scratch/Shares/rinnclass/CLASS_
     names(peak_list)[length(peak_list)] <- tf_name[i]
   }
   return(peak_list)
+}
+
+
+
+#' *** Intersect peaks from replicate chip-seq peak files ***
+#' 
+#' @description 
+#' this function will take each peak file and perform 
+#' fingOVerlaps to produce all the indicies for overlaps 
+#' this is further used in create_consensus_peaks function
+
+#' 
+#' @param peak_list which is produced in import_peaks function
+#' 
+
+intersect_peaks <- function(peak_list) {
+
+combined_peaks <- peak_list[[1]]
+for(i in 2:length(peak_list)) {
+  suppressWarnings(pl_ov <- findOverlaps(combined_peaks, peak_list[[i]]))
+  pl1 <- combined_peaks[unique(pl_ov@from)]
+  pl2 <- peak_list[[i]][unique(pl_ov@to)]
+  suppressWarnings(combined_peaks <- GenomicRanges::reduce(union(pl1, pl2)))
+  
+}
+return(combined_peaks)
+}
+
+
+
+#' *** read peaks function: filter to cannonical chr ***
+#' 
+#' @description 
+#' this function will filter each peak file to only cannonical chr.
+
+
+#' 
+#' @param broad_peak_file which is produced in import_peaks function
+#' 
+
+read_peaks <- function(broad_peak_file, filter_to_canonical_chr = TRUE) {
+  dat <- read.table(broad_peak_file, sep = "\t")
+  if(filter_to_canonical_chr == TRUE) {
+    dat <- dat[dat$V1 %in% c(paste0("chr", 1:22), "chrM", "chrX", "chrY"),]
+  }
+  gr <- GRanges(seqnames = dat$V1,
+                ranges = IRanges(start=dat$V2,end=dat$V3))
+  return(gr)
 }
 
 ```

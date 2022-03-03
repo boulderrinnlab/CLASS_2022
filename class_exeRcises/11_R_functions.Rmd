@@ -175,7 +175,9 @@ peak_list <- import_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
 ```
  
 # Sourcing custom functions -- util folder
+
 Let's add import peaks to util using this header (can take out all the markdown above too):
+
 ```{R sourcing custom functions from UTIL}
 
 #' import peak .bed files as a list
@@ -183,8 +185,10 @@ Let's add import peaks to util using this header (can take out all the markdown 
 #' @description 
 #' this function will take each peak file and name them by the DBP
 #' and return a list of GRanges peaks for each ChiPseq experiment
-#' 
-#' @param consensus_file_path the path to consensus peak files
+#' These will be used as input into create consensus peaks
+#' NOTE usage of "consensus" here is bad and should just be peak file
+#' **** (e.g. consensus_file_path, should be peak file path) ****
+#' @param consensus_file_path the path to each peak file
 ```
 
 # interesect peaks custom function
@@ -199,12 +203,14 @@ Here we will use the peak_list we generated above and push it into this function
 # note the dependence on peak_list which is the output of import_peaks.
 
 intersect_peaks <- function(peak_list) {
+  
   combined_peaks <- peak_list[[1]]
   for(i in 2:length(peak_list)) {
     suppressWarnings(pl_ov <- findOverlaps(combined_peaks, peak_list[[i]]))
     pl1 <- combined_peaks[unique(pl_ov@from)]
     pl2 <- peak_list[[i]][unique(pl_ov@to)]
     suppressWarnings(combined_peaks <- GenomicRanges::reduce(union(pl1, pl2)))
+    
   }
   return(combined_peaks)
 }
@@ -212,30 +218,24 @@ intersect_peaks <- function(peak_list) {
 # Now that we have this function in this environment session we
 # could just run it like this:
 
-# overlaps <- intersect_peaks(peak_list)
-
-# convert to data frame
-# ov_df <- overlaps %>% as.data.frame()
-
+overlaps <- intersect_peaks(peak_list)
 
 ```
 
-# read_peaks custom function.
-The above functions are all part of another function we will get to soon:
-'create_consensus_peaks'
+```
+# ***** Let's add this as a function in our util ******
+```
 
-This overall function to find overlaps between all 560 
-replicates will use the custom functions we just made together:
 
-import_peaks
-intersect_peaks 
-read_peaks
+# **** read_peaks custom function ****
 
-We did the first two already (in concept) now let's look at read_peaks
+The next function we need as a sub function of consensus peaks is:
+read_peaks function
+This function basically just filters peaks to cannonical chromosomes.
 
-```{r read_peaks custom function}
+```{R read_peaks: to filter only cannonical chromosomes}
 
-# this function simply filters out the non-cannonical chromosomes.
+# establishing read peaks function
 
 read_peaks <- function(broad_peak_file, filter_to_canonical_chr = TRUE) {
   dat <- read.table(broad_peak_file, sep = "\t")
@@ -247,7 +247,27 @@ read_peaks <- function(broad_peak_file, filter_to_canonical_chr = TRUE) {
   return(gr)
 }
 
-# *** Let's make this a function in our util
+
+# *** let's add this to our util ***
+
+
+```
+
+
+
+
+
+The above functions are all part of another function we will get to soon:
+'create_consensus_peaks'
+
+This overall function to find overlaps between all 560 
+replicates will use the custom functions we just made together:
+
+import_peaks
+intersect_peaks 
+read_peaks
+
+We did the first two already (in concept) now let's look at read_peaks
 
 
 # Let's see where the V1-V3 come from in read.table:
