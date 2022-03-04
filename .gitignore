@@ -42,3 +42,5 @@ work/*
 *.rds
 *.gtf
 *fa
+*.bed
+
