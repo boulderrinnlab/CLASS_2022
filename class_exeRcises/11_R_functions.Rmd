@@ -40,6 +40,8 @@ fun <- function(x, y) {
   ans <- x * y
   return(ans)
 }
+
+#let's try it 
 fun(2,-4)
 
 # Note that the object ans doesn't exist in our environment. 
@@ -51,7 +53,8 @@ fun(2,-4)
 ```
 
 When creating a function, you can also add documentation about what that function 
-does and the data types and expectationn for the the parameters it takes.
+does and the data types and expectation for the the parameters it takes.
+
 ```{r documenting functions}
 #' A function to multiply two numbers
 #'
@@ -94,6 +97,13 @@ broadpeakfilepath <- paste0("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
 
   fl <- list.files(broadpeakfilepath, 
                    full.names=TRUE)
+  
+  #or
+  
+  fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/peaks", 
+                   full.names=TRUE)
+  
+  
   # making a list of file names as we did in 08.Rmd Note full file path is included
   # This gives us an index 1-15 where each peak file is in a vector.
   
@@ -106,6 +116,11 @@ broadpeakfilepath <- paste0("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
 Let's make a function to find which DBPs have peak files. 
 sapply requires a function so let's try it
 ```{R sapply and regular expression} 
+
+# let's see what is in fl:
+
+fl[1]
+
 
   tf_name <- sapply(fl, function(x){
     y <-  str_extract(x, "([^\\/]+$)")
