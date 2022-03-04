@@ -67,6 +67,7 @@ fun <- function(x, y) {
   ans <- x * y
   return(ans)
 }
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_2022_functions.R")
 
 # Let's make a util .R file and put this function in there
 # clear environment and load functions -- shows up as something you can just run now
@@ -91,6 +92,8 @@ in the file name itself. Let's look at this function:
 # First let's set a file path to where all our peak files are.
 
 broadpeakfilepath <- paste0("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
+
+
 # So this is now a global variable that can be called in a function.
 
 # list.files will make a list of all the files in a dir
@@ -119,7 +122,7 @@ sapply requires a function so let's try it
 
 # let's see what is in fl:
 
-fl[1]
+fl[28]
 
 
   tf_name <- sapply(fl, function(x){
