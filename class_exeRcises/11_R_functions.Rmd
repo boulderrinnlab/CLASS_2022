@@ -224,7 +224,7 @@ intersect_peaks <- function(peak_list) {
   
   combined_peaks <- peak_list[[1]]
   for(i in 2:length(peak_list)) {
-    suppressWarnings(pl_ov <- findOverlaps(combined_peaks, peak_list[[i]]))
+    suppressWarnings(pl_ov <- findOverlaps(combined_peaks, peak_list[[1]]))
     pl1 <- combined_peaks[unique(pl_ov@from)]
     pl2 <- peak_list[[i]][unique(pl_ov@to)]
     suppressWarnings(combined_peaks <- GenomicRanges::reduce(union(pl1, pl2)))

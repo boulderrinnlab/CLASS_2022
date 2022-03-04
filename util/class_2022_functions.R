@@ -46,3 +46,26 @@ import_peaks <- function(consensus_file_path = "/scratch/Shares/rinnclass/CLASS_
   }
   return(peak_list)
 }
+
+
+
+
+
+
+#' intersect peaks function
+#' 
+#' @description this function finds overlaps for all replicate chip-peak files
+#' @param peak_list
+
+intersect_peaks <- function(peak_list) {
+  
+  combined_peaks <- peak_list[[1]]
+  for(i in 2:length(peak_list)) {
+    suppressWarnings(pl_ov <- findOverlaps(combined_peaks, peak_list[[1]]))
+    pl1 <- combined_peaks[unique(pl_ov@from)]
+    pl2 <- peak_list[[i]][unique(pl_ov@to)]
+    suppressWarnings(combined_peaks <- GenomicRanges::reduce(union(pl1, pl2)))
+    
+  }
+  return(combined_peaks)
+}
