@@ -19,14 +19,17 @@ source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util")
 Today we are going to practice running the create_consensus_peaks function. Then import the full dataset of 486 DBPs!
 
 # running consensus peaks -- takes ~3hrs
-```{r create_consensus_peaks}
+```{r create_consensus_peaks -- run as local job}
 
 # let's run our new function create consensus peaks -- let's run as local job
 # so we first need to source util and the packages needed.
 
+# now we need to make an Rscript and put in working dir (11)
+
 library(tidyverse)
 library(GenomicRanges)
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
 
 # run consensus peaks
 consensus_peaks <- create_consensus_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
@@ -40,6 +43,96 @@ for(i in 1:length(consensus_peaks)) {
                              "_consensus_peaks.bed"))
 }
 
+# Run local job by setting working dir to 11 - ref .R script
+
+
+# After run go to line 130 ish
+```
+
+# Making annotaiton files while consensus peaks runs:
+
+
+# Creating genome annotation files
+Great, now we have a bunch of data -- let's see where the peaks land in different annotations of the genome.
+
+First let's make GRanges of mRNA and lncRNA promoter regions (save somewhere handy in your local folder)
+
+```{r defininig promoters for specific gene lists}
+
+# first load in the gencode annotation file
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/genomes/gencode.v32.annotation.gtf")
+
+# lncRNA and mRNA promoters (half annotations are pseudogenes and other types)
+lncrna_mrna_promoters <- get_promoter_regions(gencode_gr, biotype = c("lncRNA", "protein_coding"))
+
+# export to save for later
+rtracklayer::export(lncrna_mrna_promoters, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+
+# let's do a test reimport as we will do this often too.
+lncrna_mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+
+# note we can add names!
+names(lncrna_mrna_promoters) <- lncrna_mrna_promoters$gene_id
+
+# creating lncRNAs promoter features
+lncrna_promoters <- get_promoter_regions(gencode_gr, biotype = "lncRNA")
+rtracklayer::export(lncrna_promoters, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_promoters.gtf")
+
+# let's reimport and add names
+lncrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_promoters.gtf")
+
+# finally mRNA promoters
+
+mrna_promoters <- get_promoter_regions(gencode_gr, biotype = "protein_coding")
+rtracklayer::export(mrna_promoters, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/mrna_promoters.gtf") 
+
+# let's reimport and add names
+
+mrna_promoters <- rtracklayer::import( "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/mrna_promoters.gtf") 
+
+
+# Let's look more closely with a data frame.
+mrna_promoters_df <- mrna_promoters %>%
+  as.data.frame()
+
+
+```
+
+# Making gene body annotation files.
+Now let's do the same for gene bodies. 
+This will primarily be done with clever indexing 
+
+```{r making gene bodie annotation files}
+
+# lncRNA and mRNA gene bodies
+lncrna_mrna_genebody <- gencode_gr[gencode_gr$type == "gene" & 
+                                     gencode_gr$gene_type %in% c("lncRNA", "protein_coding")]
+# exporting
+rtracklayer::export(lncrna_mrna_genebody, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_mrna_genebody.gtf")
+
+# lncRNA genebodies
+lncrna_genebody <- gencode_gr[gencode_gr$type == "gene" & 
+                                gencode_gr$gene_type %in% c("lncRNA")]
+
+# exporting
+rtracklayer::export(lncrna_genebody, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_genebody.gtf")
+
+# mrna gene bodies
+mrna_genebody <- gencode_gr[gencode_gr$type == "gene" & 
+                              gencode_gr$gene_type %in% c("protein_coding")]
+
+# exporting
+rtracklayer::export(mrna_genebody, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/mrna_genebody.gtf")
+
+
+```
+
+
+## START POINT CONSENSUS PEAK SUMMARY ## 
+
+# Consensus Peak Properties
+
+```{R consensus_peak properties}
 # Nice this only took 30 min locally
 # normally is 3hrs in local environment
 # long runs are best done as local job outside Rstudio!
@@ -63,6 +156,7 @@ hist(width(consensus_peaks[[2]]), breaks = 1000, xlim = c(0, 300))
 
 
 # filtering consensus peaks to at least 250 peaks
+# Do we want a different number??
 
 ```{r filtering consensus peaks > 250}
 
@@ -119,82 +213,6 @@ filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::
 
 # This is adding the names to each GRange in the list -- names are very important :) 
 names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks/|filtered_consensus_peaks.bed", "", filtered_consensus_peaks_files)
-
-```
-
-# Creating genome annotation files
-Great, now we have a bunch of data -- let's see where the peaks land in different annotations of the genome.
-
-First let's make GRanges of mRNA and lncRNA promoter regions (save somewhere handy in your local folder)
-
-```{r defininig promoters for specific gene lists}
-
-# first load in the gencode annotation file
-gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/genomes/gencode.v32.annotation.gtf")
-
-# lncRNA and mRNA promoters (half annotations are pseudogenes and other types)
-lncrna_mrna_promoters <- get_promoter_regions(gencode_gr, biotype = c("lncRNA", "protein_coding"))
-
-# export to save for later
-rtracklayer::export(lncrna_mrna_promoters, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
-
-# let's do a test reimport as we will do this often too.
-lncrna_mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
-
-# note we can add names!
-names(lncrna_mrna_promoters) <- lncrna_mrna_promoters$gene_id
-
-# creating lncRNAs promoter features
-lncrna_promoters <- get_promoter_regions(gencode_gr, biotype = "lncRNA")
-rtracklayer::export(lncrna_promoters, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_promoters.gtf")
-
-# let's reimport and add names
-lncrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_promoters.gtf")
-
-
-
-# finally mRNA promoters
-
-mrna_promoters <- get_promoter_regions(gencode_gr, biotype = "protein_coding")
-rtracklayer::export(mrna_promoters, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/mrna_promoters.gtf") 
-
-# let's reimport and add names
-
-mrna_promoters <- rtracklayer::import( "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/mrna_promoters.gtf") 
-
-
-mrna_promoters_df <- mrna_promoters %>%
-  as.data.frame()
-
-
-```
-
-# Making gene body annotation files.
-Now let's do the same for gene bodies. 
-This will primarily be done with clever indexing 
-
-```{r making gene bodie annotation files}
-
-# lncRNA and mRNA gene bodies
-lncrna_mrna_genebody <- gencode_gr[gencode_gr$type == "gene" & 
-                                     gencode_gr$gene_type %in% c("lncRNA", "protein_coding")]
-# exporting
-rtracklayer::export(lncrna_mrna_genebody, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_mrna_genebody.gtf")
-
-# lncRNA genebodies
-lncrna_genebody <- gencode_gr[gencode_gr$type == "gene" & 
-                                gencode_gr$gene_type %in% c("lncRNA")]
-
-# exporting
-rtracklayer::export(lncrna_genebody, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_genebody.gtf")
-
-# mrna gene bodies
-mrna_genebody <- gencode_gr[gencode_gr$type == "gene" & 
-                              gencode_gr$gene_type %in% c("protein_coding")]
-
-# exporting
-rtracklayer::export(mrna_genebody, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/mrna_genebody.gtf")
-
 
 ```
 

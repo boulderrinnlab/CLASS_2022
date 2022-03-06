@@ -24,7 +24,7 @@ Let's start importing all the files we need:
 
 
 # first create a file list of filtered consensus peaks
-filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks", 
+filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks", 
                                              pattern = "*.bed",
                                              full.names = TRUE)
 
