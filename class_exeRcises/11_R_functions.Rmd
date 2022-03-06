@@ -344,7 +344,6 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
     filter(Freq > 1)
   unique_tf <- as.character(tf_df$tf_name) # unique_tf
   
-
 # Now a nested for loop (2 for loops) to make GRanges of peak files.
   # This is similar to read_peaks
   consensus_peaks <- list()
