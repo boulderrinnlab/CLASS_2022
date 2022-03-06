@@ -64,6 +64,7 @@ gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gen
 
 # lncRNA and mRNA promoters (half annotations are pseudogenes and other types)
 lncrna_mrna_promoters <- get_promoter_regions(gencode_gr, biotype = c("lncRNA", "protein_coding"))
+gencode_gr@biotype
 
 # export to save for later
 rtracklayer::export(lncrna_mrna_promoters, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
@@ -94,7 +95,6 @@ mrna_promoters <- rtracklayer::import( "/scratch/Shares/rinnclass/CLASS_2022/JR/
 # Let's look more closely with a data frame.
 mrna_promoters_df <- mrna_promoters %>%
   as.data.frame()
-
 
 ```
 
@@ -138,17 +138,23 @@ rtracklayer::export(mrna_genebody, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLAS
 # long runs are best done as local job outside Rstudio!
 
 # let's take a look
+
 summary(consensus_peaks)
 # note CTCF went from 30,000 some peaks to 28,640 that overlap in all 8 replicates
 
 # let's plot the lengths of all the consensus peak files (sapply)
 hist(sapply(consensus_peaks, length))
 
+
+hist(sapply(consensus_peaks, length), breaks = 1000, xlim = c(0, 10000))
+
 # let's see how wide the peaks are for one example
 hist(width(consensus_peaks[[2]]), breaks = 1000)
 
 # let's add a limit to the x-axis so we cna see this better
 hist(width(consensus_peaks[[2]]), breaks = 1000, xlim = c(0, 300))
+
+hist(width(consensus_peaks[37]), breaks = 1000, xlim = c(0, 300))
 
 # phew the peaks are mostly bigger than 100 bp.
 
