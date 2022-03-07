@@ -442,13 +442,20 @@ TEST EXAMPLE : CTCF under the hood of create_consensus_peaks
 
 # This how we would now run the function for all DBPs -- however let's step through one example
 
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/class_functions.R")
 
 # create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclass/CLASS_2022/data/peaks/")
 
-fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/peaks/", 
+fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/peaks", 
                  full.names=TRUE)
+
+# let's take a look -- a bunch of file paths
+
 fl <- fl[grep("peaks.broadPeak", fl)]
+
+# now let's look (nothing changed since all are broad_peaks)
+fl
 
 # getting a DBP name for same index as each file path
 tf_name <- sapply(fl, function(x){
@@ -456,11 +463,22 @@ tf_name <- sapply(fl, function(x){
   unlist(strsplit(y, "_"))[[1]]
 })
 
+# let's take a look
+tf_name
+# holds all the names extracted above from the file name
 
 # making sure there is a replicate and creating "unique_tf" index
-# This will be used in a forloop
+# We could do this a few ways
+
+table(table(tf_name))
+# we see that three DBPs only have one replicate !!
+
+# we could make a dataframe as is done in create_consensus peaks
+
+
 tf_df <- data.frame(table(tf_name)) %>%  # data.frame(table(tf_name))
   filter(Freq > 1)
+
 unique_tf <- as.character(tf_df$tf_name) # unique_tf
 
 # Now a nested for loop (2 for loops) to make GRanges of peak files.
@@ -475,7 +493,12 @@ print(tf)
 # indexing unique DBP name to file path (e.g., first 8 are CTCF files)
 tf_index <- grep(tf, tf_name)
 # takes the TF name and grabs the index in fl for those replicates
+tf_index
+
+
+# now we are subsetting tf_files to only CTCF indices
 tf_files <- fl[tf_index]
+tf_files
 
 # now make a list of GRanges in a peak_list using another for loop
 # READ_PEAKS being used 
@@ -484,6 +507,7 @@ peak_list <- c()
 for(j in 1:length(tf_files)) {
   # Using read peaks to clean up chromosomes
   peak_list <- c(peak_list, read_peaks(tf_files[j]))
+  # note this is concatinating each DBP when run in for loop (the next j will be pasted into peak_list)
   # peak_list <-  read_peaks(tf_files[[j]], filter_to_canonical_chr = TRUE)
   # same read peaks function and we now have each DBP indexed in tf_files
 }
@@ -499,6 +523,7 @@ for(i in 1:length(peak_list)) {
 # Now we use intersect_peaks functino to find overlaps 
 # INTERSECT_PEAKS now being used
 final_peakset <- intersect_peaks(peak_list = peak_list)
+# this is findOverlaps for file 1-2, then that file is used for 3
 if(length(final_peakset) > 0) {
   final_peakset$name <- paste0(tf, "_", 1:length(final_peakset))
 }
@@ -506,6 +531,7 @@ if(length(final_peakset) > 0) {
 # concatinating to add the next DBP to this list of consensus_peaks
 consensus_peaks <- c(consensus_peaks, list(final_peakset))
 names(consensus_peaks)[length(consensus_peaks)] <- tf
+
 
 ```
 
