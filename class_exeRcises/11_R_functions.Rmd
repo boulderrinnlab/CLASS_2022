@@ -395,11 +395,16 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
 # First make sure create_consesnus_peaks is in you Util calss_functions.R file.
 # then source your util or just the functions file.
 
+# test to make sure it's ready
+# Copy lines 305-212 &  323-388 in util "class_functions.R"
+
 source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder/CLASS_2022/util/class_functions.R")
 
 ```
 
 # Now we are going to create an rscript to run create_consensus_peaks
+# **** Must have output folder ready ****
+# *** Set working directory to 11_ , create necessary directories ***
 ```{r create R script}
 
 # the rscript is going to run somewhere else in a blank environment.
@@ -414,7 +419,15 @@ source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.
 # run consensus peaks
 consensus_peaks <- create_consensus_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
 
-# run in console pane under "jobs" select rscript from /analysis/11_consensus_peaks
+# export consensus peaks 
+for(i in 1:length(consensus_peaks)) {
+  rtracklayer::export(consensus_peaks[[i]], 
+                      paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks/", 
+                             names(consensus_peaks)[i], 
+                             "_consensus_peaks.bed"))
+}
+
+# run in console pane under "jobs" select Rscript from /analysis/11_consensus_peaks
 
 ```
 
@@ -430,7 +443,6 @@ TEST EXAMPLE : CTCF under the hood of create_consensus_peaks
 # This how we would now run the function for all DBPs -- however let's step through one example
 
 source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
-
 
 # create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclass/CLASS_2022/data/peaks/")
 
@@ -501,8 +513,6 @@ source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.
   return(consensus_peaks)
 }
 ```
-
-
 
 
 *********************
