@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util")
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util")
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder/CLASS_2022/util/intersect_functions.R")
 ```
 
 Today we are going to practice running the create_consensus_peaks function. Then import the full dataset of 483 DBPs!
@@ -167,17 +167,34 @@ rtracklayer::export(mrna_genebody, "/scratch/Shares/rinnclass/CLASS_2022/<your_f
 # normally is 3hrs in local environment
 # long runs are best done as local job outside Rstudio!
 
+consensus_fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks", full.names = T)
+
+
+consensus_peaks <- lapply(consensus_fl, rtracklayer::import)
+
+
+names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks/|_consensus_peaks.bed","", consensus_fl)
+
+
+
+
+
 # let's take a look
 summary(consensus_peaks)
 # note CTCF went from 30,000 some peaks to 28,640 that overlap in all 8 replicates
 
+num_peaks <- sapply(consensus_peaks, length)
+
 # let's plot the lengths of all the consensus peak files (sapply)
-hist(sapply(consensus_peaks, length))
+hist(num_peaks)
 
 # Let's break this down more and look into peaks near 0
 
-hist(sapply(consensus_peaks, length), breaks = 10000, xlim = c(0, 1000))
-# TODO how to find those that are 0 in length
+hist(num_peaks, breaks = 10000, xlim = c(0, 1000))
+
+max(num_peaks)
+which.max(num_peaks)
+consensus_peaks[which.max(num_peaks)]
 
 # let's see how wide the peaks are for one example
 hist(width(consensus_peaks[[37]]), breaks = 1000)
@@ -196,7 +213,7 @@ hist(width(consensus_peaks[[37]]), breaks = 1000, xlim = c(0, 300))
 ```{r filtering consensus peaks > 250}
 
 num_peaks_threshold <- 250
-filtered_consensus_peaks <- consensus_peaks[sapply(consensus_peaks, length) > num_peaks_threshold]
+filtered_consensus_peaks <- consensus_peaks[num_peaks > num_peaks_threshold]
 # Now we have a shorter list of GRanges!
 summary(filtered_consensus_peaks)
 table(summary(filtered_consensus_peaks))
@@ -216,7 +233,9 @@ for(i in 1:length(filtered_consensus_peaks)) {
 
 # order matters want the biggest list first to find what is not in it.
 lost_dbp <- setdiff(names(consensus_peaks), names(filtered_consensus_peaks))
-# TODO ? setdiff base R?
+
+ASYMETRIC <- setdiff(names(filtered_consensus_peaks), names(consensus_peaks))
+
 lost_dbp
 
 # let's see how order matters

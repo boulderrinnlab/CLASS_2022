@@ -24,13 +24,13 @@ Let's start importing all the files we need:
 
 
 # first create a file list of filtered consensus peaks
-filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks", 
+filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks", 
                                              pattern = "*.bed",
                                              full.names = TRUE)
 
-# filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks", 
-   #                                         pattern = "*.bed",
-    #                                       full.names = TRUE)
+filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks", 
+                                         pattern = "*.bed",
+                                          full.names = TRUE)
 
 # lappy to import each file in file list 
 filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
@@ -38,7 +38,7 @@ filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::
 # adding names to rows
 
 #TODO this doesn't run?
-names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/|_consensus_peaks.bed", "", filtered_consensus_peaks)
+names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
 
 ```
 

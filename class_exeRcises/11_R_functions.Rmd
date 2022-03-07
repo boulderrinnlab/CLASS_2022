@@ -98,21 +98,21 @@ broadpeakfilepath <- paste0("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
 
 # list.files will make a list of all the files in a dir
 
-  fl <- list.files(broadpeakfilepath, 
-                   full.names=TRUE)
-  
-  #or
-  
-  fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/peaks", 
-                   full.names=TRUE)
-  
-  
-  # making a list of file names as we did in 08.Rmd Note full file path is included
-  # This gives us an index 1-15 where each peak file is in a vector.
-  
-  fl <- fl[grep("peaks.broadPeak", fl)]
-  # making sure we only get files that are .broadPeak using grep
-  
+fl <- list.files(broadpeakfilepath, 
+                 full.names=TRUE)
+
+#or
+
+fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/peaks", 
+                 full.names=TRUE)
+
+
+# making a list of file names as we did in 08.Rmd Note full file path is included
+# This gives us an index 1-15 where each peak file is in a vector.
+
+fl <- fl[grep("peaks.broadPeak", fl)]
+# making sure we only get files that are .broadPeak using grep
+
 ```
 
 # sapply function
@@ -125,18 +125,18 @@ sapply requires a function so let's try it
 fl[28]
 
 
-  tf_name <- sapply(fl, function(x){
-    y <-  str_extract(x, "([^\\/]+$)")
-    unlist(strsplit(y, "_"))[[1]]
-    
-    # We use a generic function (function(x) and set a new variable y using str_extract
-    # then x is subject to str_extract and regex to split all / and words (https://regexr.com/3cr6f)  
-    # strplit then splits up the broken up string from str_extract and takes the right side 
-        # first character string after the last /
-    
-    # ?? What would the input be to make this a function ??
-
-  })
+tf_name <- sapply(fl, function(x){
+  y <-  str_extract(x, "([^\\/]+$)")
+  unlist(strsplit(y, "_"))[[1]]
+  
+  # We use a generic function (function(x) and set a new variable y using str_extract
+  # then x is subject to str_extract and regex to split all / and words (https://regexr.com/3cr6f)  
+  # strplit then splits up the broken up string from str_extract and takes the right side 
+  # first character string after the last /
+  
+  # ?? What would the input be to make this a function ??
+  
+})
 ```
 
 # write function to import and rename a list of peak files
@@ -158,9 +158,9 @@ import_peaks <- function(consensus_file_path = "/scratch/Shares/rinnclass/CLASS_
     y <-  str_extract(x, "([^\\/]+$)")
     unlist(strsplit(y, "_"))[[1]]
   })
-
-# Here is the heart of the function that will import each file as GRanges (we can use for overlaps)
-# takes 
+  
+  # Here is the heart of the function that will import each file as GRanges (we can use for overlaps)
+  # takes 
   
   peak_list <- c()
   for(i in 1:length(peak_files)) {
@@ -186,12 +186,12 @@ Let's use import_peaks function but assign the local output to global output! Th
 # take aprox 8 min
 
 peak_list <- import_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
-  
+
 # cool we have a list of Granges nicely named where each entry in the list is a 
 # single peak file.
 
 ```
- 
+
 # Sourcing custom functions -- util folder
 
 Let's add import peaks to util using this header (can take out all the markdown above too):
@@ -322,29 +322,29 @@ This is the full function!
 # This is just setting up to name the funciton.
 create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclass/CLASS_2022/data/peaks/") {
   
-# For now we can set broadpeakfilepath
+  # For now we can set broadpeakfilepath
   
-# broadpeakfilepath <- "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise"
-
-# making a list of file paths to the (similar to import_peaks function)
+  # broadpeakfilepath <- "/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/11_consensus_peak_exercise"
+  
+  # making a list of file paths to the (similar to import_peaks function)
   fl <- list.files(broadpeakfilepath, 
                    full.names=TRUE)
   fl <- fl[grep("peaks.broadPeak", fl)]
-
-# getting a DBP name for same index as each file path
+  
+  # getting a DBP name for same index as each file path
   tf_name <- sapply(fl, function(x){
     y <-  str_extract(x, "([^\\/]+$)")
     unlist(strsplit(y, "_"))[[1]]
   })
   
- 
+  
   # making sure there is a replicate and creating "unique_tf" index
   # This will be used in a forloop
   tf_df <- data.frame(table(tf_name)) %>%  # data.frame(table(tf_name))
     filter(Freq > 1)
   unique_tf <- as.character(tf_df$tf_name) # unique_tf
   
-# Now a nested for loop (2 for loops) to make GRanges of peak files.
+  # Now a nested for loop (2 for loops) to make GRanges of peak files.
   # This is similar to read_peaks
   consensus_peaks <- list()
   for(i in 1:length(unique_tf)) {
@@ -366,15 +366,15 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
       peak_list <- c(peak_list, read_peaks(tf_files[j]))
       # same read peaks function and we now have each DBP indexed in tf_files
     }
-
+    
     # READ_PEAKS now being used
-# filtering chromosomes -- redundant since read peaks does this too -- oh well.
+    # filtering chromosomes -- redundant since read peaks does this too -- oh well.
     canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
     for(i in 1:length(peak_list)) {
       peak_list[[i]] <-peak_list[[i]][which(seqnames(peak_list[[i]]) %in% canonical_chr)]
     }
-
-# Now we use intersect_peaks functino to find overlaps 
+    
+    # Now we use intersect_peaks functino to find overlaps 
     # INTERSECT_PEAKS now being used
     final_peakset <- intersect_peaks(peak_list = peak_list)
     if(length(final_peakset) > 0) {
@@ -446,72 +446,67 @@ source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.
 
 # create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclass/CLASS_2022/data/peaks/")
 
- fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/peaks/", 
-                   full.names=TRUE)
-  fl <- fl[grep("peaks.broadPeak", fl)]
+fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/peaks/", 
+                 full.names=TRUE)
+fl <- fl[grep("peaks.broadPeak", fl)]
 
 # getting a DBP name for same index as each file path
-  tf_name <- sapply(fl, function(x){
-    y <-  str_extract(x, "([^\\/]+$)")
-    unlist(strsplit(y, "_"))[[1]]
-  })
-  
- 
-  # making sure there is a replicate and creating "unique_tf" index
-  # This will be used in a forloop
-  tf_df <- data.frame(table(tf_name)) %>%  # data.frame(table(tf_name))
-    filter(Freq > 1)
-  unique_tf <- as.character(tf_df$tf_name) # unique_tf
-  
+tf_name <- sapply(fl, function(x){
+  y <-  str_extract(x, "([^\\/]+$)")
+  unlist(strsplit(y, "_"))[[1]]
+})
+
+
+# making sure there is a replicate and creating "unique_tf" index
+# This will be used in a forloop
+tf_df <- data.frame(table(tf_name)) %>%  # data.frame(table(tf_name))
+  filter(Freq > 1)
+unique_tf <- as.character(tf_df$tf_name) # unique_tf
+
 # Now a nested for loop (2 for loops) to make GRanges of peak files.
-  # This is similar to read_peaks
-  consensus_peaks <- list()
-  
-  #taking out the for loop since we are only doing one example:
-  # for(i in 1:length(unique_tf)) {
-    
-    tf <- unique_tf[37]
-    print(tf)
-    # indexing unique DBP name to file path (e.g., first 8 are CTCF files)
-    tf_index <- grep(tf, tf_name)
-    # takes the TF name and grabs the index in fl for those replicates
-    tf_files <- fl[tf_index]
-    
-    # now make a list of GRanges in a peak_list using another for loop
-    # READ_PEAKS being used 
-    peak_list <- c()
+# This is similar to read_peaks
+consensus_peaks <- list()
+
+#taking out the for loop since we are only doing one example:
+# for(i in 1:length(unique_tf)) {
+
+tf <- unique_tf[37]
+print(tf)
+# indexing unique DBP name to file path (e.g., first 8 are CTCF files)
+tf_index <- grep(tf, tf_name)
+# takes the TF name and grabs the index in fl for those replicates
+tf_files <- fl[tf_index]
+
+# now make a list of GRanges in a peak_list using another for loop
+# READ_PEAKS being used 
+peak_list <- c()
 # taking out the for loop for one example
-# for(j in 1:length(tf_files)) {
-# Using read peaks to clean up chromosomes
-    
-    #TODO add Lapply?? read peak
-    # broadPeak file = list.files(tf_files)
-    # lapply(read_peaks)
-    
-    #TODO how to populate peak list
-      peak_list <-  read_peaks(tf_files, filter_to_canonical_chr = TRUE)
-      # same read peaks function and we now have each DBP indexed in tf_files
-   # }
-
-    # READ_PEAKS now being used
-# filtering chromosomes -- redundant since read peaks does this too -- oh well.
-    canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
-    for(i in 1:length(peak_list)) {
-      peak_list[[i]] <-peak_list[[i]][which(seqnames(peak_list[[i]]) %in% canonical_chr)]
-    }
-
-# Now we use intersect_peaks functino to find overlaps 
-    # INTERSECT_PEAKS now being used
-    final_peakset <- intersect_peaks(peak_list = peak_list)
-    if(length(final_peakset) > 0) {
-      final_peakset$name <- paste0(tf, "_", 1:length(final_peakset))
-    }
-    
-    consensus_peaks <- c(consensus_peaks, list(final_peakset))
-    names(consensus_peaks)[length(consensus_peaks)] <- tf
-  }
-  return(consensus_peaks)
+for(j in 1:length(tf_files)) {
+  # Using read peaks to clean up chromosomes
+  peak_list <- c(peak_list, read_peaks(tf_files[j]))
+  # peak_list <-  read_peaks(tf_files[[j]], filter_to_canonical_chr = TRUE)
+  # same read peaks function and we now have each DBP indexed in tf_files
 }
+
+# READ_PEAKS now being used
+# filtering chromosomes -- redundant since read peaks does this too -- oh well.
+canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
+for(i in 1:length(peak_list)) {
+  peak_list[[i]] <-peak_list[[i]][which(seqnames(peak_list[[i]]) %in% canonical_chr)]
+  
+}
+# sapply(peak_list, length)
+# Now we use intersect_peaks functino to find overlaps 
+# INTERSECT_PEAKS now being used
+final_peakset <- intersect_peaks(peak_list = peak_list)
+if(length(final_peakset) > 0) {
+  final_peakset$name <- paste0(tf, "_", 1:length(final_peakset))
+}
+
+# concatinating to add the next DBP to this list of consensus_peaks
+consensus_peaks <- c(consensus_peaks, list(final_peakset))
+names(consensus_peaks)[length(consensus_peaks)] <- tf
+
 ```
 
 
