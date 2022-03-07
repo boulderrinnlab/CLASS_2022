@@ -168,24 +168,23 @@ rtracklayer::export(mrna_genebody, "/scratch/Shares/rinnclass/CLASS_2022/<your_f
 # long runs are best done as local job outside Rstudio!
 
 # let's take a look
-
 summary(consensus_peaks)
 # note CTCF went from 30,000 some peaks to 28,640 that overlap in all 8 replicates
 
 # let's plot the lengths of all the consensus peak files (sapply)
 hist(sapply(consensus_peaks, length))
 
+# Let's break this down more and look into peaks near 0
 
-hist(sapply(consensus_peaks, length), breaks = 1000, xlim = c(0, 10000))
+hist(sapply(consensus_peaks, length), breaks = 10000, xlim = c(0, 1000))
+# TODO how to find those that are 0 in length
 
 # let's see how wide the peaks are for one example
-hist(width(consensus_peaks[[2]]), breaks = 1000)
+hist(width(consensus_peaks[[37]]), breaks = 1000)
 
 # let's add a limit to the x-axis so we cna see this better
-hist(width(consensus_peaks[[2]]), breaks = 1000, xlim = c(0, 300))
-
-hist(width(consensus_peaks[37]), breaks = 1000, xlim = c(0, 300))
-
+hist(width(consensus_peaks[[37]]), breaks = 1000, xlim = c(0, 300))
+# we see that there aren't any peaks shorter than 175 
 # phew the peaks are mostly bigger than 100 bp.
 
 ```
@@ -217,15 +216,17 @@ for(i in 1:length(filtered_consensus_peaks)) {
 
 # order matters want the biggest list first to find what is not in it.
 lost_dbp <- setdiff(names(consensus_peaks), names(filtered_consensus_peaks))
+# TODO ? setdiff base R?
 lost_dbp
 
 # let's see how order matters
-lost_dbp2 <- setdiff(names(filtered_consensus_peaks), names(consensus_peaks))
-
+test_order <- setdiff(names(filtered_consensus_peaks), names(consensus_peaks))
+test_order
 # we can also do this by indexing too
 
 lost_dbp <- names(consensus_peaks)[!(names(consensus_peaks) %in% 
                                        names(filtered_consensus_peaks))]
+lost_dbp
 
 # let's write this out for our results of which had < 250 peaks
 write.table(lost_dbp, "lost_dbps.csv")
