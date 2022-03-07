@@ -388,6 +388,37 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
 }
 ```
 
+# START OF 3/7 CLASS
+
+```{R source create_consensus_peaks}
+
+# First make sure create_consesnus_peaks is in you Util calss_functions.R file.
+# then source your util or just the functions file.
+
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder/CLASS_2022/util/class_functions.R")
+
+```
+
+# Now we are going to create an rscript to run create_consensus_peaks
+```{r create R script}
+
+# the rscript is going to run somewhere else in a blank environment.
+# so we need to have everything we need to run in the rscript
+
+library(tidyverse)
+library(GenomicRanges)
+
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
+
+# run consensus peaks
+consensus_peaks <- create_consensus_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
+
+# run in console pane under "jobs" select rscript from /analysis/11_consensus_peaks
+
+```
+
+# While create_consensus_peaks is running let's dissect the function with a single example.
 
 ********************
 TEST EXAMPLE : CTCF under the hood of create_consensus_peaks
@@ -444,6 +475,8 @@ source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.
     #TODO add Lapply?? read peak
     # broadPeak file = list.files(tf_files)
     # lapply(read_peaks)
+    
+    #TODO how to populate peak list
       peak_list <-  read_peaks(tf_files, filter_to_canonical_chr = TRUE)
       # same read peaks function and we now have each DBP indexed in tf_files
    # }
