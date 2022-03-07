@@ -185,10 +185,15 @@ hist(num_peaks)
 
 # Let's break this down more and look into peaks near 0
 
-hist(num_peaks, breaks = 10000, xlim = c(0, 1000))
+hist(num_peaks, breaks = 1000, xlim = c(0, 1000))
+summary(num_peaks)
 
 max(num_peaks)
+min(num_peaks)
+num_peaks[372]
+
 which.max(num_peaks)
+
 consensus_peaks[which.max(num_peaks)]
 
 # let's see how wide the peaks are for one example
@@ -208,8 +213,12 @@ hist(width(consensus_peaks[[37]]), breaks = 1000, xlim = c(0, 300))
 ```{r filtering consensus peaks > 250}
 
 num_peaks_threshold <- 250
+
+num_peaks <- sapply(consensus_peaks, length)
+
 filtered_consensus_peaks <- consensus_peaks[num_peaks > num_peaks_threshold]
 # Now we have a shorter list of GRanges!
+
 summary(filtered_consensus_peaks)
 table(summary(filtered_consensus_peaks))
 # Cool we see that they all have more than 250 peaks 
@@ -217,10 +226,10 @@ table(summary(filtered_consensus_peaks))
 
 # Now let's export the filtered consensus peaks
 for(i in 1:length(filtered_consensus_peaks)) {
-  rtracklayer::export(consensus_peaks[[i]], 
+  rtracklayer::export(filtered_consensus_peaks[[i]], 
                       paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/", 
                              names(consensus_peaks)[i], 
-                             "_filtrered_consensus_peaks.bed"))
+                             "_filtered_consensus_peaks.bed"))
 }
 
 # let's see what we lost and record it.
@@ -228,15 +237,11 @@ for(i in 1:length(filtered_consensus_peaks)) {
 
 # order matters want the biggest list first to find what is not in it.
 lost_dbp <- setdiff(names(consensus_peaks), names(filtered_consensus_peaks))
+?setdiff
 
 ASYMETRIC <- setdiff(names(filtered_consensus_peaks), names(consensus_peaks))
 
 lost_dbp
-
-# let's see how order matters
-test_order <- setdiff(names(filtered_consensus_peaks), names(consensus_peaks))
-test_order
-# we can also do this by indexing too
 
 lost_dbp <- names(consensus_peaks)[!(names(consensus_peaks) %in% 
                                        names(filtered_consensus_peaks))]
