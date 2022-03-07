@@ -400,6 +400,8 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
 
 source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder/CLASS_2022/util/class_functions.R")
 
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
+
 ```
 
 # Now we are going to create an rscript to run create_consensus_peaks
@@ -417,15 +419,15 @@ library(GenomicRanges)
 source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/class_functions.R")
 
 # run consensus peaks
-consensus_peaks <- create_consensus_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
+# consensus_peaks <- create_consensus_peaks("/scratch/Shares/rinnclass/CLASS_2022/data/peaks")
 
 # export consensus peaks 
-for(i in 1:length(consensus_peaks)) {
-  rtracklayer::export(consensus_peaks[[i]], 
-                      paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks/", 
-                             names(consensus_peaks)[i], 
-                             "_consensus_peaks.bed"))
-}
+# for(i in 1:length(consensus_peaks)) {
+  # rtracklayer::export(consensus_peaks[[i]], 
+   #             paste0("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks/", 
+     #                        names(consensus_peaks)[i], 
+      #                       "_consensus_peaks.bed"))
+# }
 
 # run in console pane under "jobs" select Rscript from /analysis/11_consensus_peaks
 
@@ -535,7 +537,6 @@ names(consensus_peaks)[length(consensus_peaks)] <- tf
 
 ```
 
-
 *********************
 EXCERCISE
 *********************
@@ -544,11 +545,6 @@ Make a function for formatting .broadPeak files to UCSC format.
 
 Hint you already wrote all the code in 08 -- compile into function and put in class
 functions.R in Util.
-
-
-
-
-
 
 
 

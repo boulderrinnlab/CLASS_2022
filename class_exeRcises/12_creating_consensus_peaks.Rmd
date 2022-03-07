@@ -163,20 +163,15 @@ rtracklayer::export(mrna_genebody, "/scratch/Shares/rinnclass/CLASS_2022/<your_f
 # Consensus Peak Properties
 
 ```{R consensus_peak properties}
-# Nice this only took 30 min locally
-# normally is 3hrs in local environment
-# long runs are best done as local job outside Rstudio!
 
-consensus_fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks", full.names = T)
+# make a list of file paths for consensus peaks
+consensus_fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks_in_class", full.names = T)
 
-
+# using lapply to import all the files in consensus_fl
 consensus_peaks <- lapply(consensus_fl, rtracklayer::import)
 
-
+# adding names from the file path
 names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks/|_consensus_peaks.bed","", consensus_fl)
-
-
-
 
 
 # let's take a look
