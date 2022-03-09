@@ -12,7 +12,8 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
 ```
 
 # Exploring the genome features bound by DBPs
@@ -20,25 +21,43 @@ Today we are going to explore where in the genome the 483(460) DBPs bind.
 
 From now on we will import all the data we made in "11_creating_consensus_peaks"
 Let's start importing all the files we need:
-```{r importing needed data}
 
+```{r importing needed data}
+# Someone printed to my filtered consensus peaks so I need to remake it.
+
+#consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks", 
+  #                                           pattern = "*.bed",
+   #                                          full.names = TRUE)
+
+# consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
+num_peaks_threshold <- 250
+num_peaks <- sapply(consensus_peaks, length)
+filtered_consensus_peaks <- consensus_peaks[num_peaks > num_peaks_threshold]
+for(i in 1:length(filtered_consensus_peaks)) {
+  rtracklayer::export(filtered_consensus_peaks[[i]], 
+                      paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/", 
+                             names(consensus_peaks)[i], 
+                             "_filtered_consensus_peaks.bed"))
+}
 
 # first create a file list of filtered consensus peaks
-filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks", 
+# filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks", 
+#                                              pattern = "*.bed",
+#                                              full.names = TRUE)
+
+filtered_consensus_peaks_files <- list.files("file_path", 
                                              pattern = "*.bed",
                                              full.names = TRUE)
 
-filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks", 
-                                         pattern = "*.bed",
-                                          full.names = TRUE)
 
 # lappy to import each file in file list 
 filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
 
 # adding names to rows
+names(filtered_consensus_peaks) <- gsub("file_path/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
 
-#TODO this doesn't run?
-names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
+
+# names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
 
 ```
 
@@ -47,12 +66,19 @@ Now we will import the GRanges of genome annotations:
 ```{R importing genome featgures}
 
 # lncRNA and mRNA promoters
-lncrna_mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_mrna_promoters.gtf")
+lncrna_mrna_promoters <- rtracklayer::import("file_path/lncRNA_mrna_promoters.gtf")
+
+# lncrna_mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
 # lncRNA and mRNA gene bodies
-lncrna_mrna_genebody <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_mrna_genebody.gtf")
 
-# Let's also make a list of lncRNA gene_ids. Note the indexing.
+lncrna_mrna_genebody <- rtracklayer::import("file_path/lncrna_mrna_genebody.gtf")
+
+# lncrna_mrna_genebody <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_mrna_genebody.gtf")
+
+
+# Now  Let's also make a list of lncRNA gene_ids. Note the indexing.
+# Double note the how handy it is to index to subsect a file.
 lncrna_gene_ids <- lncrna_mrna_genebody$gene_id[lncrna_mrna_genebody$gene_type == "lncRNA"]
 
 # same for mRNAs
@@ -149,6 +175,8 @@ num_peaks_df$peaks_overlapping_mrna_genebody <-
 # This is a time saver from having to regenerate the overlaps that took a bit ...
 
 # NOTE: SET WORKING DIRECTORY TO 12_
+
+# BE SURE YOU HAVE THE RIGHT FILE PATH to 12_
 write_csv(num_peaks_df, "num_peaks_df.csv")
 
 ```
@@ -222,7 +250,9 @@ length(is.na(num_peaks_df$is_tf))
 
 # Ok looks good let's write it out:
 
-write_csv(num_peaks_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
+write_csv(num_peaks_df, "file_path/num_peaks_df.csv")
+
+# write_csv(num_peaks_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
 ```
 
 # Occurence matrix of overlaps
@@ -245,7 +275,9 @@ stopifnot(all(colnames(promoter_peak_occurence) == lncrna_mrna_promoters$gene_id
 # moving forward we will use (?read.tsv) to read this in and save us all that run time :)
 # DON'T OPEN THIS FILE IN THE ENVIRONMENT -- VERY LARGE MATRIX
 
-write.table(promoter_peak_occurence, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+write.table(promoter_peak_occurence, "/file_path/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+
+# write.table(promoter_peak_occurence, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
 
 ```
 
@@ -278,7 +310,9 @@ peak_occurence_df <- data.frame("gene_id" = colnames(promoter_peak_occurence),
 
 # Let's write out this data frame -- all this code & run time is now encapsulated in one .csv :)
 
-write_csv(peak_occurence_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
+write_csv(peak_occurence_df, "file_path/peak_occurence_dataframe.csv")
+
+# write_csv(peak_occurence_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
 
 # Cool feel free to open this one -- even in excel :) 
 ```
