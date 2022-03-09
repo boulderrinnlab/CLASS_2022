@@ -166,7 +166,7 @@ ggplot(num_peaks_df, aes(x = num_peaks, fill = tf)) +
 
 ```
 
-# # Geom layer : density plot
+# Geom layer : density plot
 DENISTY Plots are also very useful to see where the density of data arises.
 ```{R geom_density()}
 
