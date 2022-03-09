@@ -191,7 +191,6 @@ Third: lets load in the needed packages and gencode annotations
 # First we need to source "get_promoter_regions" and other functions from your util :
 source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder/CLASS_2022/util/intersect_functions.R")
 #source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
-
 library(tidyverse)
 library(GenomicRanges)
 
@@ -217,7 +216,6 @@ gencode_genes <- gencode_gr[gencode_gr$type == "gene"]
 # now doing a second index for lncRNA:
 gencode_lncRNA_genes <- gencode_genes[gencode_genes$gene_type %in% "lncRNA"] %>%
   as.data.frame()
-
 
 
 # Let's take a look at get promoters function:
@@ -305,7 +303,7 @@ This will primarily be done with clever indexing
 ```{r making gene body annotation files}
 
 # Let's first look at what we are indexing:
-encode_gr$gene_type
+gencode_gr$type
 
 # so from this list we want to grab all the lncRNA genes and "protein_coding" genes
 
@@ -316,6 +314,7 @@ lncrna_mrna_genebody <- gencode_gr[gencode_gr$type == "gene" &
 
 # Let's double check by checking widths in GRanges
 table(lncrna_mrna_genebody@ranges@width)
+hist(lncrna_mrna_genebody@ranges@width)
 
 
 # exporting

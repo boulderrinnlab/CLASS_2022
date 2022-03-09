@@ -30,34 +30,35 @@ Let's start importing all the files we need:
    #                                          full.names = TRUE)
 
 # consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
-num_peaks_threshold <- 250
-num_peaks <- sapply(consensus_peaks, length)
-filtered_consensus_peaks <- consensus_peaks[num_peaks > num_peaks_threshold]
-for(i in 1:length(filtered_consensus_peaks)) {
-  rtracklayer::export(filtered_consensus_peaks[[i]], 
-                      paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/", 
-                             names(consensus_peaks)[i], 
-                             "_filtered_consensus_peaks.bed"))
-}
+# num_peaks_threshold <- 250
+# num_peaks <- sapply(consensus_peaks, length)
+# filtered_consensus_peaks <- consensus_peaks[num_peaks > num_peaks_threshold]
+# for(i in 1:length(filtered_consensus_peaks)) {
+#   rtracklayer::export(filtered_consensus_peaks[[i]], 
+#                       paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/", 
+#                              names(consensus_peaks)[i], 
+#                              "_filtered_consensus_peaks.bed"))
+# }
 
 # first create a file list of filtered consensus peaks
-# filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks", 
-#                                              pattern = "*.bed",
-#                                              full.names = TRUE)
-
-filtered_consensus_peaks_files <- list.files("file_path", 
+ filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/Your_folder/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks", 
                                              pattern = "*.bed",
                                              full.names = TRUE)
 
+# filtered_consensus_peaks_files <- list.files("file_path", 
+#                                              pattern = "*.bed",
+#                                              full.names = TRUE)
+# 
+# 
+# # lappy to import each file in file list 
+ filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
+# 
+# # adding names to rows
+ names(filtered_consensus_peaks) <- gsub("file_path/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
 
-# lappy to import each file in file list 
-filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
 
-# adding names to rows
-names(filtered_consensus_peaks) <- gsub("file_path/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
+names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
 
-
-# names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
 
 ```
 
@@ -141,6 +142,8 @@ num_peaks_df$peaks_overlapping_mrna_promoters <-
   rowSums(promoter_peak_counts[,mrna_gene_ids])
 
 # Let's take a look.
+
+write_csv(num_peaks_df, "num_peaks_df.csv")
 
 ```
 
