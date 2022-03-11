@@ -36,7 +36,7 @@ source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/inter
 
 
 # # lappy to import each file in file list 
- filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
+filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
 
 # adding names to rows
 names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
