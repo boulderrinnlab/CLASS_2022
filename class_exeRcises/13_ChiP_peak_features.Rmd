@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
 source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
-# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+ # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
 ```
 
 # Exploring the genome features bound by DBPs
@@ -34,15 +34,16 @@ source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/inter
                                              pattern = "*.bed",
                                              full.names = TRUE)
 
+
 # # lappy to import each file in file list 
  filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
-# 
-# # adding names to rows
+
+# adding names to rows
 names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
 
+
 # Now gencode annotations
- 
-gencode_gr <- rtracklayer::import(gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/genomes/gencode.v32.annotation.gtf"))
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/genomes/gencode.v32.annotation.gtf")
 
 # Finally nump_eaks_df
 num_peaks_df <- read_csv("FILE_PATH_12/num_peaks_df.csv")
@@ -58,13 +59,13 @@ Now we will import the GRanges of genome annotations:
 # lncRNA and mRNA promoters
 lncrna_mrna_promoters <- rtracklayer::import("file_path/lncRNA_mrna_promoters.gtf")
 
-# lncrna_mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+lncrna_mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
 # lncRNA and mRNA gene bodies
 
 lncrna_mrna_genebody <- rtracklayer::import("file_path/lncrna_mrna_genebody.gtf")
 
-# lncrna_mrna_genebody <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_mrna_genebody.gtf")
+lncrna_mrna_genebody <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_mrna_genebody.gtf")
 
 
 # Now  Let's also make a list of lncRNA gene_ids. Note the indexing.
@@ -215,7 +216,7 @@ names(human_tfs)[4] <- "is_tf"
 
 # now let's intersect gene names that are in our ChIP data and has TF identity.
 
-length(which(tolower(num_peaks_df$dbp) %in% tolower(human_tfs$dbp)))
+length(which(tolower(num_peaks_df$dbp) %in% tolower(human_tfs$Name)))
 ```
 
 # merging annotation file to num_peaks_df
@@ -234,14 +235,15 @@ names(human_tfs) <- c("ensembl_id",
 
 # Now comes the actual merge. Let's look at it first
 # ?merge
+# num_peaks_df <- read_csv("num_peaks_df.csv")
 
 num_peaks_df <- merge(num_peaks_df, human_tfs, all.x = T)
 
 # Let's check how many NAs -- we should have some missing values.
-length(is.na(num_peaks_df$is_tf))
+dim(num_peaks_df[is.na(num_peaks_df$tf),])
 
 # Ok looks good let's write it out:
-
+num_peaks_df <- num_peaks_df[,1:12]
 write_csv(num_peaks_df, "file_path/num_peaks_df.csv")
 
 # write_csv(num_peaks_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
@@ -303,6 +305,8 @@ peak_occurence_df <- data.frame("gene_id" = colnames(promoter_peak_occurence),
 # Let's write out this data frame -- all this code & run time is now encapsulated in one .csv :)
 
 write_csv(peak_occurence_df, "file_path/peak_occurence_dataframe.csv")
+
+looking <- read_csv("peak_occurence_dataframe.csv")
 
 # write_csv(peak_occurence_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
 
