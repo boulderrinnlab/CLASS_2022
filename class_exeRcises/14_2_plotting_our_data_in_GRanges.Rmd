@@ -24,18 +24,27 @@ Alright time to start digging into the data for new results !!
 We have made a consensus peak file for each DBP and 
 Moreover, we have a data frame of a bunch of peak overlap features for each DBP.
 
-# Loading in consensus peaks
+# Loading in filtered consensus peaks
 
-First let's load in the consensu peak files (this is something we always have to do)
+First let's load in the consensus peak files (this is something we always have to do)
 
 ```{r loading consensus peaks}
 
 # read in file list to lapply import below
 
-fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/", full.names=TRUE)
+# first create a file list of filtered consensus peaks
+fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks", 
+                                             pattern = "*.bed",
+                                             full.names = TRUE)
 
-# loading each consensus peak bed file into a list of GRanges
-filtered_consensus_peaks <- lapply(fl, rtracklayer::import, format = "bed")
+
+# # lappy to import each file in file list 
+filtered_consensus_peaks <- lapply(fl, rtracklayer::import)
+
+# fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/", full.names=TRUE)
+# 
+# # loading each consensus peak bed file into a list of GRanges
+# filtered_consensus_peaks <- lapply(fl, rtracklayer::import, format = "bed")
 
 
 # Let's take a look since this is an important first step.
@@ -66,17 +75,10 @@ Let's load in our num_peaks_df and decide if we want to filter?
 
 # loading in our previous analyses:
 
-num_peaks_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
+num_peaks_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
 
+# num_peaks_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
 
-# filtered_consensus_peaks <- consensus_peaks[sapply(consensus_peaks, length) > num_peaks_threshold]
-
-# Could also filter like this:
-
-# filtered_consensus_peaks <- consensus_peaks[dbps_with_sufficient_peaks]
-
-# we can record the result of what percentile this cutoff is at :
-# threshold_percentile <- round(ecdf(num_peaks_df$num_peaks)(num_peaks_threshold)*100,1)
 
 ```
 
@@ -184,7 +186,9 @@ Let's load it in and do some analyses -- THIS ONE IS REALLY COOL :).
 
 # First read the file into an object
 
-peak_occurence_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
+peak_occurence_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
+
+# peak_occurence_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
 
 # let's have a look. This is a summary of the peak occurence df.
 # we did colsums to find how many binding events there are at each promoter
