@@ -7,14 +7,17 @@ editor_options:
   chunk_output_type: console
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(ggpubr)
 library(tidyverse)
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/plotting_functions.R")
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/_setup.R")
+
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/plotting_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/_setup.R")
+
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/plotting_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/_setup.R")
 
 ```
 
@@ -52,12 +55,17 @@ Layer 1 : DATA (data types matter so good to label object accrodingly)
 # before we get started let's import that data we are going to plot. 
 # Let's load in the num_peaks_df from our previous class (13_ChIP_peak_features)
 
-num_peaks_df <- read_csv('/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv')
+num_peaks_df <- read_csv('/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv')
+
+# num_peaks_df <- read_csv('/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv')
+# num_peaks_df <- num_peaks_df[1:12]
+# write_csv(num_peaks_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
 
 ```
 
-# GGPLOT basics
+# GGPLOT AES Layer and Geom : basic example
 Now let's start plotting in GGplot!
+
 
 ```{r ggplot basics}
 # let's make this simple plot first: number of peaks -vs- total peak length
@@ -66,6 +74,8 @@ ggplot(num_peaks_df, aes(x = num_peaks,
                          y = total_peak_length)) +
   geom_point()
 
+# We have a result! The more peaks the more genome space is covered.
+# Let's make a folder in "analysis" 14_ to put our figures in.
 
 ?ggplot
 # ggplot first wants the data parameter, then an 'aesthetics' layer (aes)
@@ -127,11 +137,10 @@ ggplot(num_peaks_df, aes(x = num_peaks,
                 )) +
   facet_wrap(tf ~ .) +
   geom_point() 
-  
 
 # nice we see three plots, one for each category.
-
-
+# We have a result: All categories have linear relationship
+  
 ```
 
 # Geom layer : histogram
@@ -145,6 +154,7 @@ geom_histogram() is very useful in a lot of analyses. Let's start there.
 ggplot(num_peaks_df, aes(x = num_peaks)) +
   geom_histogram()
 
+# Result: peak number is represented by right gaussian.
 # let's add more bins
 
 ggplot(num_peaks_df, aes(x = num_peaks)) +
@@ -188,6 +198,8 @@ ggplot(num_peaks_df, aes(x = num_peaks, fill = tf, color = tf)) +
 
 ggplot(num_peaks_df, aes(x = num_peaks, fill = tf, color = tf)) +
    geom_density(alpha = 0.0)
+
+# Result TF and other DBPs have similar peak properties
 
 ```
 
@@ -234,7 +246,6 @@ ggplot(num_peaks_df, aes(x = num_peaks,
   geom_smooth(method = "gam")
 
 
-# cool this fits -- what does it mean?
 ```
 
 # Bar plots
@@ -285,8 +296,8 @@ lm_fit <- lm(num_peaks_df$total_peak_length ~ num_peaks_df$num_peaks)
 summary(lm_fit)
 # slope = 1,000 
 # ORDER MATTERS: if reversed the slope is 8 e -3!
-
-
+lm_fit <- lm(num_peaks_df$num_peaks ~ num_peaks_df$total_peak_length)
+summary(lm_fit)
 
 
 # let's convert the lm_fit data to a data_frame using tidy()
@@ -294,12 +305,15 @@ summary(lm_fit)
 library(broom)
 
 lm_df <- tidy(lm_fit)
+lm_df
 # so much easier to read than summary :)
 
 # plotting with the actual lm fit:
 ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   geom_point() +
   geom_abline(slope = lm_df$estimate[[2]], intercept = lm_df$estimate[[1]])
+
+# See how this changes if order is changed
 
 ```
 
