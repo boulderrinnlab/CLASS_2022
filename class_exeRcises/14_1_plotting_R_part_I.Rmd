@@ -10,6 +10,8 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
+install.packages("ggplot2")
+install.packages("broom")
 library(ggpubr)
 library(tidyverse)
 
