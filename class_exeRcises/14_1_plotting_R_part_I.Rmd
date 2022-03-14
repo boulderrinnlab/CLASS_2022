@@ -68,18 +68,28 @@ Now let's start plotting in GGplot!
 
 
 ```{r ggplot basics}
-# let's make this simple plot first: number of peaks -vs- total peak length
-
-ggplot(num_peaks_df, aes(x = num_peaks,
-                         y = total_peak_length)) +
-  geom_point()
-
-# We have a result! The more peaks the more genome space is covered.
-# Let's make a folder in "analysis" 14_ to put our figures in.
 
 ?ggplot
 # ggplot first wants the data parameter, then an 'aesthetics' layer (aes)
 # aes() layer needs everything you want to do with the data. The + adds the next layer.
+
+
+# let's make this simple plot first: number of peaks -vs- total peak length
+ggplot(num_peaks_df, aes(x = num_peaks,
+                         y = total_peak_length)) +
+  geom_point()
+# We have a result! The more peaks the more genome space is covered.
+# Let's make a folder in "analysis" 14_ to put our figures in.
+
+
+# Same as :
+
+num_peaks_df %>%
+ggplot(aes(x = num_peaks,
+           y = total_peak_length)) +
+  geom_point()
+
+
 ```
 
 # changing shapes in plot
