@@ -77,9 +77,9 @@ Now let's start plotting in GGplot!
 
 
 # let's make this simple plot first: number of peaks -vs- total peak length
-ggplot(num_peaks_df, aes(x = num_peaks,
+ggplot(num_peaks_df, aes(x = num_peaks, 
                          y = total_peak_length)) +
-  geom_point()
+  geom_point() 
 # We have a result! The more peaks the more genome space is covered.
 # Let's make a folder in "analysis" 14_ to put our figures in.
 
@@ -107,8 +107,6 @@ ggplot(num_peaks_df, aes(x = num_peaks,
 
 # Here are some good resources for other shapes and color vignettes:
 # http://www.sthda.com/english/wiki/ggplot2-point-shapes
-
-
 
 ```
 
@@ -159,13 +157,14 @@ ggplot(num_peaks_df, aes(x = num_peaks,
 Now let's take a look at other types of plots in the geom layer.
 geom_histogram() is very useful in a lot of analyses. Let's start there.
 
-```{r Geome_histogram}
+```{r Geom_histogram}
 
 # frequencty of peak numbers across DBPs
 
 ggplot(num_peaks_df, aes(x = num_peaks)) +
   geom_histogram()
 
+?geom_histogram()
 # Result: peak number is represented by right gaussian.
 # let's add more bins
 
@@ -255,8 +254,10 @@ ggplot(num_peaks_df, aes(x = num_peaks,
                  y = total_peak_length)) +
   geom_point() +
   geom_abline(slope = 1000, intercept = 0) +
-  geom_smooth(method = "gam")
+  geom_smooth(method = "lm")
 
+
+?geom_smooth
 
 ```
 
@@ -295,7 +296,7 @@ ggplot(num_peaks_df, aes(x = tf,
                shape = 2,
                size = 2)
 
-
+?stat_summary
 # We can use a linear model to find the best trend-line
 
 ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
@@ -506,7 +507,7 @@ Here is an example of a 'theme' is called in ggPlot
 
 ```{r themes}
 
-ggplot(num_peaks_df, aes(x = num_peaks)) + 
+ggplot(num_peaks_df, aes(x = num_peaks)) +
   geom_density(alpha = 0.2, color = "#424242", fill = "#424242") +
   theme_paperwhite() +
   xlab(expression("Number of peaks")) +
