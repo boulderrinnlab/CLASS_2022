@@ -14,9 +14,14 @@ library(tidyverse)
 library(ggdendro)
 library(GenomicRanges)
 library(pheatmap)
-source("../../../util/intersect_functions.R")
-source("../../../util/plotting_functions.R")
-source("../../../util/_setup.R")
+
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/plotting_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/_setup.R")
+
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/plotting_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/_setup.R")
 ```
 
 Today we are going to use hierarchical clustering to identify DBPs with similar binding patterns.
@@ -34,11 +39,15 @@ Ok let's get started by grabbing the peak_occurrence_matrix from 14_2_our_data_i
 # loading in promoter peak occurence and convert to matrix
 ```{r loading in promoter_peak_occurence_df}
 
-#let's look at the promoter peak occurence matrix (takes a min to load)
+#let's look at the promoter peak occurence matrix (takes ~4 min to load)
 
-promoter_peak_occurence_matrix <- read.table("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+promoter_peak_occurence_matrix <- read.table("/path/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
 
-# ensuring in matrix format
+# promoter_peak_occurence_matrix <- read.table("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+
+# read.table will make this a data.frame but will keep row names.
+
+# Converting to a matrix format for correlation analysis
 promoter_peak_occurence_matrix <- as.matrix(promoter_peak_occurence_matrix)
 # Ok we see this is a very large matrix of 1 and 0 if a DBP is bound to a promoter.
 # We can use these 36,000+ vectors of genes with 483 values of bound (1) or unbound (0)
@@ -55,11 +64,18 @@ We will make a distance matrix of 437 x437 and then use that for clustering.
 ```{r calculating distance matrix}
 
 # First let's take a look at the matrix
-
+# note the meta data
 peak_occurence_matrix[1:2,1:40]
 
+# let's see if there are row and column names:
+
+# row.names
+row.names(peak_occurence_matrix)
+# column names
+colnames(peak_occurence_matrix)
+
 # now we can calculate the distance of DBP (we could also do this for promoters)
-# let's do a small test first as this can take a while to calculate 451x451!
+# let's do a small test first as this can 10 min to calculate 451x451!
 
 test <- dist(peak_occurence_matrix[1:2,], method = "euclidean")
 test
@@ -93,27 +109,35 @@ everything is in the same cluster.
 ?hclust
 
 # Alright we are ready to cluster everything!
-
 bin_hier <- hclust(peak_occurence_dist, method = "complete")
-
-# let's take a look at what we got and see distance distribution
-
-hist(bin_hier$height)
+# that was incrediblty fast to get the correlation values !
 
 # we now can plot the information in bin_hier
 plot(bin_hier)
 
+# let's take a look at what we got and see distance distribution
+hist(bin_hier$height)
 
 # To make this bigger, we can plot it as a pdf the syntax is:
 # pdf() tell file path to save and properties then we plot
 # finally we call dev.off to take the output into PDF instead of plots.
 
-# We can order this before savin it
+# We can order this before saving it
 # Now let's order the DBPs 
 bin_hier$labels[bin_hier$order]
 
-#  !! CHECK WORKING DIRECTORY & structure !!
+# let's look at the order - environment shows smallest numbers first
+# let's see the last one:
+bin_hier$height[[447]]
+# ok so lowest to highest correlations.
+bin_hier$order[[447]]
+# the 62nd index had a highest correlation:
+bin_hier$labels[[62]]
+# let's look at ETV6 on dendrogram
 
+
+# print out figure
+#  !! CHECK WORKING DIRECTORY & structure !!
 pdf("figures/dbp_hclust_dendro.pdf", height = 12, width = 70)
 plot(bin_hier)
 dev.off()
@@ -133,10 +157,14 @@ Now let's use ggdenro package that will plot the branch lengths that indicate ho
 
  ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3, 
                        theme_dendro = TRUE) +
+   # 90 degree rotation to right
    coord_flip() +
    scale_y_continuous() +
+   # adds label
    scale_x_continuous(position = "top") +
+   # subsection to labels in order of clustering
    scale_x_continuous(breaks = seq_along(bin_hier$labels[bin_hier$order]),
+                      # adding labels that are in the order 'column'
              labels = bin_hier$labels[bin_hier$order], position = "top",
              expand = c(0,0)) +
    theme(axis.text.x = element_text(angle = 90, hjust  = 1)) + 
@@ -148,6 +176,7 @@ Now let's use ggdenro package that will plot the branch lengths that indicate ho
    panel.grid.minor = element_blank(),
      panel.border = element_blank()
    )
+
 
 # Nice let's save this using 'ggsave':
 
@@ -166,10 +195,14 @@ Strategy: load annotations then index peak_occurrence for specific annotations
 # We first need to load the .GTF we made for lncRNAs and mRNAs.
 # loading lncRNA promoters
 
-lncrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_promoters.gtf")
+lncrna_promoters <- rtracklayer::import("path/lncrna_promoters.gtf")
+
+# lncrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_promoters.gtf")
 
 # loading mRNA promoters
-mrna_promoters <- rtracklayer::import("/Shares/rinn_class/data/CLASS_2022/data/genome_features/mrna_promoters.gtf")
+mrna_promoters <- rtracklayer::import("path/mrna_promoters.gtf")
+
+# mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/mrna_promoters.gtf")
 
 # Now we will use indexing to separate peak_occurrence_matrix in lncRNA and mRNA.
 # note we are indexing and using indexing in indexing to get what we want.
@@ -219,8 +252,11 @@ Let's make a heatmap of the promoters -- since it will take a long long time to 
 # Note another example of indexing a 'master file'  now using a function: colSums
 high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 300]
 
-# Could filter out the rows that have zeros, but we don't have any (min = 1)
+#TODO understand better
+# let's look
 min(rowSums(high_binders))
+# the DBP with lowest promoter overlaps - has 26 overlaps with promoters.
+max(rowSums(high_binders))
 
 # let's see the diversity of contributions of each DBP to high_binder_promoters
 # this means that one DBP is only part of 26 of the 5,661 high binder promoters
@@ -251,6 +287,8 @@ There is a theme of take one file and index it with another subset file of inter
 # If we want to just plot the zinc fingers for example, we can reference the num_peaks_df 
 # Let's read in num_peaks_df
 num_peaks_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
+
+# num_peaks_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
 
 # now let's make a zinc_finger_dbd data frame
 zinc_finger_dbd <- num_peaks_df %>% filter(dbd == "C2H2 ZF")
@@ -290,19 +328,13 @@ and retreive all the DBPs bound to it.
 
 ```{r DBPs bound to a given promoter}
 
-# We can either read in lncrna_mrna_promoters or merge from here
+# Here we will make a table to look up which DBPs are on a given promoter
+# TODO understand pivot wider
 
-DBPs_on_promoter <- bind_rows(lncrna_promoters %>% 
-                                 as.data.frame(),
-                 mrna_promoters %>% 
-                    as.data.frame()) %>%
-  dplyr::select(gene_id, gene_name)
-
-# This merged the two objects in the environment and made them
-# as data frames. How handy is tidyverse!
 
 promoter_dbps <- promoter_peak_occurence_matrix %>%
   as.data.frame() %>%
+   #
   rownames_to_column("dbp") %>%
 # here we just made a column that has the DBP name
 # currently it is a "meta" name
