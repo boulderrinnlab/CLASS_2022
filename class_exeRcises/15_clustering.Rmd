@@ -331,10 +331,9 @@ and retreive all the DBPs bound to it.
 # Here we will make a table to look up which DBPs are on a given promoter
 # TODO understand pivot wider
 
-
 promoter_dbps <- promoter_peak_occurence_matrix %>%
   as.data.frame() %>%
-   #
+   # this adds "dbp" to the top left corner to make the rownames a column
   rownames_to_column("dbp") %>%
 # here we just made a column that has the DBP name
 # currently it is a "meta" name
