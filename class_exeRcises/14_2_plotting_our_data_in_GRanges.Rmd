@@ -82,7 +82,6 @@ num_peaks_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLA
 
 ```
 
-
 # Let's plot some data and see what we might learn
 Ok enough set up let's dig in with making some plots!
 
@@ -109,6 +108,7 @@ ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length, label = dbp)) +
   geom_point() + 
   geom_smooth(method = "lm", se = FALSE, color = "black", lty = 2,
               formula = 'y ~ x') +
+  # after this line is just formatting figure - above is "functional"
   geom_text() +
   ylab("BP covered") +
   xlab("Number of peaks") +
@@ -126,18 +126,19 @@ Let's did in a bit deeper and see how coverage on promoters.
 ```{r number of DBPS on promoters}
 # now let's plot x as num_peaks and y num overlapping promoters.
 
-
 ggplot(num_peaks_df,
        aes(x = num_peaks, y = peaks_overlapping_promoters)) +
-  
-
+  # just a resource for figure editing
   xlab("Peaks per DBP") +
   ylab("Number of peaks overlapping promoters") +
   ggtitle("Relationship Between Number of DBP Peaks and Promoter Overlaps")+
   geom_point() +
+  
+  # back to important statistical aspects
   geom_abline(slope = 1, linetype="dashed") +
   geom_smooth(method = "lm", se=F, formula = 'y ~ x',
               color = "#a8404c") +
+  # adding a seconf
   stat_regline_equation(label.x = 35000, label.y = 18000) +
   ylim(0,60100) +
   xlim(0,60100)
@@ -196,9 +197,9 @@ peak_occurence_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/<your_folder
 
 ```
 
-
 Let's make a density plot of num DBPs bound per promoter
 # Density plot of binding events
+
 ```{r density plot of DBP localization events}
 
 # Since we are making a density plot we only need the X axis.
@@ -235,7 +236,7 @@ unbound_promoters <- peak_occurence_df %>%
 
 # how many are there?
 nrow(unbound_promoters)
-# so there are only a few 6,747 promoters that don't have binding evetns (~10%)
+# so there are only a few 6,720 promoters that don't have binding evetns (~10%)
 
 #  let's put it in a folder called results. We will always use this folder structure
 write_csv(unbound_promoters, "results/unbound_promoters.csv")
@@ -277,11 +278,12 @@ ggsave("figures/lncRNA-mRNA-promoter_binding.pdf")
 # Both follow a fairly linear trend except mRNA may have saturate quicker.
 
 
-# This is just a fancier version of the same thing -- not mutate to clean up names
+# This is just a fancier version of the same thing -- note mutate to clean up names
 # this first part is manipulating the num peaks df with pivot longer
 num_peaks_dfl <- num_peaks_df %>%
   dplyr::select(-peaks_overlapping_promoters) %>%
   # selecting these to cols to pivot longer
+  # We will discuss pivot longer in the next class (BUT IF YOUR INTERESTED ASK NOW IT'S WORTH IT!!)
   pivot_longer(cols = peaks_overlapping_lncrna_promoters:peaks_overlapping_mrna_promoters,
                names_to = "gene_type",
                values_to = "peaks_overlapping_promoters") %>%
