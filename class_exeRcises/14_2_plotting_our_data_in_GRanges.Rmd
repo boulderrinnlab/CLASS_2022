@@ -11,7 +11,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(GenomicRanges)
-source("../../../util/intersect_functions.R")
+# source("../../../util/intersect_functions.R")
 source("../../../util/plotting_functions.R")
 source("../../../util/_setup.R")
 library(Gviz)
@@ -97,19 +97,17 @@ Ok enough set up let's dig in with making some plots!
 ```
 
 
-
 # plotting num_peaks versus genome coverage.
 ? What would you suspect would happen
 ```{r peaks vs coverage}
 
 # Let's plot our result of num_peaks versus genome coverage.
-
-ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length, label = dbp)) +
+ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   geom_point() + 
-  geom_smooth(method = "lm", se = FALSE, color = "black", lty = 2,
-              formula = 'y ~ x') +
+  geom_smooth(method = "gam", se = TRUE, color = "black", lty = 2)+
+              #formula = 'y ~ x') +
   # after this line is just formatting figure - above is "functional"
-  geom_text() +
+  #geom_text() +
   ylab("BP covered") +
   xlab("Number of peaks") +
   ggtitle("Peak count vs. total bases covered")
@@ -136,7 +134,7 @@ ggplot(num_peaks_df,
   
   # back to important statistical aspects
   geom_abline(slope = 1, linetype="dashed") +
-  geom_smooth(method = "lm", se=F, formula = 'y ~ x',
+  geom_smooth(method = "lm", se=FALSE, formula = 'y ~ x',
               color = "#a8404c") +
   # adding a seconf
   stat_regline_equation(label.x = 35000, label.y = 18000) +
@@ -153,7 +151,6 @@ ggsave("figures/3_peak_num_vs_promoter_coverage.pdf")
 
 # peak Coverage on gene bodies
 ```{r peak coverage on gene bodies}
-
 
 ggplot(num_peaks_df,
        aes(x = num_peaks, y = peaks_overlapping_genebody)) +
