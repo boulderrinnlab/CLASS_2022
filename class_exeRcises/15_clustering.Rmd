@@ -43,7 +43,7 @@ Ok let's get started by grabbing the peak_occurrence_matrix from 14_2_our_data_i
 
 promoter_peak_occurence_matrix <- read.table("/path/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
 
-# promoter_peak_occurence_matrix <- read.table("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+ # promoter_peak_occurence_matrix <- read.table("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
 
 # read.table will make this a data.frame but will keep row names.
 
@@ -328,8 +328,15 @@ Thus you can simply look up your favorite promoter
 and retreive all the DBPs bound to it.
 
 ```{r DBPs bound to a given promoter}
+# Let's make a data frame of gene_id and gene_name 
+# we will merge this into our dbp_on_promoters below
 
-# TODO this doesn't run and get's join error
+DBPs_on_promoter <- bind_rows(lncrna_promoters %>% 
+                                 as.data.frame(),
+                 mrna_promoters %>% 
+                    as.data.frame()) %>%
+  dplyr::select(gene_id, gene_name)
+
 
 # Here we will make a table to look up which DBPs are on a given promoter
 promoter_dbps <- promoter_peak_occurence_matrix %>%
@@ -344,7 +351,7 @@ pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
 # This now a very long matrix - let's get rid of all zero values
   filter(occurrence == 1) %>%
   dplyr::select(-occurrence) %>%
-  left_join(promoter_dbps)
+  left_join(DBPs_on_promoter)
 
 # let's write this out it's a very handy DF!
 # note saving in 12 where we read in this type of data
