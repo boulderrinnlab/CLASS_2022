@@ -252,16 +252,17 @@ Let's make a heatmap of the promoters -- since it will take a long long time to 
 # Note another example of indexing a 'master file'  now using a function: colSums
 high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 300]
 
-#TODO understand better
 # let's look
-min(rowSums(high_binders))
+min(rowSums(high_binders)) 
+# one DBP only binds 26 of the 5,663 high binder promoters
+
+ncol(high_binders)
 # the DBP with lowest promoter overlaps - has 26 overlaps with promoters.
 max(rowSums(high_binders))
 
 # let's see the diversity of contributions of each DBP to high_binder_promoters
 # this means that one DBP is only part of 26 of the 5,661 high binder promoters
 hist(rowSums(high_binders))
-
 
 # Now let's make a heat map with pheatmap, just to switch it up
 # also a bit faster -- complex heatmap even faster -- there are many options :)
@@ -328,18 +329,19 @@ and retreive all the DBPs bound to it.
 
 ```{r DBPs bound to a given promoter}
 
-# Here we will make a table to look up which DBPs are on a given promoter
-# TODO understand pivot wider
+# TODO this doesn't run and get's join error
 
+# Here we will make a table to look up which DBPs are on a given promoter
 promoter_dbps <- promoter_peak_occurence_matrix %>%
   as.data.frame() %>%
    # this adds "dbp" to the top left corner to make the rownames a column
   rownames_to_column("dbp") %>%
 # here we just made a column that has the DBP name
 # currently it is a "meta" name
+   
+   # LET'S DISCUSS PIVOT WIDER and SHORTER - IT'S IMPORTANT
 pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
 # This now a very long matrix - let's get rid of all zero values
-   
   filter(occurrence == 1) %>%
   dplyr::select(-occurrence) %>%
   left_join(promoter_dbps)
@@ -357,12 +359,12 @@ Cool now we can select any gene and see what DBPs are bound?
 
 ```{R DBPs on a given promoter}
 
+#TODO this doesn't run :(  
 # In the future if we want to filter on genes we can just read this back in.
 
-promoter_dbps <- read.csv("/Shares/rinn_class/data/CLASS_2022/class_exeRcises/analysis/13_ChIP_peak_features/promoter_dbps.csv")
+promoter_dbps <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/promoter_dbps.csv")
 
 # let's see what's on FIRRE
-
 firre_promoter <- promoter_dbps %>%
   filter(gene_name == "FIRRE")
 
@@ -377,7 +379,6 @@ XIST_promoter <- promoter_dbps %>%
   filter(gene_name == "XIST")
 
 # let's look
-
 XIST_promoter
 
 # Interesting, intuition was correct considering
