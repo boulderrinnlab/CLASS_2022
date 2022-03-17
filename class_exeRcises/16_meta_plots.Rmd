@@ -411,6 +411,25 @@ ggplot(combined_metaplot_profile,
 ```
 
 
+```{r test importing filtered consensus peaks to start}
+
+fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks", 
+                                             pattern = "*.bed",
+                                             full.names = TRUE)
+
+
+# # lappy to import each file in file list 
+filtered_consensus_peaks <- lapply(fl, rtracklayer::import)
+
+# fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/", full.names=TRUE)
+
+names(filtered_consensus_peaks) <- sapply(filtered_consensus_peaks, function(x){
+  unlist(strsplit(x$name, "_"))[[1]]
+})
+
+```
+
+
 Making coverage matrix for all DBPs across mRNA and lncRNA promoters
 # NOTE THIS TAKES ~ 3hrs to run !
 ```{r creating coverage matrix for all DBPs }
@@ -439,24 +458,27 @@ write_rds(metaplot_df, "metaplot_df.rds")
 
 
 ########*#*#*#*#*#*#*#*##*#*#*#*#*#*#*
-##### START THURS MAR 3
+##### START POINT ###################
 metaplot_df <- read_rds("metaplot_df.rds")
 
-
-
+setdiff(unique(metaplot_df$dbp), unique(metaplot_filtered_df$dbp))
 # write.table(metaplot_df, "test_metaplot_df.tsv")
 
 # test_meta_plot_df <- read.table("test_metaplot_df.tsv")
 # MAKE SURE IN RIGHT WORKING DIRECTORY
 # Let's save the df to make all meta plots of all DBPs with peaks > 250!
+
+#TODO skip?
 passing_peaks <- names(filtered_consensus_peaks)[sapply(filtered_consensus_peaks, length) > 250]
 
 metaplot_filtered_df <- metaplot_df %>%
-  filter(dbp %in% passing_peaks) %>%
-    distinct()
+  filter(dbp %in% passing_peaks) 
+    
 
 # writing out
-write_rds(metaplot_df, "metaplot_filtered_df.rds")
+write_rds(metaplot_filtered_df, "metaplot_filtered_df.rds")
+
+metaplot_filtered_df <- read_rds("metaplot_filtered_df.rds")
 
 # table
 
@@ -480,10 +502,14 @@ write_rds(metaplot_df, "metaplot_filtered_df.rds")
 # careful we don't have duplicated rows
 # we shouldn't since we ran distinct above.
 
-metaplot_filtered_matrix <- metaplot_filtered_df %>% 
+metaplot_filtered_matrix <- metaplot_df %>% 
   pivot_wider(names_from = x, values_from = dens) %>%
   column_to_rownames("dbp") %>%
   as.matrix()
+
+# Get rid of NA rows. Not enough data to calculate a metaplot.
+nrow(metaplot_filtered_matrix)
+metaplot_filtered_matrix <- metaplot_filtered_matrix[rowSums(is.na(metaplot_filtered_matrix)) == 0,]
 
 # metaplot_filtered_matrix <- metaplot_filtered_df %>% 
 #   pivot_wider(names_from = x, values_from = dens) %>%
@@ -494,10 +520,8 @@ metaplot_filtered_matrix <- metaplot_filtered_df %>%
 
 dim(metaplot_filtered_matrix)
 
-write_rds(metaplot_filtered_matrix, "metaplot_filtered_matrix.rds")
 
 
-hmm <- read_rds("metaplot_filtered_matrix.rds")
 ```
 
 
@@ -556,8 +580,8 @@ plot(metaplot_hclust)
 dev.off()
 
 # Cut the tree to make some clusters
-clusters <- cutree(metaplot_hclust, h = 0.01)
-
+clusters <- cutree(metaplot_hclust, k = 3)
+summary(metaplot_hclust$height)
 # Let's make a heatmap now.
 col_fun <- colorRamp2(c(-3, 0, 3), c("#5980B3", "#ffffff", "#B9605D"))
 split <- data.frame(split = c(rep("-3kb",3000), rep("+3kb", 3000)))
@@ -570,6 +594,14 @@ Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
 dev.off()
 
+
+Heatmap(mm_scaled[clusters == 3,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+table(clusters)
+
 par(cex = 1)
 
 ```
@@ -578,7 +610,7 @@ par(cex = 1)
 Here is some fun code to pick your favorite DBP and check out the profile.
 I chose those DBPs that seemed to have the most different binding profiles.
 
-```{meta-plots of most different binding profiles by clustering}
+```{r meta-plots of most different binding profiles by clustering}
 
 # H3K4me1 H4K20me1 H3K36me3 MBD4:
 
@@ -599,4 +631,6 @@ plot_tss_profile(metaplot_matrix, "H3K9me3", save_pdf = TRUE)
 # EP300: shows a very wide profile.
 
 plot_tss_profile(metaplot_matrix, "EP300", save_pdf = TRUE)
+
+```
 
