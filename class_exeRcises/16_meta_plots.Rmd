@@ -34,18 +34,20 @@ We'll be using the consensus peaks we generated previously (MACS peak calls filt
 # laoding Gencode genome features
 gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
 
-# making a file list of our consensus peaks (filtered at 250 peaks minimum)
-fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks", full.names = TRUE)
+# Loading in filtered consensus peaks
+fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks", 
+                                             pattern = "*.bed",
+                                             full.names = TRUE)
 
-# lapply to import into list of GRanges
+# lappy to import each file in file list 
 filtered_consensus_peaks <- lapply(fl, rtracklayer::import)
 
-# adding row names by removing the file path and .bed at end of each file.
-# names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks//|_filtrered_consensus_peaks.bed", "", fl)
-names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/consensus_peaks/|.bed", "", fl)
+
+names(filtered_consensus_peaks) <- sapply(filtered_consensus_peaks, function(x){
+  unlist(strsplit(x$name, "_"))[[1]]
+})
 
 ```
-
 
 Overall our goal is to define a "promoter" window of a certain distance
 upstream and downstream of a transcription start site (TSS). This will result
@@ -53,7 +55,7 @@ in a Xkb (to start 3Kb upstream and downstream) vector representing each base
 of the promoter. We will then be able to use this matrix to plot if a peak overlaps
 with a given base and do the same for all peaks of a given DBP. 
 
-In the end we will have a verstatil matrix to plot data across promoters. Also we can
+In the end we will have a versatile matrix to plot data across promoters. Also we can
 use this code to plot other aspects (expression etc) over similar windows. Finally, we can 
 use this code to make windows around other features of the geneome (e.g., transposons).
 
@@ -74,8 +76,9 @@ genes <- gencode_gr[gencode_gr$type == "gene"]
 
 # Loading in the promoter regions for lncRNAs and mRNAs 
 
-all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+all_promoters_gr <- rtracklayer::import("/path/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
+# all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
 ```
 
@@ -91,11 +94,12 @@ In order to calculate what the peak coverage across each promoter is we'll conve
 
 ?coverage
 
+
 # random but there needs to be spaces before and after gene_id ??
 peak_coverage <- coverage(filtered_consensus_peaks[["POLR2A"]]) 
-
-# ok now we have a 6,000 length vector with a 1 if a peak
-# overlaps the promoter window and 0 if not.
+# ok now we have a 6,000 length vector with 1 for overlap or 0
+View(peak_coverage)
+# note each chromosome is a seperate list of ranges of overlaps or non-overlaps
 
 ```
 
@@ -117,17 +121,27 @@ coverage_length <- elementNROWS(peak_coverage)
 # filter the promoters falling outside of these boundaries in the next step.
 # Each DBP will be different here.
 
+# here are the components:
+names(coverage_length)
+# chromosome names
+
+length(coverage_length)
+# 24 chromosomes
+
 coverage_gr <- GRanges(seqnames = names(coverage_length),
                        IRanges(start = rep(1, length(coverage_length)), 
                                end = coverage_length))
 
 # Okay, now we're all ready to filter out those promoters that fall beyond the bounds of the 
 # coverage vector. 
+
+# to do this we will use:
+?subsetByOverlaps
+
 all_promoters_gr <- subsetByOverlaps(all_promoters_gr, 
                                   coverage_gr, 
                                   type="within", 
                                   ignore.strand=TRUE)
-
 
 
 
@@ -178,7 +192,7 @@ promoter_peak_view
 We'll not just convert the run-length encoding vectors to actual vectors -- note how much larger the object becomes when represented as vectors (use object.size function). Then we'll row bind the vectors into one matrix.
 
 ```{r converting RLE to large matrix extracting views to 1 and 0}
-
+#TODO 
 # we will use viewApply to extract if there was a 1 or 0 in the RLE vector for an overlap.
 # This essentially will convert the RLE to 6000 length vecotrs of promoter windows -- with
 # a 1 for binding event and 0 if not.
@@ -189,10 +203,14 @@ We'll not just convert the run-length encoding vectors to actual vectors -- note
 
 promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
 
+# Let's look (note rows turned into cols)
+promoter_peak_view
+
 # We are now going to convert promoter_peak_view to a matrix
 # we will do this by rowbinding the Irange list that viewApply
 # turned into a vector.
 
+#TODO this doesn't work :(
 # Base R
 promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
 
@@ -220,6 +238,8 @@ minus_idx <- which(as.character(strand(all_promoters_gr)) == "-")
 
 # we want to flip so instead of 1:ncol we will do ncol:1 (currenlty 6,000 - 1)
 # we want position 1 - 6000
+
+#TODO what is this doing :) 
 promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx, ncol(promoter_peak_matrix):1]
 
 # Now we can get rid of the rows that have no peaks.
@@ -410,26 +430,6 @@ ggplot(combined_metaplot_profile,
 # combinig on the same plot shows the difference in binding !
 ```
 
-
-```{r test importing filtered consensus peaks to start}
-
-fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks", 
-                                             pattern = "*.bed",
-                                             full.names = TRUE)
-
-
-# # lappy to import each file in file list 
-filtered_consensus_peaks <- lapply(fl, rtracklayer::import)
-
-# fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/filtered_consensus_peaks/", full.names=TRUE)
-
-names(filtered_consensus_peaks) <- sapply(filtered_consensus_peaks, function(x){
-  unlist(strsplit(x$name, "_"))[[1]]
-})
-
-```
-
-
 Making coverage matrix for all DBPs across mRNA and lncRNA promoters
 # NOTE THIS TAKES ~ 3hrs to run !
 ```{r creating coverage matrix for all DBPs }
@@ -454,11 +454,15 @@ for(i in c(1:390, 392:length(filtered_consensus_peaks))) {
 # saving this
 write_rds(metaplot_df, "metaplot_df.rds")
 
+```
+
 
 
 
 ########*#*#*#*#*#*#*#*##*#*#*#*#*#*#*
 ##### START POINT ###################
+
+```{R start point for creating all meta plots}
 metaplot_df <- read_rds("metaplot_df.rds")
 
 setdiff(unique(metaplot_df$dbp), unique(metaplot_filtered_df$dbp))
