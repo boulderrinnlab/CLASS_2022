@@ -31,9 +31,6 @@ We'll be using the consensus peaks we generated previously (MACS peak calls filt
 # Loading in data needed for meta plots
 ```{r import genome features & file list}
 
-# laoding Gencode genome features
-gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
-
 # Loading in filtered consensus peaks
 fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks", 
                                              pattern = "*.bed",
@@ -68,32 +65,24 @@ Here we're going to create a GRanges object that contains 6kb promoter windows f
 
 ```{r desiging a promoter window of +/- 3Kb from TSS -- probably too big!}
 
-# let's look at where promoters are in gencode_gr
-table(gencode_gr$type)
-
-# we want to select the gene category that contains all genes
-genes <- gencode_gr[gencode_gr$type == "gene"]
-
+# First thing to do is load in all the promoters we made in 12_ 
 # Loading in the promoter regions for lncRNAs and mRNAs 
-
 all_promoters_gr <- rtracklayer::import("/path/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
 # all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
 ```
 
-# Step 2: Transform peaks into a coverage object
+# Step 2: Transform chip-peaks into a coverage object
 
 In order to calculate what the peak coverage across each promoter is we'll convert the peaks GRanges object which currently holds a range for each peak into a run-length encoded list where 0 represents the genomic coordinates where there is no peak present and 1 represents the locations where a peak is present. The reason for run length encoding is that storing this vector without this compression means that we would be storing a numeric value for each of the 3.2 billion base pairs. This would mean allocating a vector in memory that's ~180 GB -- instead with run-length encoding we're in the ~100 KB range. 
 
 ```{r transforming promoter windows into a coverage matrix}
 
-# We will use the coverage function to interpret if there is a 
-# given entry of 6,000 wide vectors over each promoter.
-# let's first do this for one DBP:
+# We will use the coverage function to interpret if there is an overlap 
+# at given entry of 6,000 entries for each base of the 'promoter window
 
 ?coverage
-
 
 # random but there needs to be spaces before and after gene_id ??
 peak_coverage <- coverage(filtered_consensus_peaks[["POLR2A"]]) 
@@ -110,16 +99,12 @@ This step will accomplish two things: filter out promoters that fall outside the
 ```{r peak_coverage of all promoter windows : from GRanges to Iranges}
 
 # This is the length of each run-length encoded vector in the peak_coverage object
-# If the last peak on each chromosome falls near the end of that chromosome then
-# these lengths will be approximately the length of the chromosomes.
-
+?elementNROWS
 # elementNROWs can calculate coverage in RLE
 coverage_length <- elementNROWS(peak_coverage)
 
-# This will create a GRanges object where there is one range per chromosome
-# and it is the width of the coverage vector -- we can use these ranges to 
-# filter the promoters falling outside of these boundaries in the next step.
-# Each DBP will be different here.
+# This will create a Ranges object where there is one range per chromosome
+# and it is the width of the coverage vector that covers all promoters-- 
 
 # here are the components:
 names(coverage_length)
@@ -128,6 +113,9 @@ names(coverage_length)
 length(coverage_length)
 # 24 chromosomes
 
+# we can use the coverage length ranges to 
+# filter the promoters falling outside of these boundaries:
+# basically turning coverage_lenth to GRanges
 coverage_gr <- GRanges(seqnames = names(coverage_length),
                        IRanges(start = rep(1, length(coverage_length)), 
                                end = coverage_length))
@@ -148,7 +136,14 @@ all_promoters_gr <- subsetByOverlaps(all_promoters_gr,
 # IMPORTANT STEP: this will take names of chr with peaks and intersect with all chr
 # Then after this we will run coverage on our chromosome object. 
 # If we didn't do this an error would occur if a chromosome wasn't represented
+
+# this is what we are intersecting:
+names(peak_coverage)
+# with
+seqnames(all_promoters_gr)
+# note we would have lossed the mitochondrial chromosome!
 chromosomes <- intersect(names(peak_coverage), unique(as.character(seqnames(all_promoters_gr))))
+
 
 # We can also ensure they're in the same order and contain the same chromosomes
 # by indexing with this vector
@@ -192,7 +187,7 @@ promoter_peak_view
 We'll not just convert the run-length encoding vectors to actual vectors -- note how much larger the object becomes when represented as vectors (use object.size function). Then we'll row bind the vectors into one matrix.
 
 ```{r converting RLE to large matrix extracting views to 1 and 0}
-#TODO 
+
 # we will use viewApply to extract if there was a 1 or 0 in the RLE vector for an overlap.
 # This essentially will convert the RLE to 6000 length vecotrs of promoter windows -- with
 # a 1 for binding event and 0 if not.
@@ -210,19 +205,13 @@ promoter_peak_view
 # we will do this by rowbinding the Irange list that viewApply
 # turned into a vector.
 
-#TODO this doesn't work :(
-# Base R
+# Base R do.call to call "rbind" function
 promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
-
-length(promoter_peak_view)
-
-#### NOTE: this doesn't work because tidyverse requires data frames:
- # promoter_peak_matrix <- promoter_peak_view %>%
- # bind_rows()
-
 # good to note in a matrix sometimes to use do.call and "rbind"
- 
+
+dim(promoter_peak_matrix)
 # now we have a matrix of nrow_promoters by 6,000 cols
+
 ```
 
 ## Step 5: Align the positive and negative strand promoters
@@ -241,7 +230,6 @@ minus_idx <- which(as.character(strand(all_promoters_gr)) == "-")
 # we want to flip so instead of 1:ncol we will do ncol:1 (currenlty 6,000 - 1)
 # we want position 1 - 6000
 
-#TODO what is this doing :) 
 promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx, ncol(promoter_peak_matrix):1]
 
 # Now we can get rid of the rows that have no peaks.
@@ -313,7 +301,9 @@ ggsave("figures/POLR2A_promoter_metaplot.pdf")
 
 # creating a meta plot function for all DBPs
 Let's put all this into a funciton so we can call it later conveniently.
+
 ```{r establishing the profile_tss function}
+
 
 # setting the parameters
 profile_tss <- function(peaks, 
@@ -387,6 +377,13 @@ First we'll create separate objects for lncRNA promoters and mRNA promoters, the
 
 ```{r making seperate metaplots for lncRNAs and mRNAs}
 
+
+# First we will need some gene annotation data from gencode_gr :) 
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
+
+# Indexing gencode_gr to grab "genes"
+genes <- gencode_gr[gencode_gr$type == "gene"]
+
 # lncRNA promoter profiles
 
 lncrna_genes <- genes[genes$gene_type == "lncRNA"]
@@ -394,6 +391,7 @@ lncrna_genes <- genes[genes$gene_type == "lncRNA"]
 lncrna_promoters <- promoters(lncrna_genes, upstream = 3e3, downstream = 3e3)
 
 
+# Now we can use profile_tss
 # POLR2A meta-plot / feel free to pick any other gene
 lncrna_metaplot_profile <- profile_tss(filtered_consensus_peaks[["POLR2A"]], lncrna_promoters)
 
@@ -434,13 +432,14 @@ ggplot(combined_metaplot_profile,
 
 Making coverage matrix for all DBPs across mRNA and lncRNA promoters
 # NOTE THIS TAKES ~ 3hrs to run !
+
 ```{r creating coverage matrix for all DBPs }
 
 # Let's now run this for all off the DBPs and compile it into one data frame.
 # Let's first define an empty data.frame to which we can row_bind each new one created.
 metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
 
-# Writting a for loop to calculate promter coverage for all DBPs:
+# Writting a for loop to calculate promoter coverage for all DBPs:
 
 for(i in c(1:390, 392:length(filtered_consensus_peaks))) {
   # we skipped 391 as it breaks (only 19 peaks ?)
@@ -451,31 +450,14 @@ for(i in c(1:390, 392:length(filtered_consensus_peaks))) {
   
 }
 
+# write_rds(metaplot_df, "metaplot_df.rds")
 
-# TODO figure out how to save and read in
-# saving this
-write_rds(metaplot_df, "metaplot_df.rds")
+write_rds(metaplot_df, "metaplot_df_test.rds")
 
-```
-
-
-
-
-########*#*#*#*#*#*#*#*##*#*#*#*#*#*#*
-##### START POINT ###################
-
-```{R start point for creating all meta plots}
+# some more filtering and writing out:
 metaplot_df <- read_rds("metaplot_df.rds")
 
-setdiff(unique(metaplot_df$dbp), unique(metaplot_filtered_df$dbp))
-
-# write.table(metaplot_df, "test_metaplot_df.tsv")
-
-# test_meta_plot_df <- read.table("test_metaplot_df.tsv")
-# MAKE SURE IN RIGHT WORKING DIRECTORY
-# Let's save the df to make all meta plots of all DBPs with peaks > 250!
-
-#TODO skip?
+# filtering to be sure 
 passing_peaks <- names(filtered_consensus_peaks)[sapply(filtered_consensus_peaks, length) > 250]
 
 metaplot_filtered_df <- metaplot_df %>%
@@ -483,18 +465,23 @@ metaplot_filtered_df <- metaplot_df %>%
     
 
 # writing out
+# MAKE SURE IN RIGHT WORKING DIRECTORY
 write_rds(metaplot_filtered_df, "metaplot_filtered_df.rds")
+
+setdiff(unique(metaplot_df$dbp), unique(metaplot_filtered_df$dbp))
 
 metaplot_filtered_df <- read_rds("metaplot_filtered_df.rds")
 
+
 ```
 
+##### START POINT #####
 
+```{R start point for creating all meta plots}
 
-########## THIS NOW RUNS ##########
+```
 
-
-##### START POINT ###################
+##### START POINT ########
 ```{r START POINT TO CREATE META_PLOTS}
 
 # read in metaplot_df
@@ -518,8 +505,7 @@ table(rowSums(is.na(metaplot_filtered_matrix)))
 
 # Let's filter out those with NAs
 metaplot_filtered_matrix <- metaplot_filtered_matrix[rowSums(is.na(metaplot_filtered_matrix)) == 0,]
-# Let's see what we lost:
-#TODO figure out way to extract those with NA.
+
 
 #TODO make diagram of rows and cols
 # Z-Scale the rows for clustering (not needed for profile plots)
