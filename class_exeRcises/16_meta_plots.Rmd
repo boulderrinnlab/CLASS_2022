@@ -69,12 +69,11 @@ Here we're going to create a GRanges object that contains 6kb promoter windows f
 # Loading in the promoter regions for lncRNAs and mRNAs 
 all_promoters_gr <- rtracklayer::import("/path/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
-# all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
 ```
 
-# Step 2: Transform chip-peaks into a coverage object
-
+# Step 2: Transform chip-peaks into a coverage object over the 6Kb promooter window
 In order to calculate what the peak coverage across each promoter is we'll convert the peaks GRanges object which currently holds a range for each peak into a run-length encoded list where 0 represents the genomic coordinates where there is no peak present and 1 represents the locations where a peak is present. The reason for run length encoding is that storing this vector without this compression means that we would be storing a numeric value for each of the 3.2 billion base pairs. This would mean allocating a vector in memory that's ~180 GB -- instead with run-length encoding we're in the ~100 KB range. 
 
 ```{r transforming promoter windows into a coverage matrix}
@@ -299,6 +298,65 @@ ggplot(metaplot_df, aes(x = x, y = dens)) +
 ggsave("figures/POLR2A_promoter_metaplot.pdf")
 ```
 
+# Use this function to make separate plots for lncRNA and mRNA
+
+First we'll create separate objects for lncRNA promoters and mRNA promoters, then we'll supply each of these to the new function we just made.
+
+```{r making seperate metaplots for lncRNAs and mRNAs}
+
+# First we will need some gene annotation data from gencode_gr :) 
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
+
+# Indexing gencode_gr to grab "genes"
+genes <- gencode_gr[gencode_gr$type == "gene"]
+
+# lncRNA promoter profiles
+
+lncrna_genes <- genes[genes$gene_type == "lncRNA"]
+
+lncrna_promoters <- promoters(lncrna_genes, upstream = 3e3, downstream = 3e3)
+
+
+# Now we can use profile_tss
+# POLR2A meta-plot / feel free to pick any other gene
+lncrna_metaplot_profile <- profile_tss(filtered_consensus_peaks[["POLR2A"]], lncrna_promoters)
+
+# test plot 
+ggplot(lncrna_metaplot_profile, aes(x = x, y = dens)) + 
+  geom_line(size = 1.5)
+
+# mRNA promoter profiles
+mrna_genes <- genes[genes$gene_type == "protein_coding"]
+
+mrna_promoters <- promoters(mrna_genes, upstream = 3e3, downstream = 3e3)
+
+mrna_metaplot_profile <- profile_tss(filtered_consensus_peaks[["POLR2A"]], mrna_promoters)
+
+ggplot(mrna_metaplot_profile, aes(x = x, y = dens)) + 
+  geom_line(size = 1.5)
+
+# so polR2a looks similar on lncRNA and mRNA promoters
+
+# We can row bind these dataframes so that we can plot them on the same plot
+mrna_metaplot_profile$gene_type <- "mRNA"
+lncrna_metaplot_profile$gene_type <- "lncRNA"
+combined_metaplot_profile <- bind_rows(mrna_metaplot_profile, lncrna_metaplot_profile)
+
+ggplot(combined_metaplot_profile, 
+       aes(x = x, y = dens, color = gene_type)) +
+  geom_vline(xintercept = 0, lty = 2) + 
+  geom_line(size = 1.5) + 
+  ggtitle("POLR2A Promoter Metaplot") + 
+  scale_x_continuous(breaks = c(-3000, 0, 3000),
+                     labels = c("-3kb", "TSS", "+3kb"),
+                     name = "") + 
+  ylab("Peak frequency") + 
+  scale_color_manual(values = c("#424242","#a8404c"))
+
+# combinig on the same plot shows the difference in binding !
+```
+
+
 # creating a meta plot function for all DBPs
 Let's put all this into a funciton so we can call it later conveniently.
 
@@ -371,65 +429,6 @@ profile_tss <- function(peaks,
 }
 ```
 
-# Use this function to make separate plots for lncRNA and mRNA
-
-First we'll create separate objects for lncRNA promoters and mRNA promoters, then we'll supply each of these to the new function we just made.
-
-```{r making seperate metaplots for lncRNAs and mRNAs}
-
-
-# First we will need some gene annotation data from gencode_gr :) 
-gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
-
-# Indexing gencode_gr to grab "genes"
-genes <- gencode_gr[gencode_gr$type == "gene"]
-
-# lncRNA promoter profiles
-
-lncrna_genes <- genes[genes$gene_type == "lncRNA"]
-
-lncrna_promoters <- promoters(lncrna_genes, upstream = 3e3, downstream = 3e3)
-
-
-# Now we can use profile_tss
-# POLR2A meta-plot / feel free to pick any other gene
-lncrna_metaplot_profile <- profile_tss(filtered_consensus_peaks[["POLR2A"]], lncrna_promoters)
-
-# test plot 
-ggplot(lncrna_metaplot_profile, aes(x = x, y = dens)) + 
-  geom_line(size = 1.5)
-
-# mRNA promoter profiles
-mrna_genes <- genes[genes$gene_type == "protein_coding"]
-
-mrna_promoters <- promoters(mrna_genes, upstream = 3e3, downstream = 3e3)
-
-mrna_metaplot_profile <- profile_tss(filtered_consensus_peaks[["POLR2A"]], mrna_promoters)
-
-ggplot(mrna_metaplot_profile, aes(x = x, y = dens)) + 
-  geom_line(size = 1.5)
-
-# so polR2a looks similar on lncRNA and mRNA promoters
-
-# We can row bind these dataframes so that we can plot them on the same plot
-mrna_metaplot_profile$gene_type <- "mRNA"
-lncrna_metaplot_profile$gene_type <- "lncRNA"
-combined_metaplot_profile <- bind_rows(mrna_metaplot_profile, lncrna_metaplot_profile)
-
-ggplot(combined_metaplot_profile, 
-       aes(x = x, y = dens, color = gene_type)) +
-  geom_vline(xintercept = 0, lty = 2) + 
-  geom_line(size = 1.5) + 
-  ggtitle("POLR2A Promoter Metaplot") + 
-  scale_x_continuous(breaks = c(-3000, 0, 3000),
-                     labels = c("-3kb", "TSS", "+3kb"),
-                     name = "") + 
-  ylab("Peak frequency") + 
-  scale_color_manual(values = c("#424242","#a8404c"))
-
-# combinig on the same plot shows the difference in binding !
-```
-
 Making coverage matrix for all DBPs across mRNA and lncRNA promoters
 # NOTE THIS TAKES ~ 3hrs to run !
 
@@ -451,8 +450,7 @@ for(i in c(1:390, 392:length(filtered_consensus_peaks))) {
 }
 
 # write_rds(metaplot_df, "metaplot_df.rds")
-
-write_rds(metaplot_df, "metaplot_df_test.rds")
+write_rds(metaplot_df, "metaplot_df_final_test.rds")
 
 # some more filtering and writing out:
 metaplot_df <- read_rds("metaplot_df.rds")
@@ -460,12 +458,12 @@ metaplot_df <- read_rds("metaplot_df.rds")
 # filtering to be sure 
 passing_peaks <- names(filtered_consensus_peaks)[sapply(filtered_consensus_peaks, length) > 250]
 
+# filtering by passing_peaks
 metaplot_filtered_df <- metaplot_df %>%
   filter(dbp %in% passing_peaks) 
     
 
-# writing out
-# MAKE SURE IN RIGHT WORKING DIRECTORY
+# writing out MAKE SURE IN RIGHT WORKING DIRECTORY
 write_rds(metaplot_filtered_df, "metaplot_filtered_df.rds")
 
 setdiff(unique(metaplot_df$dbp), unique(metaplot_filtered_df$dbp))
@@ -475,17 +473,13 @@ metaplot_filtered_df <- read_rds("metaplot_filtered_df.rds")
 
 ```
 
-##### START POINT #####
-
-```{R start point for creating all meta plots}
-
-```
 
 ##### START POINT ########
 ```{r START POINT TO CREATE META_PLOTS}
 
 # read in metaplot_df
-metaplot_df <- read_rds("metaplot_df.rds")
+metaplot_df <- read_rds("metaplot_df_final_test.rds")
+# metaplot_df <- read_rds("metaplot_df.rds")
 
 # Pivot wider into a matrix
 # careful we don't have duplicated rows
@@ -507,7 +501,6 @@ table(rowSums(is.na(metaplot_filtered_matrix)))
 metaplot_filtered_matrix <- metaplot_filtered_matrix[rowSums(is.na(metaplot_filtered_matrix)) == 0,]
 
 
-#TODO make diagram of rows and cols
 # Z-Scale the rows for clustering (not needed for profile plots)
 mm_scaled <- t(scale(t(metaplot_filtered_matrix)))
 
