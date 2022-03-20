@@ -15,7 +15,6 @@ library(tximport)
 library(DESeq2)
 library(ggrepel)
 library(pheatmap)
-
 source("../../../util/plotting_functions.R")
 source("../../../util/_setup.R")
 ```
@@ -39,14 +38,12 @@ samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/clas
 # hepg2_R1 -- is insoluble_cytoplasmic
 # hepg2_insoluble_cytoplasmic_fraction_R1 -- is insoluble_cytoplasmic
 
-# Long story let's just fix it.
-
 # changing the condition column to insoluble 
 # note operation assignment comes last to just change text.
 
 samplesheet[which(samplesheet$sample_name == "hepg2_R1"), "condition"] <- "insoluble_cytoplasmic_fraction"
 
-# same for changing condition to total RNA
+# same for changing insoluble_cytoplasmic_fraction condition to total
 samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "total"
 
 # saving this to sample_sheets folder
@@ -149,7 +146,8 @@ counts_filtered <- counts[rowSums(counts) > 1,]
 # save it as an RDS
 write_rds(counts_filtered, "counts_matrix/counts_matrix.rds")
 
-# We want to factor the condition variable. 
+# A FACTOR LEVEL is critical for DEseq2 to know which samples is which
+# We will take the condition from sample sheet to compare for differential expression
 # In this case it doesn't matter which comes first the "control"
 samplesheet$condition <- as.factor(samplesheet$condition)
 
@@ -177,8 +175,11 @@ Let's officially run DeSeq2!
 # (1) first run DESeq2 by creating a dds object.
 
 dds <- DESeqDataSetFromMatrix(countData = counts_filtered,
+                              # this is our counts data we read in
                               colData = samplesheet,
+                              # telling DeSeq what env variable to use for sample sheet
                               design = ~ condition)
+                              # perhaps most important is condition is a factor in samplesheet (look in env)
 
 # (2) run DESeq2 on dds object
 
@@ -200,7 +201,7 @@ rlog_counts_matrix <- assay(rlog_counts)
 write_rds(rlog_counts_matrix, "RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
 # reading back in to be sure we can start here in the future.
-rlog_counts_matrix <- read_rds("rlog_count_matrices/rlog_counts_all.rds")
+rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 ```
 
 # Differential Expression (nuclear versus cytoplasmic)
@@ -337,6 +338,7 @@ Next we will reduce out counts_matrix to just the values of nuc/cyto
 
 ```{r nuc/cyto  counts}
 
+# TODO something goes wrong when intersecting to make counts_nuc_cyto
 # first reduce the counts matrix to just nuc and cyto samples.
 counts_nuc_cyto <- counts[, samplesheet_nuc_cyto$sample_name]
 
@@ -347,7 +349,7 @@ stopifnot(all(rownames(samplesheet_nuc_cyto) == colnames(counts_nuc_cyto)))
 
 ```
 
-# SwrrinG samplesheet for nuc vs cyto DEseq2
+# Finalinzing samplesheet for nuc vs cyto DEseq2
 We are almost ready, last things to check:
 
 1) DeSeq2 requires integer data 
@@ -379,6 +381,8 @@ Now let's look deeper into the results held in dds object
 # If this is not true the results will be a mix of wrong samples!
 colnames(nuc_cyto_counts_filtered) == rownames(samplesheet_nuc_cyto)
 
+
+# TODO this doesn't run
 # looks good, now let's make the required DEseq raw counts
 dds <- DESeqDataSetFromMatrix(countData = nuc_cyto_counts_filtered,
                               colData = samplesheet_nuc_cyto,
