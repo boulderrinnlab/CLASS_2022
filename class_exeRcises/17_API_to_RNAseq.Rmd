@@ -244,7 +244,6 @@ map_example[[1]][[1]]
 
 ```
 
-
 # reading in sample sheet
 
 We can use map to call this encode_file_info function for each experiment accession and return each data.frame into a new column in our samples data.frame.
@@ -297,8 +296,10 @@ This will duplicate the remaining columns to match the number of lines in the ne
 
 ```{r unnesting MAP}
 # We also need to tell it which column we want to unnest.
+# note samples is currently 5 rows
 samples <- samples %>%
   unnest(cols = file_info)
+# Now samples is 20 rows from unnesting the 5 previous rows.
 
 # Amazing now we have all the information for each file in all the experiment accessions
 # we will use this to start making a sample_sheet.
@@ -307,7 +308,7 @@ samples <- samples %>%
 # cleaning up sample sheet
 Now we have all the information we neeed in this data.frame and we just need to clean it up.
 
-```{r sample sheet curration}
+```{r sample sheet curration: adding replicate number for each RNAseq experiment}
 # Let's number our replicates and create a new column called sample id 
 # where we join the experiment accesion and the rep number
 
@@ -316,7 +317,7 @@ samples <- samples %>%
   mutate(rep_number = as.numeric(factor(replicate))) %>%
   unite(sample_id, experiment_accession, rep_number, sep = "_rep", remove = F)
 
- # unite will make a new column in samples (piped in)
+ # unite will make a new column in samples (piped in) called sample_id
   # here we will combine experiment accession and rep number with _rep in between
   # This is a handy handle for the data to access later
 ```
@@ -330,7 +331,10 @@ samples <- samples %>%
    dplyr::select(accession, sample_id, experiment_accession, Assay.title,
                 Biosample.summary, md5sum, paired_end_identifier) %>%
   # Note that we're not removing the original columns
+  # TODO how does paired end identifier come after _read wouldn't it add _read to all values?
   unite(fastq_file, sample_id, paired_end_identifier, sep = "_read", remove = F)
+
+# Now we have a new col fastq_file with the information for each fastq file
 ```
 
 # Setting up filename for NF_CORE rnaseq pipeline
@@ -338,7 +342,7 @@ Now let's make the full filename for the fastq files.
 For the nf-core/rnaseq pipeline, the paired-end reads need to be named 
 with the read number in the filename. 
 
-```{r filename for NF_CORE rnaseq pipeline}
+```{r filename for NF_CORE rnaseq pipeline: adding .fastq.gz to fastq_file}
 samples <- samples %>%
   mutate(fq_extension = ".fastq.gz") %>%
   unite(fastq_file, fastq_file, fq_extension, sep = "", remove = F) %>%
@@ -353,22 +357,26 @@ samples <- samples %>%
 We broke this down into parts, so you can understand what is happening, 
 but just note that you can write all of this in one block and read it like a sentence.
 
-```{r compiled code to get samplesheet}
+```{r compiled code to get samplesheet -- all code above compiled into 1 chunk}
 
-samples <- read.table("samples.txt",
-                      sep = "\t", skip = 1, header = T) %>%
-  dplyr::rename(experiment_accession = Accession) %>%
-  mutate(file_info = map(experiment_accession, ~ encode_file_info(.x))) %>%
-  unnest(file_info) %>% 
-  group_by(experiment_accession) %>%
-  mutate(rep_number = as.numeric(factor(replicate))) %>%
-  unite(sample_id, experiment_accession, rep_number, sep = "_rep") %>%
-  dplyr::select(sample_id, accession, Assay.title,
-                Biosample.summary, md5sum, paired_end_identifier) %>%
-  unite(fastq_file, sample_id, paired_end_identifier, sep = "_read", remove = F) %>%
-  mutate(fq_extension = ".fastq.gz") %>%
-  unite(fastq_file, fastq_file, fq_extension, sep = "", remove = F) %>%
-  unite(original_file, accession, fq_extension, sep = "")
+# This is simply all the code above in one chunk.
+
+# CAN SKIP IF TIME IS LOW.
+
+# samples <- read.table("samples.txt",
+#                       sep = "\t", skip = 1, header = T) %>%
+#   dplyr::rename(experiment_accession = Accession) %>%
+#   mutate(file_info = map(experiment_accession, ~ encode_file_info(.x))) %>%
+#   unnest(file_info) %>% 
+#   group_by(experiment_accession) %>%
+#   mutate(rep_number = as.numeric(factor(replicate))) %>%
+#   unite(sample_id, experiment_accession, rep_number, sep = "_rep") %>%
+#   dplyr::select(sample_id, accession, Assay.title,
+#                 Biosample.summary, md5sum, paired_end_identifier) %>%
+#   unite(fastq_file, sample_id, paired_end_identifier, sep = "_read", remove = F) %>%
+#   mutate(fq_extension = ".fastq.gz") %>%
+#   unite(fastq_file, fastq_file, fq_extension, sep = "", remove = F) %>%
+#   unite(original_file, accession, fq_extension, sep = "")
 
 
 ```
@@ -423,7 +431,7 @@ write.csv(md5, "fastq/md5_check.csv")
 Finally, we can write out a nicely formatted sample sheet 
 that we will use downstream for further analysis of the read counts in R.
 
-```{r finalize samplesheet for NF_CORE}
+```{r rename some columns}
 # Let's create the sample sheet that we will use later
 # to do the RNA-seq analysis in R.
 
@@ -446,6 +454,7 @@ where the fastq read 1 and read 2 are in the same row.
 # For this we will use the pivot wider function
 # We need to tell the pivot_wider function which unique column combinations will specify each new row. 
 
+#TODO better understand this pivot wider
 samplesheet <- samples %>%
   #id_cols is a parameter in pivot wider to select the cols
   pivot_wider(id_cols = c("sample_id", "seq_type", "sample_name"),
@@ -455,9 +464,12 @@ samplesheet <- samples %>%
 
 # Harmonize the sample names with the design file.
 samplesheet <- samplesheet %>%
+  # cleaning up sample name that has spaces in it to replace with underscore
   mutate(condition = gsub(" ", "_", sample_name) %>% tolower()) %>%
+  # making two new cols from one and keeping the original 
   separate(sample_id, into = c("experiment_accession", "replicate"), 
            remove = FALSE, sep = "_") %>%
+  # replicate col values came from sample id and are currently rep1 or rep2
   mutate(replicate = gsub("rep", "R", replicate)) %>%
   unite(sample_name, condition, replicate, sep = "_", remove = FALSE)
 
@@ -492,10 +504,14 @@ design <- samplesheet %>%
   # We also need to add the proper file path for NF_CORE to retrieve fastq
   mutate(sample = gsub(" ", "_", sample_name) %>% tolower(),
          strandedness = "unstranded",
+         # This pastes in the file path infrom of the fastq file name so making a driect path to fastq files
          fastq_1 = paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/", fastq_1),
          fastq_2 = paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/", fastq_2)) %>%
   # We have the replicate number already, but it's just a part of the sample id
   # We can use the separate function (opposite of unite) to retrieve it.
+  
+  # this is same code ran above to seperate out sample id into replicates and change to just the number
+  
   separate(sample_id, into = c("experiment_accession", "replicate"), sep = "_", remove = FALSE) %>%
   mutate(replicate = gsub("rep", "", replicate)) %>%
   # Now we gather just the columns we need
