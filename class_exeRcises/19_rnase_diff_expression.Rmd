@@ -206,9 +206,11 @@ rlog_counts_matrix <- assay(rlog_counts)
 write_rds(rlog_counts_matrix, "RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
 # reading back in to be sure we can start here in the future.
-rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
+rlog_counts_matrix <- read_rds("path/rlog_counts_all.rds")
 
 rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/test/rlog_counts_all.rds")
+
+
 ```
 
 # Differential Expression (nuclear versus cytoplasmic)
@@ -224,7 +226,7 @@ Let's specialize sample sheet we can use to compare nuc/cyto samples.
 # Now we will filter the sample sheet to just nuclear and cytoplasmic
 
 samplesheet_nuc_cyto <- samplesheet %>%
-  filter(condition %in% c("homo_sapiens_cytosolic_fraction", "homosapien_nuclear_fraction"))
+  filter(condition %in% c("homo_sapiens_cytosolic_fraction", "homo_sapiens_nuclear_fraction"))
 # Nice now we have a reduced sample sheet that is well organized.
 
 # Next, let's triple check that the counts data
@@ -248,8 +250,8 @@ rownames(samplesheet_nuc_cyto) <- samplesheet_nuc_cyto$sample_name
 
 # Let's make the condition a factor:
 samplesheet_nuc_cyto$condition <- factor(samplesheet_nuc_cyto$condition, 
-                                         levels = c("nuclear_fraction",
-                                                    "cytosolic_fraction"))
+                                         levels = c("homo_sapiens_nuclear_fraction",
+                                                    "homo_sapiens_cytosolic_fraction"))
 
 
 # let's write out this samplesheet for future use
@@ -270,7 +272,7 @@ counts <- read_rds("counts_matrix/counts_matrix.rds")
 rlog_counts_matrix <- read_rds("RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
 #TODO clean this up
-rlog_counts_matrix <- read_rds("test/rlog_counts_all.rds")
+# rlog_counts_matrix <- read_rds("test/rlog_counts_all.rds")
 
 # full sample_sheet
 samplesheet <- read_rds("final_samplesheet.rds")
@@ -402,9 +404,10 @@ dds <- DESeqDataSetFromMatrix(countData = nuc_cyto_counts_filtered,
 
 
 dds <- DESeq(dds)
+resultsNames(dds)
 
 # now we need to extract the results from dds:
-res <- results(dds, name = "condition_cytosolic_fraction_vs_nuclear_fraction")
+res <- results(dds, name = "condition_homo_sapiens_cytosolic_fraction_vs_homo_sapiens_nuclear_fraction")
 
 # It's easier to view it as a data.frame so we'll convert it.
 # While we are at it we merge in gene_symbols (g2s)
@@ -414,6 +417,11 @@ res_df <- res %>% as.data.frame() %>%
   merge(g2s)
 
 # Nice now we have a DF with a lot of good info for each gene.
+# Let's write it out.
+
+write_rds(res_df, "results/nuclear_cyto_results_df.rds")
+
+
 ```
 
 QC plot: Volcano
@@ -431,6 +439,7 @@ ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = -log10(res_df$p
 # saving volcano plot
 
 ggsave("figures/nuc_cyto_volcano.pdf")
+
 
 ```
 
@@ -473,7 +482,7 @@ summary(num_sig)
 # We will use total RNA (whole cell) condition to compare everything back to.
 
 # we will want to set the factor levels with "total" first
-samplesheet$condition <- factor(samplesheet$condition, levels = c("total", "membrane_fraction", "insoluble_cytoplasmic_fraction", "cytosolic_fraction", "nuclear_fraction"))
+samplesheet$condition <- factor(samplesheet$condition, levels = c("homo_sapiens_hepg2", "homo_sapiens_membrane_fraction", "homo_sapiens_insoluble_cytoplasmic_fraction", "homo_sapiens_cytosolic_fraction", "homo_sapiens_nuclear_fraction"))
 
 
 # creating dds based on the factors above
@@ -495,9 +504,11 @@ Let's look a little deeper into the dds results from total vs all
 
 # We now have a bunch more results embedded in the dds object
 resultsNames(dds)
+# let's take this name to return one set of the results from DeSeq
+# all comparisions are in our dds so we can select one at a time.
 
 # Let's just look at one of the results
-res <- results(dds, name = "condition_membrane_fraction_vs_total")
+res <- results(dds, name = "condition_homo_sapiens_membrane_fraction_vs_homo_sapiens_hepg2")
 
 # We can further index the information for just this sample:
 
@@ -598,13 +609,35 @@ res_shrunken_df <- res_shrunken_df %>%
 
 # Let's clean up the column names a little bit
 res_shrunken_df <- res_shrunken_df %>%
-  mutate(subcellular_fraction = gsub("condition_|_fraction_vs_total", "", result_name))
+  mutate(subcellular_fraction = gsub("condition_|homo_sapiens_|_fraction_vs_homo_sapiens_hepg2", "", result_name))
 
-
+table(res_shrunken_df$subcellular_fraction)
 sig_res_shrunked_df <- res_shrunken_df %>%
   filter(sig == "sig")
 
 lfc_matrix <- sig_res_shrunked_df %>% 
+  dplyr::select(gene_id, log2FoldChange, subcellular_fraction) %>% 
+  pivot_wider(names_from = "subcellular_fraction", values_from = "log2FoldChange") %>%
+  column_to_rownames("gene_id") %>%
+  as.matrix()
+
+pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
+
+
+```
+
+```{r signigicant nuclear and cyto}
+
+# reading in nuc_cyto results df
+nuc_cyto_res_df <- read_rds("results/nuclear_cyto_results_df.rds")
+
+nuc_cyto_sig_genes <- nuc_cyto_res_df %>%
+  filter(padj < 0.001, abs(log2FoldChange) >1)
+
+nuc_cyto_genes_to_plot <- res_shrunken_df %>%
+  filter(gene_id %in% nuc_cyto_sig_genes$gene_id, subcellular_fraction %in% c("nuclear", "cytosolic"))
+  
+lfc_matrix <- nuc_cyto_genes_to_plot %>% 
   dplyr::select(gene_id, log2FoldChange, subcellular_fraction) %>% 
   pivot_wider(names_from = "subcellular_fraction", values_from = "log2FoldChange") %>%
   column_to_rownames("gene_id") %>%
