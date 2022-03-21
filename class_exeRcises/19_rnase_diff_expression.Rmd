@@ -76,6 +76,8 @@ g2s <- genes %>% as.data.frame() %>%
 
 write.csv(g2s, "g2s.csv")
 
+g2s <- read_csv("g2s.csv")
+
 # Nice now we have a handy conversion table of gene_id & gene_name
 ```
 
@@ -198,10 +200,15 @@ rlog_counts_matrix <- assay(rlog_counts)
 # Now we can write this out and START from here in the future.
 # create new folder 'rlog_count_matrices'
 
+#TODO clean this up
+# write_rds(rlog_counts_matrix, "test/rlog_counts_all.rds")
+
 write_rds(rlog_counts_matrix, "RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
 # reading back in to be sure we can start here in the future.
 rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
+
+rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/test/rlog_counts_all.rds")
 ```
 
 # Differential Expression (nuclear versus cytoplasmic)
@@ -217,7 +224,7 @@ Let's specialize sample sheet we can use to compare nuc/cyto samples.
 # Now we will filter the sample sheet to just nuclear and cytoplasmic
 
 samplesheet_nuc_cyto <- samplesheet %>%
-  filter(condition %in% c("homosapien_cytosolic_fraction", "homosapien_nuclear_fraction"))
+  filter(condition %in% c("homo_sapiens_cytosolic_fraction", "homosapien_nuclear_fraction"))
 # Nice now we have a reduced sample sheet that is well organized.
 
 # Next, let's triple check that the counts data
@@ -262,9 +269,14 @@ counts <- read_rds("counts_matrix/counts_matrix.rds")
 # All normalized counts 
 rlog_counts_matrix <- read_rds("RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
+#TODO clean this up
+rlog_counts_matrix <- read_rds("test/rlog_counts_all.rds")
+
 # full sample_sheet
 samplesheet <- read_rds("final_samplesheet.rds")
 
+
+# TODO make this
 # nuc/cyto sample sheet
 samplesheet_nuc_cyto <- read_rds("samplesheet_nuc_cyto.rds")
 
