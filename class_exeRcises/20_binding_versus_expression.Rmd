@@ -18,11 +18,11 @@ source("../../../util/intersect_functions.R")
 source("../../../util/_setup.R")
 ```
 
-
 # Reading in sample sheet
-First let's read in the sample sheet to know what is what
+
 ```{r read in sample_sheet}
 
+# First let's read in the sample sheet to know what is what
 samplesheet <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/final_samplesheet.rds")
 
 ```
@@ -33,12 +33,14 @@ Now let's read in the TPMs from salmon
 
 # reading in salmon counts TPM (note we previously read in counts)
 # TPM is transcripts per million read -- so is a normalized abundance value
-salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_tpm.csv")
+salmon_tpm <- read.csv("path/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_tpm.csv")
+
+# salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_tpm.csv")
+
 
 # since we have replicates we will take the mean TPM for each fractionation.
 # while we are at it we will add more intuitive row and col names 
 # finally we are making sure the TPM table is in same order as samplesheet
-
 
 tpm <- salmon_tpm %>% 
   pivot_longer(cols = 2:ncol(.), names_to = "sample_id", values_to = "tpm") %>%
@@ -56,7 +58,9 @@ how many DBPs are bound at each promoter
 ```{r loading in peak features data frame }
 
 # loading peak_feature
-promoter_features_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
+promoter_features_df <- read.csv("path/12_peak_features/peak_occurence_dataframe.csv")
+
+# promoter_features_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
 
 # Now we can merge in the TPM data to this data.frame
 promoter_features_df <- merge(promoter_features_df, tpm)
@@ -65,15 +69,18 @@ promoter_features_df <- merge(promoter_features_df, tpm)
 write.csv(promoter_features_df, "promoter_feature_df_tpm.csv")
 
 # let's plot the number of DBPs bound as a densuty plot.
-
 ggplot(promoter_features_df, aes(x = number_of_dbp)) +
-  geom_density() +
+  geom_density() 
+
+# Let's save
   ggsave("figures/DBP_binding_density_plot.pdf")
 
 # This is a very cool result there must be two classes of promoters!
 # Remember this plot :) !
+# yet I guess we already knew this from 14_2
 
 ```
+
 RESULT: There is a bimodal distriubution of the number of DBPs bound
 to a given promoter!
 
@@ -104,16 +111,17 @@ summary(is.na(tpm_matrix))
 # clearing all possible NAs
 tpm_scaled <- tpm_scaled[complete.cases(tpm_scaled),]
 
+# Now we can hake a heat map of tpm_scaled (take ~5 min?)
 pheatmap::pheatmap(tpm_scaled, show_rownames = FALSE)
-# save this in the plots window
+# save this in the plots window >> MAKE SURE TO CHANGE WORK DIR to FIGURES
 
-# compare to the heat map generated with counts in 19_.Rmd
+# RESULT: 
+# (1) Most RNAs are abundant in the nucleus
+# (2) Some RNAs expressed in total that are not in other fractioins?
 ```
-RESULT: 
-(1) Most RNAs are abundant in the nucleus
-(2) Some RNAs expressed in total that are not in other fractioins?
 
 # Plotting binding versus expression
+
 Now let's examine how binding effects expression.
 We have published previously that the more binding
 events at a promoter the more abundant the expression is.
@@ -156,6 +164,8 @@ are bound by many DBPs (up to 400!).
 Let's see if the binding versus expression holds in the nuclear fraction
 ```{r binding versus nuclear expression}
 
+# Now let's make a similar plot for nuclear RNA abundance versus #DBPs boud to their promoter
+
 ggplot(promoter_features_df, 
             aes(y = log2(tpm_homo_sapiens_nuclear_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
   geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_nuclear_fraction < 0.001),
@@ -179,6 +189,7 @@ RESULT: looks very similar to total RNA binding versus expression
 Next we will determine the DBP binding versus cytoplasmic expression
 ```{Binding versus cytoplasmic expression}
 
+# Same thing just seeing if there is a difference of cyto RNAs versus DBPs on promoter
 ggplot(promoter_features_df, 
             aes(y = log2(tpm_homo_sapiens_cytosolic_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
             # note if we take off the log2 everything is very lowly expressed
@@ -190,9 +201,12 @@ ggplot(promoter_features_df,
   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
   ggtitle("Cytoplasmic Expression vs. promoter binding events") + 
   xlab(expression('Number of TFs')) +
-  ylab(expression(log[2](TPM))) +
+  ylab(expression(log[2](TPM))) 
+
   # saving figure
   ggsave("figures/cytoplasmic_expression-vs-promoter_binding.pdf")
+  
+  # slightly fuzzier !
 
 ```
 RESULTS:
@@ -208,12 +222,15 @@ Next we will directly test the lncRNA vs mRNA expression levels in total RNA.
 # but here's another way of looking at that.
 ggplot(promoter_features_df, aes(x = log2(tpm_homo_sapiens_hepg2 + 0.01), color = gene_type))+
   geom_density()
+
+# saving figure
 ggsave("figures/mrna_lncrna_tpm_total_rna.pdf")
 
 # let's also do the same for nuclear since lncRNAs are typically more nuclear
-
 ggplot(promoter_features_df, aes(x = log2(tpm_homo_sapiens_nuclear_fraction + 0.01), color = gene_type))+
   geom_density()
+
+# saving figure
 ggsave("figures/mrna_lncrna_tpm_nuclear.pdf")
 
 
@@ -240,19 +257,21 @@ promoter_features_df$hepg2_reservoir <-
   as.numeric(promoter_features_df$number_of_dbp > 100 & 
                promoter_features_df$tpm_homo_sapiens_hepg2 < 0.001)
 
+# seeing what we got with table
 table(promoter_features_df$hepg2_reservoir)
 
+# RESULT:
+# (1) There are 798 reservoirs in HEPG2.
+
 ```
-RESULT:
-(1) There are 766 reservoirs in HEPG2.
-
-
 
 Now that we have defined reservoirs in hepG2 cells, we next want to determine how many 
 are similar genomic regions in k562 and hepG2.
+
 ```{r reading in K%62 reservoirs}
 
 k562_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/2020_k562_promoter_peak_df.csv")
+
 # saving for future use this was hard to find :)
 write_csv(k562_df, "2020_k562_promoter_peak_df.csv")
 
@@ -274,8 +293,10 @@ k562_df <- k562_df %>%
                 k562_promoter_median_tpm = promoter_median_tpm,
                 k562_promoter_max_tpm = promoter_max_tpm)
 
+# save this file in new format
 write_csv(k562_df,"k562_df.csv")
 
+# testing read in for future use
 k562_df <- read_csv("k562_df.csv")
 
 # renaming promoter_features_df to hepg2_df
@@ -288,13 +309,16 @@ hepg2_df <- promoter_features_df %>%
                  tpm_insoluble_cytoplasmic_fraction = tpm_homo_sapiens_insoluble_cytoplasmic_fraction ,
                  tpm_membrane_fraction = tpm_homo_sapiens_membrane_fraction)
 
+# let's save this handy file
 write_csv(hepg2_df,"hepg2_df.csv")
 
+# testing read in for future
 hepg2_df <- read_csv("hepg2_df.csv")
   
-# TODO this breaks for some reason
+# Let's merge the k562 reservoirs in with HEPG2_df
 hepg2_k562_promoter_features_df <- merge(hepg2_df, k562_df)
 
+# Now saving
 write_csv(hepg2_k562_promoter_features_df, "hepg2_k562_promoter_features_df.csv")
 
 # Make a table of reservoir status
@@ -302,11 +326,14 @@ res_status <- hepg2_k562_promoter_features_df %>%
   group_by(hepg2_reservoir, k562_reservoir, k562_conservative_reservoir) %>%
   summarize(count = n())
 
+# saving for future
 write_csv2(res_status, "reservoir_overlap_stats.csv")
 ```
 
 # Writting out files
+
 ```{r saving files for future use}
+
 # We can now write these out for safekeeping / use in other analyses
 write_csv(promoter_features_df, "results/promoter_features_df.csv")
 write_csv(tpm, "results/mean_tpm_per_condition.csv")
