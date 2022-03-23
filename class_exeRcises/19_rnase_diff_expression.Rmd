@@ -612,8 +612,12 @@ lfc_matrix <- nuc_cyto_genes_to_plot %>%
   as.matrix()
 
 # Let's plot it with pheatmap
-
 pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
+
+# saving
+pdf("figures/nuc_vs_cyto_genes_heatmap.pdf")
+pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
+dev.off()
 
 ```
 
