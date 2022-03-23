@@ -47,8 +47,16 @@ samplesheet[which(samplesheet$sample_name == "hepg2_R1"), "condition"] <- "insol
 samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "total"
 
 # saving this to sample_sheets folder
-
 write.csv(samplesheet, "corrected_samplesheet.csv")
+
+# A FACTOR LEVEL is critical for DEseq2 to know which samples is which
+# We will take the condition from sample sheet to compare for differential expression
+# In this case it doesn't matter which comes first the "control"
+samplesheet$condition <- as.factor(samplesheet$condition)
+
+# Now that the samplesheet is ready to used in DESeq2, 
+# we'll write it out for future use.
+write_rds(samplesheet, "final_samplesheet.rds")
 
 ```
 
@@ -56,16 +64,15 @@ write.csv(samplesheet, "corrected_samplesheet.csv")
 # also making gene_id to gene_symbol object 
 Now let's read in the genome features also in our data folder
 While we are at it, let's also print these out to make this go quicker in the future.
-```{r import genome features}
+```{r import genome features and make gene_id and symbol file}
 
 # Importing genome annotations
+# ANIKA I apologize that we should have done this earlier to avoid loading Gencode again :()
 gencode_gtf <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
 # that took awhile let's make genome annotation files that can be quickly read in the future
 
-
 # Let's reduce this big GRanges list to just genes
 genes <- gencode_gtf[gencode_gtf$type == "gene"]
-
 
 # let's make an object of gene_id and names
 # we just saw above we can get both gene_id and name from 'genes'
@@ -74,8 +81,10 @@ genes <- gencode_gtf[gencode_gtf$type == "gene"]
 g2s <- genes %>% as.data.frame() %>%
   dplyr::select(gene_id, gene_name)
 
+# writingn this out to avoid loading Gencode in the future
 write.csv(g2s, "g2s.csv")
 
+# test read in to see if we saved correct (this is pretty simple so should be fine)
 g2s <- read_csv("g2s.csv")
 
 # Nice now we have a handy conversion table of gene_id & gene_name
@@ -143,19 +152,10 @@ counts <- round(counts)
 
 counts_filtered <- counts[rowSums(counts) > 1,]
 
-
 # In order to cache this and read it in later we'll
 # save it as an RDS
 write_rds(counts_filtered, "counts_matrix/counts_matrix.rds")
 
-# A FACTOR LEVEL is critical for DEseq2 to know which samples is which
-# We will take the condition from sample sheet to compare for differential expression
-# In this case it doesn't matter which comes first the "control"
-samplesheet$condition <- as.factor(samplesheet$condition)
-
-# Now that the samplesheet is ready to used in DESeq2, 
-# we'll write it out for future use.
-write_rds(samplesheet, "final_samplesheet.rds")
 
 ```
 
@@ -190,25 +190,19 @@ dds <- DESeq(dds)
 # (3) arrive at rlog normalized counts table!
 # bild = T means it will normalize with out the "design ~ condition"
 # seems redundant but these are the steps :)
-
 rlog_counts <- rlog(dds, blind = TRUE)
 
-# (4) now we retrieve the values using assay (an accessor function into rlog_counts)
-
+# (4) now we retrieve the values using assay (an access function into rlog_counts)
 rlog_counts_matrix <- assay(rlog_counts)
 
 # Now we can write this out and START from here in the future.
 # create new folder 'rlog_count_matrices'
-
-#TODO clean this up
-# write_rds(rlog_counts_matrix, "test/rlog_counts_all.rds")
-
 write_rds(rlog_counts_matrix, "RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
 # reading back in to be sure we can start here in the future.
 rlog_counts_matrix <- read_rds("path/rlog_counts_all.rds")
 
-rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/test/rlog_counts_all.rds")
+# rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
 
 ```
@@ -222,7 +216,6 @@ Let's specialize sample sheet we can use to compare nuc/cyto samples.
 
 ```{R nuclear and cytoplasmic samplesheet}
 
-# TODO BUG HERE ON OUT !!
 # Now we will filter the sample sheet to just nuclear and cytoplasmic
 
 samplesheet_nuc_cyto <- samplesheet %>%
@@ -263,6 +256,7 @@ write_rds(samplesheet_nuc_cyto, "samplesheet_nuc_cyto.rds")
 # START POINT
 All the work we have done above can be skipped by 
 reading in the following files.
+
 ```{r START POINT}
 
 # Read in the raw counts
@@ -271,17 +265,11 @@ counts <- read_rds("counts_matrix/counts_matrix.rds")
 # All normalized counts 
 rlog_counts_matrix <- read_rds("RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
-#TODO clean this up
-# rlog_counts_matrix <- read_rds("test/rlog_counts_all.rds")
-
 # full sample_sheet
 samplesheet <- read_rds("final_samplesheet.rds")
 
-
-# TODO make this
 # nuc/cyto sample sheet
 samplesheet_nuc_cyto <- read_rds("samplesheet_nuc_cyto.rds")
-
 
 # finally a gene_id and gene_names object
 g2s <- read.csv("g2s.csv")
@@ -317,6 +305,7 @@ dev.off()
 
 # Principal component analysis
 Now let's use Principle Component Analysis to determine sample similarity
+
 ```{r PCA analysis}
 
 # The first thing that we'll want to do is make a PCA plot.
@@ -334,15 +323,13 @@ rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
   select(sample_name, PC1, PC2)
 rld_prcomps <- merge(samplesheet, rld_prcomps)
 
-
+# Let's make a PCA plot
 ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate)) +
 geom_point() +
 geom_text_repel()
-
 # RESULT: PCA plot looks like replicates are more similar than fraction type!
 
 # Let's print this out
-
 ggsave("figures/PCA_plot.pdf")
 
 ```
@@ -352,7 +339,6 @@ Next we will reduce out counts_matrix to just the values of nuc/cyto
 
 ```{r nuc/cyto  counts}
 
-# TODO something goes wrong when intersecting to make counts_nuc_cyto
 # first reduce the counts matrix to just nuc and cyto samples.
 counts_nuc_cyto <- counts[, samplesheet_nuc_cyto$sample_name]
 
@@ -389,14 +375,13 @@ nuc_cyto_counts_filtered <- counts_nuc_cyto[rowSums(counts_nuc_cyto) > 1,]
 
 # Differential expression of nuc -vs- cyto DEseq2
 Now let's look deeper into the results held in dds object
+
 ```{r DEseq2 nuc versus cyto}
 
 # IMPORTANT: always double check organization of input files to DESeq!
 # If this is not true the results will be a mix of wrong samples!
 colnames(nuc_cyto_counts_filtered) == rownames(samplesheet_nuc_cyto)
 
-
-# TODO this doesn't run
 # looks good, now let's make the required DEseq raw counts
 dds <- DESeqDataSetFromMatrix(countData = nuc_cyto_counts_filtered,
                               colData = samplesheet_nuc_cyto,
@@ -404,9 +389,15 @@ dds <- DESeqDataSetFromMatrix(countData = nuc_cyto_counts_filtered,
 
 
 dds <- DESeq(dds)
+
+# IMPORTANT : we need the results name for exporting results to data.frame
+# We can see that DeSeq makes it's own names so "resultNames" is the way to get that info
 resultsNames(dds)
 
-# now we need to extract the results from dds:
+# We don't want the intercept data
+# but we need to extract the results from dds:
+# let's remove intercept:
+
 res <- results(dds, name = "condition_homo_sapiens_cytosolic_fraction_vs_homo_sapiens_nuclear_fraction")
 
 # It's easier to view it as a data.frame so we'll convert it.
@@ -443,8 +434,10 @@ ggsave("figures/nuc_cyto_volcano.pdf")
 
 ```
 
+# MA-PLOTS are one of the common first plots to make.
+# This plot informs you of low abundance biases in fold-change
+
 ```{R MA PLOT}
-# TODO base-mean seems to be an issue!!!!
 
 # The 'MA plot' shows how low abundance affects can be an issue.
 # x-axis = log(expression level)
@@ -470,13 +463,15 @@ hist(res_df$padj)
 # how many genes above 0.05 padj?
 
 num_sig <- res_df$padj < 0.05
+
+# we can also look at this with summary
 summary(num_sig)
 
-# We see about 14,268 genes exhibit differential expressed.
+# We see about 15,000 genes exhibit differential expressed.
 ```
 
-
 # DESeq with all subcellular fractions
+
 ```{r organizing sample sheet for comparison to total RNA for each fraction}
 
 # We will use total RNA (whole cell) condition to compare everything back to.
@@ -511,7 +506,6 @@ resultsNames(dds)
 res <- results(dds, name = "condition_homo_sapiens_membrane_fraction_vs_homo_sapiens_hepg2")
 
 # We can further index the information for just this sample:
-
 res_df <- res %>% as.data.frame() %>%
   rownames_to_column("gene_id") %>%
   merge(g2s) %>%
@@ -529,7 +523,6 @@ Let's save the results:
 
 # A good starting point would be to use a for loop to make a data.frame 
 # with all the results
-
 results_names <- resultsNames(dds)
 
 # let's look
@@ -539,7 +532,6 @@ results_names
 results_names <- results_names[-1]
 
 # First we set up a data frame for logFC results.
-
 res_df <- data.frame("gene_id" = character(), 
                      "baseMean" = numeric(), 
                      "log2FoldChange" = numeric(), 
@@ -563,18 +555,20 @@ res_shrunken_df <- data.frame("gene_id" = character(),
                               "gene_name" = character(),
                               "result_name" = character())
 
+# Now we will make a forloop to populate these data.frames with each DeSeq result !
 
 for(i in 1:length(results_names)) {
   results_name <- results_names[i]
   res <- results(dds, name = results_name)
   res_shrunken <- lfcShrink(dds, coef = results_name,  res = res)
   
+  # populating data.frame 1 : temp_res_df
   tmp_res_df <- res %>% as.data.frame() %>%
     rownames_to_column("gene_id") %>%
     merge(g2s) %>%
     mutate(result_name = results_name)
   
-  
+  # populating data.frame 1 : temp_res_shrunken
   tmp_res_shrunken_df <- res_shrunken %>% as.data.frame() %>%
     rownames_to_column("gene_id") %>%
     merge(g2s) %>%
@@ -586,9 +580,9 @@ for(i in 1:length(results_names)) {
 }
 
 # Let's save these res_df
-
 write_rds(res_df, "results/deseq_results_df.rds")
 
+# shrunken log fold change results
 write_rds(res_shrunken_df, "results/deseq_results_shrunken_lfc_df.rds")
 
 ```
@@ -597,54 +591,29 @@ Cool now we have two great data frames to move forward with.
 Normally we would just move forward with shrunken logFC.
 Let's add a couple more fun colums to this res_shrunken_df
 
-```{R adding more information to res_shrunken_df }
-
-# we could start here by reading in the files from above:
-res_shrunken_df <- read_rds("results/deseq_results_shrunken_lfc_df.rds")
-
-# First let's label the genes as being significant in any condition or not.
-res_shrunken_df <- res_shrunken_df %>%
-  group_by(gene_id) %>%
-  mutate(sig = ifelse(any(padj < 0.05), "sig", "ns"))
-
-# Let's clean up the column names a little bit
-res_shrunken_df <- res_shrunken_df %>%
-  mutate(subcellular_fraction = gsub("condition_|homo_sapiens_|_fraction_vs_homo_sapiens_hepg2", "", result_name))
-
-table(res_shrunken_df$subcellular_fraction)
-sig_res_shrunked_df <- res_shrunken_df %>%
-  filter(sig == "sig")
-
-lfc_matrix <- sig_res_shrunked_df %>% 
-  dplyr::select(gene_id, log2FoldChange, subcellular_fraction) %>% 
-  pivot_wider(names_from = "subcellular_fraction", values_from = "log2FoldChange") %>%
-  column_to_rownames("gene_id") %>%
-  as.matrix()
-
-pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
-
-
-```
-
 ```{r signigicant nuclear and cyto}
 
 # reading in nuc_cyto results df
 nuc_cyto_res_df <- read_rds("results/nuclear_cyto_results_df.rds")
 
+# Let's make list of all SIG gnees with  P <0.01 and FC > 2 in nuc-vs-cyto
 nuc_cyto_sig_genes <- nuc_cyto_res_df %>%
   filter(padj < 0.001, abs(log2FoldChange) >1)
 
+# Now we filter res_shrunken for gene_id column and subcellular fraction column 
 nuc_cyto_genes_to_plot <- res_shrunken_df %>%
   filter(gene_id %in% nuc_cyto_sig_genes$gene_id, subcellular_fraction %in% c("nuclear", "cytosolic"))
   
+# We need a matrix for heatmap and converting nuc_cyto_genes/values from lines above to matrix
 lfc_matrix <- nuc_cyto_genes_to_plot %>% 
   dplyr::select(gene_id, log2FoldChange, subcellular_fraction) %>% 
   pivot_wider(names_from = "subcellular_fraction", values_from = "log2FoldChange") %>%
   column_to_rownames("gene_id") %>%
   as.matrix()
 
-pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
+# Let's plot it with pheatmap
 
+pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
 
 ```
 
