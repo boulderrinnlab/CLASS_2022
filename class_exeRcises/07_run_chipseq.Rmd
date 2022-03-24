@@ -12,24 +12,21 @@ Basepath:
 
 # Here is the individual qc files:
 
-results/fastqc/ *.html
+results/fastqc/*.html
 
 # All QC combined and more:
-
 results/multiqc/broadPeak/multiqc_report.html
 
 # Here are the peak files (we want the broad.peak files - not gapped or XLS)
-
 results/bwa/mergedLibrary/macs/broadPeak
 
 # Here are the bigwig files
-
 results/bwa/mergedLibrary/bigwig
 
 # Pipeline run information:
-
 results/pipeline_info/pipeline_report.html
 
+# more info on the data results
 results/pipeline_info/results_description.html
 
 

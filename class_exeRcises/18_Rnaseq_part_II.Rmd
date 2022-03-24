@@ -10,7 +10,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE)
 library(tidyverse)
-library(tximport)
+# library(tximport)
 library(DESeq2)
 library(ggrepel)
 library(pheatmap)
@@ -78,16 +78,20 @@ module load singularity/3.1.1
 
 # first telling which pipeline to run
 nextflow run nf-core/rnaseq -r 1.4.2 \
+
 # resume is awesome and let's us pick up where we left off
 -resume \
+
 # setting up a singularity container for reproducibility 
 -profile singularity \
+
 # wher is the data :)
---reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
+--reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.g' \
 # genome file
---fasta /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/GRCh38.p13.genome.fa \
+--fasta /scratch/Shares/rinnclass/CLASS_2022/data/genomes/GRCh38.p13.genome.fa \
+
 # genome annotation file
---gtf /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/gencode.v32.annotation.gtf \
+--gtf /scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf \
 # aligner -- unique to 1.4.2 others use different parameters.
 # IMPORTANT TO CHECK ALIGNER INSTRUCTION (but will get an error if wrong :)
 --pseudo_aligner salmon \
@@ -176,7 +180,7 @@ RUN.SH (DOES NOT REQUIRE DESIGN FILE)
 #SBATCH -p long
 #SBATCH --job-name=HEPG2_rna_seq
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=john.rinn@colorado.edu
+#SBATCH --mail-user=your_email
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
@@ -192,12 +196,12 @@ module load singularity/3.1.1
 nextflow run nf-core/rnaseq -r 1.4.2 \
 -resume \
 -profile singularity \
---reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
---fasta /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/GRCh38.p13.genome.fa \
+--reads 'path/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
+--fasta /scratch/Shares/rinnclass/CLASS_2022/data/genomes/GRCh38.p13.genome.fa \
 --gtf /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/gencode.v32.annotation.gtf \
 --pseudo_aligner salmon \
 --gencode \
---email john.rinn@colorado.edu \
+--email your_email@colorado.edu \
 -c nextflow.config
 
 date
