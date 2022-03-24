@@ -15,9 +15,9 @@ library(ggdendro)
 library(GenomicRanges)
 library(pheatmap)
 
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/plotting_functions.R")
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/_setup.R")
+source("path/CLASS_2022/util/intersect_functions.R")
+source("path/CLASS_2022/util/plotting_functions.R")
+source("path/CLASS_2022/JR/CLASS_2022/util/_setup.R")
 
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/plotting_functions.R")
@@ -43,7 +43,7 @@ Ok let's get started by grabbing the peak_occurrence_matrix from 14_2_our_data_i
 
 promoter_peak_occurence_matrix <- read.table("/path/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
 
- # promoter_peak_occurence_matrix <- read.table("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+# promoter_peak_occurence_matrix <- read.table("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
 
 # read.table will make this a data.frame but will keep row names.
 
@@ -92,7 +92,7 @@ test2
 
 
 # Now let's create distance matrix for each pairwise vector comparison for the whole matrix now.
-
+# This take 5 min or so
 peak_occurence_dist <- dist(peak_occurence_matrix, method = "binary")
 
 ```
@@ -148,7 +148,7 @@ dev.off()
 # HEATMAPS
 Nice so we now have object "bin_hier" that will contain all the cross correlation values across all the samples. 
 
-Now let's use ggdenro package that will plot the branch lengths that indicate how similar two samples are 
+Now let's use GGDENDRO (dendrogram) package that will plot the branch lengths that indicate how similar two samples are 
 
 ```{r ggdendro gram}
 
@@ -163,6 +163,7 @@ Now let's use ggdenro package that will plot the branch lengths that indicate ho
    # adds label
    scale_x_continuous(position = "top") +
    # subsection to labels in order of clustering
+   # ? seq_along
    scale_x_continuous(breaks = seq_along(bin_hier$labels[bin_hier$order]),
                       # adding labels that are in the order 'column'
              labels = bin_hier$labels[bin_hier$order], position = "top",
@@ -176,7 +177,6 @@ Now let's use ggdenro package that will plot the branch lengths that indicate ho
    panel.grid.minor = element_blank(),
      panel.border = element_blank()
    )
-
 
 # Nice let's save this using 'ggsave':
 
@@ -214,6 +214,7 @@ bin_hier_lncrna <- hclust(dist(lncrna_peak_occurence, method = "binary"))
 # Now plot with ggdendro
 ggdendro::ggdendrogram(bin_hier_lncrna, rotate = TRUE,  size = 3)
  
+# Now let's save this figure
 ggsave("figures/lncrna_hclust_binary_dist.pdf", height = 44, width = 6)
 # Cool we can see the Pol II S2 and S5 diff right away again!
 
@@ -243,7 +244,7 @@ ggsave("figures/mrna_hclust_binary_dist.pdf", height = 44, width = 6)
 
 ```
 
-# Clustering "high binder promoters"
+# Characterizing and Clustering "high binder promoters"
 Let's make a heatmap of the promoters -- since it will take a long long time to plot we'll just plot the "super promoters"
 ```{r clustering high-binding promoters}
 
@@ -252,13 +253,27 @@ Let's make a heatmap of the promoters -- since it will take a long long time to 
 # Note another example of indexing a 'master file'  now using a function: colSums
 high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 300]
 
-# let's look
-min(rowSums(high_binders)) 
-# one DBP only binds 26 of the 5,663 high binder promoters
-
+# let's find out how many high binder promoters there are
 ncol(high_binders)
-# the DBP with lowest promoter overlaps - has 26 overlaps with promoters.
+# RESULT: 5,663 promoters have more than 300 DBPs bound
+
+# let's look at the rows (DBPs) what is the DBP that interacts the least with high-binder promoters
+min(rowSums(high_binders)) 
+# one DBP only binds 26 of the high binder promoters
+# which one?
+which.min(rowSums(high_binders))
+# RESULT : H3K4me2 binds the least to high binder
+
+# which DBP has the max overlap with high-binder promters
 max(rowSums(high_binders))
+# Wow there is one DBP that binds all the high binders
+# there could be more let's see:
+table(max(rowSums(high_binders)))
+# nope just one protein binds all high binding proteins.
+
+# Let's find out which one it is !!
+which.max(rowSums(high_binders))
+# RESULT: ARID4B binds to all high-binding promoters -- thus could be a nucleator???
 
 # let's see the diversity of contributions of each DBP to high_binder_promoters
 # this means that one DBP is only part of 26 of the 5,661 high binder promoters
@@ -287,12 +302,13 @@ There is a theme of take one file and index it with another subset file of inter
 
 # If we want to just plot the zinc fingers for example, we can reference the num_peaks_df 
 # Let's read in num_peaks_df
-num_peaks_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
+num_peaks_df <- read_csv("path/analysis/12_peak_features/num_peaks_df.csv")
 
 # num_peaks_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
 
 # now let's make a zinc_finger_dbd data frame
-zinc_finger_dbd <- num_peaks_df %>% filter(dbd == "C2H2 ZF")
+zinc_finger_dbd <- num_peaks_df %>% 
+   filter(dbd == "C2H2 ZF")
 
 # Now we will subset the high binder matrix we made with the
 # zinc_finger_dbd object we just made.
@@ -300,19 +316,17 @@ zinc_finger_dbd <- num_peaks_df %>% filter(dbd == "C2H2 ZF")
 zf_matrix <- high_binders[zinc_finger_dbd$dbp,] 
 
 # now the heatmap!
-
 pheatmap(zf_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
 
+# saving this
 ggsave("figures/ZFN_high_binder_heatmap.pdf", height = 44, width = 6 )
 
 
 # We can also check out the dendrogram for just this matrix.
-
 zf_hclust <- hclust(dist(zf_matrix, method = "binary"))
 plot(zf_hclust)
 
 # now let's save it as a PDF
-
 pdf("figures/zfn_clustering.pdf")
 zf_hclust <- hclust(dist(zf_matrix, method = "binary"))
 plot(zf_hclust)
@@ -331,6 +345,7 @@ and retreive all the DBPs bound to it.
 # Let's make a data frame of gene_id and gene_name 
 # we will merge this into our dbp_on_promoters below
 
+# this is another way to make g2s file of gene_names and gene_symbols
 DBPs_on_promoter <- bind_rows(lncrna_promoters %>% 
                                  as.data.frame(),
                  mrna_promoters %>% 
@@ -355,10 +370,11 @@ pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
 
 # let's write this out it's a very handy DF!
 # note saving in 12 where we read in this type of data
+write.csv(promoter_dbps, "path/12_peak_features/promoter_dbps.csv")
+# This is a very large file but very useful you want to find which DBP is on which promoter
 
-write.csv(promoter_dbps, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/promoter_dbps.csv")
+# write.csv(promoter_dbps, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/promoter_dbps.csv")
 
-# note this is extremely large but equally useful.
 ```
 
 # Finding which DBPs are on which promoter
@@ -366,31 +382,39 @@ Cool now we can select any gene and see what DBPs are bound?
 
 ```{R DBPs on a given promoter}
 
-#TODO this doesn't run :(  
 # In the future if we want to filter on genes we can just read this back in.
-
 promoter_dbps <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/promoter_dbps.csv")
 
 # let's see what's on FIRRE
 firre_promoter <- promoter_dbps %>%
   filter(gene_name == "FIRRE")
 
-# GAPDH
+# seeing what's there :
+firre_promoter
+# How many DBPs bound
+nrow(firre_promoter)
 
+# GAPDH
 GAPDH_promoter <- promoter_dbps %>%
   filter(gene_name == "GAPDH")
 
-# trying to find a small binder :)
+# seeing what's there :
+GAPDH_promoter
+# How many DBPs bound
+nrow(GAPDH_promoter)
 
+# trying to find a small binder :)
 XIST_promoter <- promoter_dbps %>%
   filter(gene_name == "XIST")
 
-# let's look
+# seeing what's there :
 XIST_promoter
+# How many DBPs bound
+nrow(XIST_promoter)
 
 # Interesting, intuition was correct considering
 # this is a male cell line :) but what is bound is interesting
-# Note to self STAG1/CTCF is very interesting!
+# RESULT: STAG1/CTCF is very interesting!
 ```
 
 Challenge: 
