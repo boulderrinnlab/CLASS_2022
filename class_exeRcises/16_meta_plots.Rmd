@@ -49,7 +49,9 @@ names(filtered_consensus_peaks) <- sapply(filtered_consensus_peaks, function(x){
 Overall our goal is to define a "promoter" window of a certain distance
 upstream and downstream of a transcription start site (TSS). This will result
 in a Xkb (to start 3Kb upstream and downstream) vector representing each base
-of the promoter. We will then be able to use this matrix to plot if a peak overlaps
+of the promoter. Thus each row of the vector will by 6,000 enteries of a 1 or 0
+if an overlap occurs with that DBP and where in this window (all sites with overlap get 1)
+rWe will then be able to use this matrix to plot if a peak overlaps
 with a given base and do the same for all peaks of a given DBP. 
 
 In the end we will have a versatile matrix to plot data across promoters. Also we can
@@ -69,7 +71,7 @@ Here we're going to create a GRanges object that contains 6kb promoter windows f
 # Loading in the promoter regions for lncRNAs and mRNAs 
 all_promoters_gr <- rtracklayer::import("/path/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
-all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+# all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
 ```
 
@@ -577,5 +579,6 @@ plot_tss_profile(metaplot_filtered_matrix, "H3K9me3", save_pdf = TRUE)
 plot_tss_profile(metaplot_matrix, "EP300", save_pdf = TRUE)
 
 ```
-
+There are lots of results here to compile into a knitted doc at the end of class !!!
+Please markdown things you want to include !!
 
