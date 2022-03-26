@@ -17,9 +17,9 @@ library(tidyverse)
 library(ComplexHeatmap)
 library(circlize)
 
-source("../../../util/plotting_functions.R")
-source("../../../util/intersect_functions.R")
-source("../../../util/_setup.R")
+source("../../../../util/plotting_functions.R")
+source("../../../../util/intersect_functions.R")
+source("../../../../util/_setup.R")
 ```
 
 Today our goal is to make "meta plots" of promoter binding profiles.
