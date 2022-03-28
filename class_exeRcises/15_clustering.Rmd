@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggdendro)
 library(GenomicRanges)
+
+install.packages(pheatmap)
 library(pheatmap)
 
 source("path/CLASS_2022/util/intersect_functions.R")
