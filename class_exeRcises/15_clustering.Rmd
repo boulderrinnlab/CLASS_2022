@@ -419,6 +419,6 @@ nrow(XIST_promoter)
 
 Challenge: 
 
-Repeat all code with promoter windows of size +1kb / -.5kb
+Repeat all code with promoter windows of size +1kb / -1kb
 
 How do the clustering results change?
