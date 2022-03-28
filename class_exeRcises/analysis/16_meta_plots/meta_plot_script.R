@@ -1,7 +1,9 @@
 
+# rscript to create metaplot_df
+
+
 library(tidyverse)
 library(GenomicRanges)
-
 source("../../../../util/plotting_functions.R")
 source("../../../../util/intersect_functions.R")
 source("../../../../util/_setup.R")
@@ -22,9 +24,9 @@ names(filtered_consensus_peaks) <- sapply(filtered_consensus_peaks, function(x){
 # Loading in all_promoters_gr
 # these are the promoter regions for lncRNAs and mRNAs 
 #TODO MAKE SURE YOU HAVE RIGHT PATH
-# all_promoters_gr <- rtracklayer::import("/path/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+all_promoters_gr <- rtracklayer::import("/path/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
-all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+# all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
 # setting up promter_df needed in for loop below
 metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
