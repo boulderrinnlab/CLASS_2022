@@ -67,7 +67,7 @@ We will make a distance matrix of 437 x437 and then use that for clustering.
 
 # First let's take a look at the matrix
 # note the meta data
-peak_occurence_matrix[1:2,1:40]
+peak_occurence_matrix[1:2,1:5]
 
 # let's see if there are row and column names:
 
@@ -96,7 +96,7 @@ test2
 # Now let's create distance matrix for each pairwise vector comparison for the whole matrix now.
 # This take 5 min or so
 peak_occurence_dist <- dist(peak_occurence_matrix, method = "binary")
-
+peak_occurence_dist[1:10]
 ```
 
 # Clustering distance matrix
@@ -217,7 +217,7 @@ bin_hier_lncrna <- hclust(dist(lncrna_peak_occurence, method = "binary"))
 ggdendro::ggdendrogram(bin_hier_lncrna, rotate = TRUE,  size = 3)
  
 # Now let's save this figure
-ggsave("figures/lncrna_hclust_binary_dist.pdf", height = 44, width = 6)
+ggsave("figures/lncrna_hclust_binary_dist.pdf", height = 49, width = 6)
 # Cool we can see the Pol II S2 and S5 diff right away again!
 
 ```
@@ -255,12 +255,15 @@ Let's make a heatmap of the promoters -- since it will take a long long time to 
 # Note another example of indexing a 'master file'  now using a function: colSums
 high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 300]
 
+#TODO 
+peak_occurence_matrix_test <- high_binders[rowSums(promoter_peak_occurence_matrix) > 250, ]
+
 # let's find out how many high binder promoters there are
 ncol(high_binders)
 # RESULT: 5,663 promoters have more than 300 DBPs bound
 
 # let's look at the rows (DBPs) what is the DBP that interacts the least with high-binder promoters
-min(rowSums(high_binders)) 
+min(rowSums(peak_occurence_matrix_test)) 
 # one DBP only binds 26 of the high binder promoters
 # which one?
 which.min(rowSums(high_binders))
@@ -290,6 +293,7 @@ hist(rowSums(high_binders))
 # We don't need to be able to read the promoter names and it takes a long time to plot those.
 pheatmap(high_binders, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
 
+ggdendro::ggdendrogram(high_binders, rotate = TRUE,  size = 3)
 # Nice let's save that heatmap 
 
 ggsave("figures/high_binder_heatmap.pdf", height = 44, width = 6 )
@@ -310,7 +314,9 @@ num_peaks_df <- read_csv("path/analysis/12_peak_features/num_peaks_df.csv")
 
 # now let's make a zinc_finger_dbd data frame
 zinc_finger_dbd <- num_peaks_df %>% 
-   filter(dbd == "C2H2 ZF")
+ filter(dbd == "C2H2 ZF")
+   
+# znf <- table(num_peaks_df$dbd == "C2H2 ZF")
 
 # Now we will subset the high binder matrix we made with the
 # zinc_finger_dbd object we just made.
@@ -320,8 +326,9 @@ zf_matrix <- high_binders[zinc_finger_dbd$dbp,]
 # now the heatmap!
 pheatmap(zf_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
 
+#TODO 
 # saving this
-ggsave("figures/ZFN_high_binder_heatmap.pdf", height = 44, width = 6 )
+# ggsave("figures/ZFN_high_binder_heatmap.pdf", height = 44, width = 6 )
 
 
 # We can also check out the dendrogram for just this matrix.
