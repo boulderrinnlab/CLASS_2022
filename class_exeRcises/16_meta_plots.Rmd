@@ -15,8 +15,11 @@ library(GenomicRanges)
 library(rtracklayer)
 library(tidyverse)
 
-#ComplexHeatmap is BioConducter thus needing biocManger::install
+#ComplexHeatmap is BioConducter thus needing 
+BiocManager::install(ComplexHeatmap)
 library(ComplexHeatmap)
+
+BiocManager::install(circlize)
 library(circlize)
 
 source("../../../../util/plotting_functions.R")
@@ -27,6 +30,10 @@ source("../../../../util/_setup.R")
 Today our goal is to make "meta plots" of promoter binding profiles.
 In simpler terms: we are going to determine the average binding of:
 (A) a given DBP across our promoter windows.
+
+Please see slides on this process here:
+https://www.dropbox.com/s/v02r8eiu0a8nyg5/TSS%20Metaplot.key?dl=0
+
 
 We'll be using the consensus peaks we generated previously (MACS peak calls filtered to those that are overlapping across replicates) and the Gencode gene annotations. This is STEP 0 : loading in required files.
 
@@ -104,6 +111,7 @@ This step will accomplish two things: filter out promoters that fall outside the
 # This is the length of each run-length encoded vector in the peak_coverage object
 ?elementNROWS
 # elementNROWs can calculate coverage in RLE
+# interpolates the number of zero's between two "1s" 
 coverage_length <- elementNROWS(peak_coverage)
 
 # This will create a Ranges object where there is one range per chromosome
@@ -128,17 +136,13 @@ coverage_gr <- GRanges(seqnames = names(coverage_length),
 
 # to do this we will use:
 ?subsetByOverlaps
+# subsetByOverlaps function will find all the promoter ranges within the coverage ranges
+# If we didn't do this an error would occur if a chromosome wasn't represented
 
 all_promoters_gr <- subsetByOverlaps(all_promoters_gr, 
                                   coverage_gr, 
                                   type="within", 
                                   ignore.strand=TRUE)
-
-
-
-# IMPORTANT STEP: this will take names of chr with peaks and intersect with all chr
-# Then after this we will run coverage on our chromosome object. 
-# If we didn't do this an error would occur if a chromosome wasn't represented
 
 # this is what we are intersecting:
 names(peak_coverage)
@@ -261,7 +265,7 @@ peak_sums <- colSums(promoter_peak_matrix)
 # we will divide the number of peak sums at each base by the total
 # number of peak binding events.
 
-# noramkization of binding events to 1 across promoter window
+# normalization of binding events to 1 across promoter window
 peak_dens <- peak_sums/sum(peak_sums)
 
 # Create a data frame in order to plot this. 
