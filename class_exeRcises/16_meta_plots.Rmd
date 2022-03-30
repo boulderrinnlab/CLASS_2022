@@ -16,10 +16,10 @@ library(rtracklayer)
 library(tidyverse)
 
 #ComplexHeatmap is BioConducter thus needing 
-BiocManager::install(ComplexHeatmap)
+BiocManager::install("ComplexHeatmap")
 library(ComplexHeatmap)
 
-BiocManager::install(circlize)
+BiocManager::install("circlize")
 library(circlize)
 
 source("../../../../util/plotting_functions.R")
