@@ -261,10 +261,6 @@ To summarize this matrix, we'll sum up the number of binding events at each posi
 
 peak_sums <- colSums(promoter_peak_matrix)
 
-# Normalization of binding events at each base of promoter window.
-# we will divide the number of peak sums at each base by the total
-# number of peak binding events.
-
 # normalization of binding events to 1 across promoter window
 peak_dens <- peak_sums/sum(peak_sums)
 
