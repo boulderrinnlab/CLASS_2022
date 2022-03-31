@@ -19,7 +19,7 @@ library(tidyverse)
 BiocManager::install("ComplexHeatmap")
 library(ComplexHeatmap)
 
-BiocManager::install("circlize")
+# BiocManager::install("circlize")
 library(circlize)
 
 source("../../../../util/plotting_functions.R")
@@ -78,9 +78,9 @@ Here we're going to create a GRanges object that contains 6kb promoter windows f
 
 # First thing to do is load in all the promoters we made in 12_ 
 # Loading in the promoter regions for lncRNAs and mRNAs 
-all_promoters_gr <- rtracklayer::import("/path/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+# all_promoters_gr <- rtracklayer::import("/path/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
-# all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
 ```
 
@@ -204,7 +204,7 @@ We'll not just convert the run-length encoding vectors to actual vectors -- note
 # kind of like mutate in vector space (note the matrix are ncol and 6,000 rows)
 
 promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
-
+# this is still a list of matrices by chromosome.
 # Let's look (note rows turned into cols)
 promoter_peak_view
 
