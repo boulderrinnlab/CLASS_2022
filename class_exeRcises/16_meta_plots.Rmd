@@ -82,6 +82,8 @@ Here we're going to create a GRanges object that contains 6kb promoter windows f
 
 all_promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
 
+# promoters_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+
 ```
 
 # Step 2: Transform chip-peaks into a coverage object over the 6Kb promooter window
@@ -366,54 +368,70 @@ Let's put all this into a funciton so we can call it later conveniently.
 
 ```{r establishing the profile_tss function}
 
-
 # setting the parameters
+# Peaks = consensus peak file (i)
+# promoters = made from GRanges "promoters" function
 profile_tss <- function(peaks, 
                         promoters_gr,
                         upstream = 3e3,
                         downstream = 3e3) {
   
-# performing coverage function 
+# performing coverage function
+# this converst each chromosome to RLE
+# where 0 is no peak and 1 is a peak
+# NOTE: chrm end will be at end of last peak.
   peak_coverage <- coverage(peaks)
 
-# keeping track of overlaps in RLE
+# elementNROWs will find the end of the last peak.
+# this will result in the "effective length" of the chr
   coverage_length <- elementNROWS(peak_coverage)
 
-# Defining a GRanges of the promter window
+# Defining a GRanges using the effective length of chr
+# from "coverage_length" above.
   coverage_gr <- GRanges(seqnames = names(coverage_length),
+                         # make IRanges for each chromosome
                          IRanges(start = rep(1, length(coverage_length)), 
                                  end = coverage_length))
   
-# defining the promoters 
+# defining the promoters using using subsetByOverlaps (GRanges)
+# This will map the promoters to our new chromosome GRanges (coverage_gr)
   promoters_gr <- subsetByOverlaps(promoters_gr, 
                                        coverage_gr, 
                                        type="within", 
                                        ignore.strand=TRUE)
 
-# making sure the chromosomes represented are used (prevent error if chr is missing)
+# making sure the chromosomes represented are used
+# An error would occur if a chromosome was indexed but had no peaks
   chromosomes <- intersect(names(peak_coverage), 
                            unique(as.character(seqnames(promoters_gr))))
 
-# arranging chromosomes in the same order
+# Reducing peak_coverage (RLE of peaks and genome)
+# to only chromosomes represented by peaks
   peak_coverage <- peak_coverage[chromosomes]
 
-# converting to InterRangesList
+# converting to InterRangesList. This will allow us to use "views" function.
+# Our "peak_coverage" is in RLE. So we will make our promoters in a way that 
+# can be mapped to RLE and convert back to 1 and 0 in a given promoter window.
   promoters_ir <- as(promoters_gr, "IntegerRangesList")[chromosomes]
 
-# creating a views object for promoter coverage (because in RLE)
-  promoter_peak_view <- Views(peak_coverage, promoters_ir)
+# Views function allows us to take promoters integerRangesList and 
+# "view" the peak coverage (RLE) as 1 and 0 using View apply
+# so just matching promoter_ir and peak_coverage for now
+promoter_peak_view <- Views(peak_coverage, promoters_ir)
 
-# turning into a vector with ViewApply (because in RLE keeping track of where overlaps are)
-  promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
+# We use viewApply function to convert RLE in peak_coverage to a vector of 1 and 0
+# we use lapply to do this over each chromosomes 
+promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
 
-# binding each of the view vectors
-  promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
+# We can see that promoter_peak_view is now a list a matrix of vectors for each chromosome
+# rows are number of peaks and cols are position -3Kb to + 3Kb
+promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
 
-# grabing and reversing promoters on the - strand
-  minus_idx <- which(as.character(strand(promoters_gr)) == "-")
+# We are identifying all the - strand promoters in promoters_gr
+minus_idx <- which(as.character(strand(promoters_gr)) == "-")
   
 # reversing the order from 6,000 - 1 to 1- 6000
-  promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx,
+promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx,
                                                            ncol(promoter_peak_matrix):1]
 
 # eliminating promoters with no binding 
@@ -440,10 +458,17 @@ Making coverage matrix for all DBPs across mRNA and lncRNA promoters
 
 # Let's now run this for all off the DBPs and compile it into one data frame.
 # Let's first define an empty data.frame to which we can row_bind each new one created.
+# We are adding one new col called dbp as we extract this in the forloop
+
 metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
 
-# Writting a for loop to calculate promoter coverage for all DBPs:
+# Reminder of parameters
+# profile_tss <- function(peaks, ====== filtered_consensus_peaks
+#                         promoters_gr ===== needs to be created to run,
+#                         upstream = 3e3,
+#                         downstream = 3e3)
 
+# Writting a for loop to calculate promoter coverage for all DBPs:
 for(i in c(1:390, 392:length(filtered_consensus_peaks))) {
   # we skipped 391 as it breaks (only 19 peaks ?)
   print(names(filtered_consensus_peaks)[[i]])
@@ -484,7 +509,7 @@ dim(metaplot_filtered_matrix)
 table(rowSums(is.na(metaplot_filtered_matrix)))
 
 # Let's filter out those with NAs
-metaplot_filtered_matrix <- metaplot_filtered_matrix[rowSums(is.na(metaplot_filtered_matrix)) == 0,]
+# metaplot_filtered_matrix <- metaplot_filtered_matrix[rowSums(is.na(metaplot_filtered_matrix)) == 0,]
 
 
 # Z-Scale the rows for clustering (not needed for profile plots)
@@ -497,7 +522,7 @@ metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
 plot(metaplot_hclust)
 
 # Plot the dendrogram
-pdf("figures/tss_profile_dendrogram.pdf", height = 10, width = 27)
+pdf("tss_profile_dendrogram.pdf", height = 10, width = 27)
 par(cex=0.3)
 plot(metaplot_hclust)
 dev.off()
@@ -507,7 +532,7 @@ clusters <- cutree(metaplot_hclust, k=10)
 table(clusters)
 
 # Let's shrink to 4 clusters based on table
-clusters <- cutree(metaplot_hclust, k = 3)
+clusters <- cutree(metaplot_hclust, k = 4)
 table(clusters)
 
 
@@ -525,7 +550,7 @@ Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE,
 
 # Now a heatmap with only 4 clusters since most of the data is the same.
 
-Heatmap(mm_scaled[clusters == 3,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+Heatmap(mm_scaled[clusters == 2,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
         show_column_names = FALSE,
         use_raster = TRUE,
         column_split = split,
@@ -558,7 +583,7 @@ plot_tss_profile(metaplot_filtered_matrix, "H3K9me3", save_pdf = TRUE)
 
 
 # EP300: shows a very wide profile.
-plot_tss_profile(metaplot_matrix, "EP300", save_pdf = TRUE)
+plot_tss_profile(metaplot_filtered_matrix, "EP300", save_pdf = TRUE)
 
 # saving metaplot_filtered_matrix
 write_rds(metaplot_filtered_matrix, "metaplot_filtered_matrix.rds")
