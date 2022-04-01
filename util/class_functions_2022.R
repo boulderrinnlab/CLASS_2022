@@ -180,3 +180,96 @@ create_consensus_peaks <- function(broadpeakfilepath = "/scratch/Shares/rinnclas
   }
   return(consensus_peaks)
 }
+
+
+
+#' Profile TSS
+#' 
+#' @description 
+#' description
+
+
+#' 
+#' @param peaks @param promoter_gr @param window-size the file path to all the peak files
+#' 
+#' 
+profile_tss <- function(peaks, 
+promoters_gr,
+upstream = 3e3,
+downstream = 3e3) {
+  
+  # performing coverage function
+  # this converst each chromosome to RLE
+  # where 0 is no peak and 1 is a peak
+  # NOTE: chrm end will be at end of last peak.
+  peak_coverage <- coverage(peaks)
+  
+  # elementNROWs will find the end of the last peak.
+  # this will result in the "effective length" of the chr
+  coverage_length <- elementNROWS(peak_coverage)
+  
+  # Defining a GRanges using the effective length of chr
+  # from "coverage_length" above.
+  coverage_gr <- GRanges(seqnames = names(coverage_length),
+                         # make IRanges for each chromosome
+                         IRanges(start = rep(1, length(coverage_length)), 
+                                 end = coverage_length))
+  
+  # defining the promoters using using subsetByOverlaps (GRanges)
+  # This will map the promoters to our new chromosome GRanges (coverage_gr)
+  promoters_gr <- subsetByOverlaps(promoters_gr, 
+                                   coverage_gr, 
+                                   type="within", 
+                                   ignore.strand=TRUE)
+  
+  # making sure the chromosomes represented are used
+  # An error would occur if a chromosome was indexed but had no peaks
+  chromosomes <- intersect(names(peak_coverage), 
+                           unique(as.character(seqnames(promoters_gr))))
+  
+  # Reducing peak_coverage (RLE of peaks and genome)
+  # to only chromosomes represented by peaks
+  peak_coverage <- peak_coverage[chromosomes]
+  
+  # converting to InterRangesList. This will allow us to use "views" function.
+  # Our "peak_coverage" is in RLE. So we will make our promoters in a way that 
+  # can be mapped to RLE and convert back to 1 and 0 in a given promoter window.
+  promoters_ir <- as(promoters_gr, "IntegerRangesList")[chromosomes]
+  
+  # Views function allows us to take promoters integerRangesList and 
+  # "view" the peak coverage (RLE) as 1 and 0 using View apply
+  # so just matching promoter_ir and peak_coverage for now
+  promoter_peak_view <- Views(peak_coverage, promoters_ir)
+  
+  # We use viewApply function to convert RLE in peak_coverage to a vector of 1 and 0
+  # we use lapply to do this over each chromosomes 
+  promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
+  
+  # We can see that promoter_peak_view is now a list a matrix of vectors for each chromosome
+  # rows are number of peaks and cols are position -3Kb to + 3Kb
+  promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
+  
+  # We are identifying all the - strand promoters in promoters_gr
+  minus_idx <- which(as.character(strand(promoters_gr)) == "-")
+  
+  # reversing the order from 6,000 - 1 to 1- 6000
+  promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx, ncol(promoter_peak_matrix):1]
+  
+  # eliminating promoters with no binding 
+  promoter_peak_matrix <- promoter_peak_matrix[rowSums(promoter_peak_matrix) > 1,]
+  
+  # summing all the vectors of a given DBP to the promoter window
+  peak_sums <- colSums(promoter_peak_matrix)
+  
+  # calculating the density at each position in the promoter window
+  peak_dens <- peak_sums/sum(peak_sums)
+  
+  # making it go from -3K to + 3K and creating a df
+  metaplot_df <- data.frame(x = -upstream:(downstream-1),
+                            dens = peak_dens)
+  
+  return(metaplot_df)
+}
+#' 
+
+

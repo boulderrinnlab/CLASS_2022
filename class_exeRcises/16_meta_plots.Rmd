@@ -412,7 +412,7 @@ profile_tss <- function(peaks,
 # converting to InterRangesList. This will allow us to use "views" function.
 # Our "peak_coverage" is in RLE. So we will make our promoters in a way that 
 # can be mapped to RLE and convert back to 1 and 0 in a given promoter window.
-  promoters_ir <- as(promoters_gr, "IntegerRangesList")[chromosomes]
+promoters_ir <- as(promoters_gr, "IntegerRangesList")[chromosomes]
 
 # Views function allows us to take promoters integerRangesList and 
 # "view" the peak coverage (RLE) as 1 and 0 using View apply
@@ -431,8 +431,7 @@ promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
 minus_idx <- which(as.character(strand(promoters_gr)) == "-")
   
 # reversing the order from 6,000 - 1 to 1- 6000
-promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx,
-                                                           ncol(promoter_peak_matrix):1]
+promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx, ncol(promoter_peak_matrix):1]
 
 # eliminating promoters with no binding 
   promoter_peak_matrix <- promoter_peak_matrix[rowSums(promoter_peak_matrix) > 1,]
@@ -570,7 +569,7 @@ I chose those DBPs that seemed to have the most different binding profiles.
 
 # H3K4me1: shows inverse pattern to most with depletion at TSS
 
-plot_tss_profile(metaplot_filtered_matrix, "H3K4me1", save_pdf = TRUE)
+plot_tss_profile(metaplot_filtered_matrix, "H3K4me1", save_pdf = F)
 
 # H3K36me3: also depleted at TSS as expected marks genebodies 
 
