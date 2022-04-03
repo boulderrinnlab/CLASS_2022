@@ -21,6 +21,7 @@ library(janitor)
 # install.packages("purr")
 library(purrr)
 
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/encode_functions.R")
 ```
 
 Goal: to downlaod a RNAseq data from HEPG2 that is fractionated by cellular compartment
@@ -161,11 +162,10 @@ contstruct_query <- function(experiment_accession,
 This function actually makes the request and returns the data only 
 (without the response headers) in a data.frame format.
 
-Basically
-
 ```{R encode_file_info function}
 
 # setting up the function and parameters
+# this function will go get the data from the URL we made above
 encode_file_info <- function(experiment_accession,
                              base_url = "https://www.encodeproject.org/report.tsv?",
                              file_format = "fastq",
@@ -204,9 +204,9 @@ encode_file_info <- function(experiment_accession,
   if (http_type(resp) != "text/tsv") {
     stop("API did not return text/tsv", call. = FALSE)
   }
-  body <- read_tsv(content(resp, "text"), skip = 1) %>%
-    clean_names()
-  return(body)
+ body <- read_tsv(content(resp,"text"), skip = 1) %>%
+  clean_names()
+ return(body)
 }
 ```
 
@@ -349,7 +349,6 @@ samples <- samples %>%
    dplyr::select(accession, sample_id, experiment_accession, Assay.title,
                 Biosample.summary, md5sum, paired_end_identifier) %>%
   # Note that we're not removing the original columns
-  # TODO how does paired end identifier come after _read wouldn't it add _read to all values?
   unite(fastq_file, sample_id, paired_end_identifier, sep = "_read", remove = F)
 
 # Now we have a new col fastq_file with the information for each fastq file
@@ -523,6 +522,8 @@ design <- samplesheet %>%
   mutate(sample = gsub(" ", "_", sample_name) %>% tolower(),
          strandedness = "unstranded",
          # This pastes in the file path infrom of the fastq file name so making a driect path to fastq files
+         
+         # TODO change file path
          fastq_1 = paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/", fastq_1),
          fastq_2 = paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/", fastq_2)) %>%
   # We have the replicate number already, but it's just a part of the sample id
@@ -558,4 +559,49 @@ write_csv(samplesheet, "samplesheet.csv")
 
 Now we have the raw files downloaded and the samplesheet needed for downstream analyses (ex, differential expression). So the next step is to run nf-core/rnaseq on these samples.
 We'll do this in the RNAseq II.
+
+```{r}
+encode_file_info <- function(experiment_accession,
+                             base_url = "https://www.encodeproject.org/report.tsv?",
+                             file_format = "fastq",
+                             type = "File",
+                             status = "released",
+                             fields = c("accession", "read_count", "md5sum",
+                                        "controlled_by", "paired_end",
+                                        "paired_with", "replicate", "target")) {
+  path <- "report.tsv?"
+  base_url <- modify_url("https://www.encodeproject.org/", path = path)
+  url <- contstruct_query(experiment_accession,
+                          base_url = base_url,
+                          file_format,
+                          type,
+                          status,
+                          fields)
+  resp <- GET(url)
+  if (http_error(resp)) {
+    error_message <- content(resp, type = "text/html", encoding = "UTF-8") %>%
+      xml_find_all("//p") %>%
+      xml_text() %>%
+      first()
+    stop(
+      sprintf(
+        "ENCODE API request failed [%s]\n%s",
+        status_code(resp),
+        error_message
+      ),
+      call. = FALSE
+    )
+  }
+  
+  if (http_type(resp) != "text/tsv") {
+    stop("API did not return text/tsv", call. = FALSE)
+  }
+  body <- read_tsv(content(resp, "text"), skip = 1) %>%
+    clean_names()
+  return(body)
+}
+
+
+```
+
 
