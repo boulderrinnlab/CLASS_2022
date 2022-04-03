@@ -11,12 +11,16 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE)
 library(tidyverse)
+
+# install.packages("httr")
 library(httr)
+
+# install.packages("janitor")
 library(janitor)
+
+# install.packages("purr")
 library(purrr)
 
-
-# File path /scratch/Shares/rinnclass/CLASS_2022/hepg2_RNAseq_test
 ```
 
 Goal: to downlaod a RNAseq data from HEPG2 that is fractionated by cellular compartment
@@ -35,30 +39,33 @@ let's start by putting in browser and taking a look
 Nice, we can get all the data we need. First we need to think about where to put this :)
 Please move to the 17_ directory and make a fastq folder. Then run the following in that directory
 
-# PLEASE don't download until class -- we will just download once in one place (big data)
-To be safe let's make an rnaseq directory somewhere on scratch that we can all access.
-Then download everythign we need!
 
 ```{bash downloading file list and sample sheet}
-# You'll want to change directory to 17_ and set as working directory 
-# this will get you a list of samples as a .txt file using wget.
-# We will use this to make the sample sheet.
+
+# We need two things:
+# a samples file with information on samples
+# a files file that has the path to fastq files on encode portal
 
 # open terminal (in working dir) and paste this in
-
-wget -O samples_test.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
+wget -O samples.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
 
 # This will give us a text file of the file names. We will use this to download the files.
 # open terminal (in working dir) and paste this in
 
 wget -O files.txt "https://www.encodeproject.org/batch_download/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
 
-# Now let's make a common directory called HEPG2_rnaseq so we only download this once :)
-# Download the fastq files -- ~50 GB 
 
-# first move files.txt into a new dir (inside 17_) called fastq
-# then run this ... or we can save time and read from my folder.
+# Now we need to copy files.txt into a new dir (inside 17_) called fastq
+mkdir fastq
 
+# now copy files.txt to fastq
+cp files.txt fastq
+
+# MAKE SURE YOUR TERMINAL IS IN THE RIGHT WORKING DIR.
+pwd 
+/17_/fastq/
+
+# To download the fastq files for RNAseq we run this below:
 xargs -L 1 curl -O -J -L < files.txt
 
 # Cool we have all the data we need for the NF_CORE RNAseq pipeline in 18_
@@ -88,7 +95,7 @@ request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=releas
 
 We've written some custom helper functions specific to the ENCODE API to request exactly the information we want, since we'll make these requests multiple times -- for each experiment accession.
 
-Here are those functions. Read through and see if you can figure out what each step is doing. The ENCODE API provides extensive documentation as to what data you can request and how to format that data to make your request. You can browse the possible requests in an interactive way using their interactive documentation: https://app.swaggerhub.com/apis-docs/encodeproject/api/basic_search
+The ENCODE API provides extensive documentation as to what data you can request and how to format that data to make your request. You can browse the possible requests in an interactive way using their interactive documentation: https://app.swaggerhub.com/apis-docs/encodeproject/api/basic_search
 
 
 We will make two functions:
