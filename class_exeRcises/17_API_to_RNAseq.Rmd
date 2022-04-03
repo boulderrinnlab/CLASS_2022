@@ -73,6 +73,7 @@ xargs -L 1 curl -O -J -L < files.txt
 
 ```
 
+
 # Using ENCODE API
  ---- Introduction to APIs (Application Programming Interface) ----
 In order to exchange information between someone's database and your computer you use an API -- basically a highly specified language for interacting and retrieving the data you need.
@@ -151,7 +152,6 @@ contstruct_query <- function(experiment_accession,
   url <- paste0(base_url, query)
   return(url)
 }
-
 # essentially we just recreated the base URL with addition information 
 # in fact using the logic we got Md5 values and they are not accessible on web!
 
@@ -173,7 +173,7 @@ encode_file_info <- function(experiment_accession,
                              status = "released",
                              fields = c("accession", "read_count", "md5sum",
                                         "controlled_by", "paired_end",
-                                      "paired_with", "replicate", "target")) {
+                                        "paired_with", "replicate", "target")) {
   
   # Now we are creating a url that encode will understand
   path <- "report.tsv?"
@@ -204,9 +204,9 @@ encode_file_info <- function(experiment_accession,
   if (http_type(resp) != "text/tsv") {
     stop("API did not return text/tsv", call. = FALSE)
   }
- body <- read_tsv(content(resp,"text"), skip = 1) %>%
-  clean_names()
- return(body)
+  body <- read_tsv(content(resp, "text"), skip = 1) %>%
+    clean_names()
+  return(body)
 }
 
 ```
@@ -561,7 +561,31 @@ write_csv(samplesheet, "samplesheet.csv")
 Now we have the raw files downloaded and the samplesheet needed for downstream analyses (ex, differential expression). So the next step is to run nf-core/rnaseq on these samples.
 We'll do this in the RNAseq II.
 
-```{r}
+```{r class 2021 fix}
+
+
+
+## This will generate a request URL in the format that ENCODE requires to retrieve each of the columns listed in the field default parameter (accession, read_count, md5sum, etc.)
+contstruct_query <- function(experiment_accession,
+                             base_url = "https://www.encodeproject.org/report.tsv?",
+                             file_format = "fastq",
+                             type = "File",
+                             status = "released",
+                             fields = c("accession", "read_count", "md5sum",
+                                        "controlled_by", "paired_end",
+                                        "paired_with", "replicate", "target")) {
+  query <- paste(list(paste0("type=", type),
+                      paste0("status=", status),
+                      paste0("file_format=", file_format),
+                      paste0("dataset=%2Fexperiments%2F", experiment_accession, "%2F"),
+                      map_chr(fields, ~paste0("field=", .))) %>%
+                   flatten(),
+                 collapse = "&")
+  url <- paste0(base_url, query)
+  return(url)
+}
+
+# This function actually makes the request and returns the data only (without the response headers) in a data.frame format.
 encode_file_info <- function(experiment_accession,
                              base_url = "https://www.encodeproject.org/report.tsv?",
                              file_format = "fastq",
@@ -601,8 +625,6 @@ encode_file_info <- function(experiment_accession,
     clean_names()
   return(body)
 }
-
-
 ```
 
 
