@@ -90,6 +90,15 @@ request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=releas
 # the field parameter is where we tell it which columns or which pieces of data we want to get.
 # this retrieves read_count, md5sum, controlled_by, paired_end, paired_with, replicate, and target
 
+# NOTE API language use :
+
+# file_format=fastq&dataset=%2Fexperiments%2FENCSR541TIG%2F&field=accession&
+# dataset=%2F
+# Experiments%2F .....
+
+# We will use this API logic to make a custom inquiry with everything we need !
+
+
 ```
 # writting custom function to retreive specific data from encode
 
@@ -126,22 +135,24 @@ contstruct_query <- function(experiment_accession,
   
   # Now we will populate this structure above, note experiment_accession is only
   # parameter we need to populate
-  #TODO why make the fields above and then change the names below?
+  # We are copying the terminology used in REQUEST_URL or communicate with API
   query <- paste(list(paste0("type=", type),
                       paste0("status=", status),
                       paste0("file_format=", file_format),
-                      #TODO what is this doing?
+                      # We are using same language as Encode API that has %2F as separator
                       paste0("dataset=%2Fexperiments%2F", experiment_accession, "%2F"),
                       # map is a way of transforming input and applying a function
                       # in this case we are just using "paste0" as the function
                       # map_chr is to make sure it stays as a character value
-                      #TODO explain what -paste0 is doing
                       map_chr(fields, ~paste0("field=", .))) %>%
                    flatten(),
                  collapse = "&")
   url <- paste0(base_url, query)
   return(url)
 }
+
+# essentially we just recreated the base URL with addition information 
+# in fact using the logic we got Md5 values and they are not accessible on web!
 
 ```
 
