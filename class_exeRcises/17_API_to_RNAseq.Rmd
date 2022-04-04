@@ -491,29 +491,42 @@ where the fastq read 1 and read 2 are in the same row.
 # PIVOT WIDER by "paired_end_identifier" 
 samplesheet <- samples %>%
   #id_cols is a parameter in pivot wider to select the cols
+  # the paired end identifier becomes the "marienette" string of the data-frame.
+  # There are two values and thus all the current cols will be split into 2 (one for each pe-id)
   pivot_wider(id_cols = c("sample_id", "seq_type", "sample_name"),
               names_from = paired_end_identifier,
               values_from = c("fastq", "md5sum"))
 
 
-# Harmonize the sample names with the design file.
+# Cleaning up sample sheet (removing spaces - re-arrange etc)
 samplesheet <- samplesheet %>%
-  # cleaning up sample name that has spaces in it to replace with underscore
-  mutate(condition = gsub(" ", "_", sample_name) %>% tolower()) %>%
-  # making two new cols from one and keeping the original 
-  separate(sample_id, into = c("experiment_accession", "replicate"), 
+  
+# cleaning up column "sample_name" that has spaces in it to replace with underscore
+mutate(condition = gsub(" ", "_", sample_name) %>% tolower()) %>%
+  
+# splitting up "sample_id" to extract replicate number (by "_" )
+separate(sample_id, into = c("experiment_accession", "replicate"), 
            remove = FALSE, sep = "_") %>%
-  # replicate col values came from sample id and are currently rep1 or rep2
-  mutate(replicate = gsub("rep", "R", replicate)) %>%
-  unite(sample_name, condition, replicate, sep = "_", remove = FALSE)
+  
+# replicate col values came from sample id and are currently rep1 or rep2
+# we want to remove the "rep" with gsub to "R" and iterative using mutate
+mutate(replicate = gsub("rep", "R", replicate)) %>%
+  
+# we are writting over the sample_name col and uniting condition and replicate info 
+# into the previous sample_name col. syntax: (data frame - implied from tidy, new_col_name, what to unite)
+unite(sample_name, condition, replicate, sep = "_", remove = FALSE)
 
 # here we are just changing the hepg2 total name to hepg2_total
-samplesheet$condition[samplesheet$condition == "hepg2"] <- "hepg2_total"
+#TODO leaving out and could fix matching condition but not needed
+# samplesheet$condition[samplesheet$condition == "hepg2"] <- "hepg2_total"
 
-# final harmonization
+
+# FINAL cleanup of col names etc.
 samplesheet <- samplesheet %>%
+  
   mutate(cell_type = "hepg2",
          condition = gsub("hepg2_", "", condition)) %>%
+  
   dplyr::select(sample_id, sample_name, replicate, condition,
                 cell_type, seq_type, fastq_1, fastq_2, md5sum_1,
                 md5sum_2)
@@ -522,40 +535,53 @@ samplesheet <- samplesheet %>%
 write_csv(samplesheet, "samplesheet.csv")
 ```
 
-
 # design file
-We also need to make a design file for the nf-core/rnaseq
+We will eventually need a design file for RNA-seq (DEseq2)
+We are really close with samples sheet so let's finalize that.
+
+# Future RNAseq NF_Core runs require design file
+Newwer versions of NF_Core require a design file the version we are running does not.
 
 The design file needs to be in a specific format (as we saw with nf-core/chipseq)
 It needs the following columns:
 
 # sample,fastq_1,fastq_2,strandedness
+
 Let's create a sample column using mutate -- and we'll clean up the names
+
 ```{r creating design file}
+
+# base_path <- paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/")
 
 # There's spaces in the names currently and we need to get rid of those.
 design <- samplesheet %>%
-  # We also need to add the proper file path for NF_CORE to retrieve fastq
-  mutate(sample = gsub(" ", "_", sample_name) %>% tolower(),
+  
+# we will modify 4 cols adding "sample" and "strandedness"
+# We will also add a file path to "fastq_1" and _2 cols
+# first changing "sample_name" and adding strandedness col
+mutate(sample = gsub(" ", "_", sample_name) %>% tolower(),
          strandedness = "unstranded",
-         # This pastes in the file path infrom of the fastq file name so making a driect path to fastq files
-         
-         # TODO change file path
-         fastq_1 = paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/", fastq_1),
-         fastq_2 = paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/", fastq_2)) %>%
-  # We have the replicate number already, but it's just a part of the sample id
-  # We can use the separate function (opposite of unite) to retrieve it.
+       
+# now pasting file path into fastq_1 and _2 cols
+#TODO MAKE SURE YOU HAVE THE RIGHT FILE PATH TO YOUR FASTQ FILES
+
+# base_path <- "/path to your fastq" e.g. "/scratch/Shares/rinnclass/CLASS_2022 ....."
+         fastq_1 = paste0(base_path, fastq_1),
+         fastq_2 = paste0(base_path, fastq_2)) %>%
   
-  # this is same code ran above to seperate out sample id into replicates and change to just the number
   
+  # We aim to retrieve replicate number for sample_id and make it just a number 1 or 2 
   separate(sample_id, into = c("experiment_accession", "replicate"), sep = "_", remove = FALSE) %>%
+  
+  # getting rid of the rep in front of rep1 and rep2
   mutate(replicate = gsub("rep", "", replicate)) %>%
+  
   # Now we gather just the columns we need
   dplyr::select(sample, fastq_1, fastq_2, strandedness)
 
 
-# getting rid of _r1 and _r2 from sample name
-
+# getting rid of _r1 and _r2 from sample col
+# note we know which replicate is which from fastq col
 design <- design %>%
   mutate(sample = gsub("_r1", "", sample),
          sample = gsub("_r2", "", sample))
