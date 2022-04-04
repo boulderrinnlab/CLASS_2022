@@ -261,7 +261,7 @@ is places on "cell" of an excel file. So each cell contains an excel sheet in th
 
 # In this example we'll take the digits 1 through 10 and "map" each to the rnorm function. 
 map_example <- 1:10 %>%
-  map(rnorm, n = 10) 
+  map(rnorm, n = 1000) 
 
 # It returns a nested list, let's look:
 summary(map_example)
@@ -271,6 +271,8 @@ table(summary(map_example))
 
 # let's index and look
 map_example[[1]]
+
+hist(map_example[[1]])
 
 # another one
 map_example[[2]]
