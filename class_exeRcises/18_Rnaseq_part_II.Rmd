@@ -32,6 +32,7 @@ run.sh
 # config file
 Let's start with the config file -- very similar to nf-core/chipseq
 ```{bash config file}
+
 process {
   executor='slurm'
   queue='short'
@@ -39,11 +40,10 @@ process {
   maxForks=10
 }
 
-# go to correct working directory
+# go to correct working directory .../analysis/18_running_RNA_seq
 nano nextflow.config
 
 # paste in text above
-
 
 ```
 
@@ -53,12 +53,11 @@ Now the run.sh file that gives nf-core/rnaseq all the instructions for nextflow 
 
 # Here are all the slurm instructions:
 
-
 #!/bin/bash
 #SBATCH -p long
 #SBATCH --job-name=HEPG2_rna_seq
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=john.rinn@colorado.edu
+#SBATCH --mail-user=your_emailn@colorado.edu
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
@@ -86,19 +85,23 @@ nextflow run nf-core/rnaseq -r 1.4.2 \
 -profile singularity \
 
 # wher is the data :)
---reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.g' \
+--reads 'your_path_17_something/fastq/*{_read1,_read2}.fastq.gz' \
+
 # genome file
 --fasta /scratch/Shares/rinnclass/CLASS_2022/data/genomes/GRCh38.p13.genome.fa \
 
 # genome annotation file
 --gtf /scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf \
+
 # aligner -- unique to 1.4.2 others use different parameters.
 # IMPORTANT TO CHECK ALIGNER INSTRUCTION (but will get an error if wrong :)
 --pseudo_aligner salmon \
+
 # Telling NF_CORE that we imported gencode genome annotations
 --gencode \
+
 # who to tell when job is done
---email john.rinn@colorado.edu \
+--email your email@colorado.edu \
 # what the config file is named (note using c language)
 -c nextflow.config
 
@@ -109,7 +112,9 @@ date
 
 # creating run.sh
 Here is the run.sh in full form for nano 
-Goto NF_CORE_RUN folder, nano and paste in below 
+Goto /analysis/18_running_nf_core folder, nano and paste in below 
+
+# NOTE you will need to change email and path to fastq -- use same ending path  synta
 ```{bash run.sh}
 
 #!/bin/bash
@@ -132,25 +137,22 @@ module load singularity/3.1.1
 nextflow run nf-core/rnaseq -r 1.4.2 \
 -resume \
 -profile singularity \
---reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
---fasta /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/GRCh38.p13.genome.fa \
---gtf /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/gencode.v32.annotation.gtf \
+--reads 'your_path/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
+--fasta /scratch/Shares/rinnclass/CLASS_2022/data/genomes/GRCh38.p13.genome.fa \
+-gtf /scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf \
 --pseudo_aligner salmon \
 --gencode \
---email john.rinn@colorado.edu \
+--email your_email@colorado.edu \
 -c nextflow.config
 
 date
 ```
 
 # design file 
+We no longer need the design file since this data only runs on onlder pipeline.
+However if you were to use the new 3.4 this would be required with following format:
 
-# We no longer need the design file since this data only runs on onlder pipeline.
-# However if you were to use the new 3.4 this would be required.
-
-Now we need the design file, similar to nf-core/chipseq it has to be very specific :)
-
-sample,replicate,fastq_1,fastq_2,strandedness
+# sample,replicate,fastq_1,fastq_2,strandedness
 
 We made the design file in 17 from code someone else could
 run and get the exact same design file !
@@ -174,7 +176,7 @@ process {
 
 ```
 
-RUN.SH (DOES NOT REQUIRE DESIGN FILE)
+RUN.SH (DOES NOT REQUIRE DESIGN FILE) for NF_CORE 1.4.2
 ```{bash }
 #!/bin/bash
 #SBATCH -p long
@@ -211,11 +213,14 @@ date
 # LET'S RUN THE PIPELINE!
 
 # go to right directory
-cd /scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN
+cd /scratch/Shares/rinnclass/CLASS_2022/ ..... 18_running_RNAseq_NF_CORE/NF_CORE_RUN
 
 sbatch run.sh
 
 tail -f nextflow.out
 
 Voila you are doing RNAseq!
+
+
+# --reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
 
