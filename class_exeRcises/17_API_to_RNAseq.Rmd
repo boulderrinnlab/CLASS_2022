@@ -18,10 +18,12 @@ library(httr)
 # install.packages("janitor")
 library(janitor)
 
-# install.packages("purr")
+# install.packages("purrr")
 library(purrr)
 
-source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/encode_functions.R")
+source("path/util/class_functions.R")
+
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/encode_functions.R")
 ```
 
 Goal: to downlaod a RNAseq data from HEPG2 that is fractionated by cellular compartment
@@ -442,7 +444,7 @@ rename_script <- samples %>%
 # We include a shebang header line so that the script is interpreted by bash.
 ?write_lines
 
-write_lines(c("#!/bin/bash", rename_script$command), "fastq/rename.sh")
+write_lines(c("#!/bin/bash", rename_script$command), "rename.sh")
 
 # Now cd fastq and "chmod u+x rename.sh
 # then ./rename.sh
@@ -464,13 +466,21 @@ md5 <- samples %>%
   unite(line, md5sum, fastq_file, sep = "  ")
 
 # writting out md5$line col that has the command in it from above.
-write_lines(md5$line, "fastq/md5.txt")
+write_lines(md5$line, "md5.txt")
 
 # Now let's run it from R to BASH with "system()" function
  md5_results <- system("cd fastq; md5sum -c md5.txt")
  
+# md5 -c md5.txt > md5_check.txt
+ 
+ #TODO here is a solution to run system and get object:
+ # To output the md5_check as an R vector, add the "intern = TRUE" argument to the system() function:
+
+# md5_results <- system("cd 17/fastq; md5sum -c md5.txt", intern = TRUE)
+
+ #TODO check on system runs populating variables
 # Nice they all look correct -- but let's save this result
-write.csv(md5_results, "fastq/md5_check.csv")
+# write.csv(md5_results, "md5_check.csv")
 ```
 
 # finalizing sample sheet for NF_CORE
@@ -544,6 +554,7 @@ samplesheet <- samplesheet %>%
                 md5sum_2)
 
 # that was a lot of work so let's save for future use :) 
+# Writting this out to 17_ test_2
 write_csv(samplesheet, "samplesheet.csv")
 ```
 
@@ -562,6 +573,8 @@ It needs the following columns:
 Let's create a sample column using mutate -- and we'll clean up the names
 
 ```{r creating design file}
+
+base_path <- "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/"
 
 # base_path <- paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/")
 
@@ -604,6 +617,7 @@ all(sapply(design$fastq_2, file.exists))
 
 # Now we can write this out for input into nextflow
 
+# Writting out to 17_ test_2
 write_csv(design, "design.csv")
 
 write_csv(samples, "samples.csv")
@@ -614,8 +628,6 @@ write_csv(samplesheet, "samplesheet.csv")
 
 Now we have the raw files downloaded and the samplesheet needed for downstream analyses (ex, differential expression). So the next step is to run nf-core/rnaseq on these samples.
 We'll do this in the RNAseq II.
-
-
 
 
 # Storing encode function just in case since mine went bad :
