@@ -61,7 +61,7 @@ Now the run.sh file that gives nf-core/rnaseq all the instructions for nextflow 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
-#SBATCH --time=20:00:00
+#SBATCH --time=10:00:00
 #SBATCH --output=nextflow.out
 #SBATCH --error=nextflow.err
 
@@ -121,7 +121,7 @@ Go to /analysis/18_running_nf_core folder, nano and paste in below
 #SBATCH -p long
 #SBATCH --job-name=HEPG2_rna_seq
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=john.rinn@colorado.edu
+#SBATCH --mail-user=your_email@colorado.edu
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
@@ -139,7 +139,7 @@ nextflow run nf-core/rnaseq -r 1.4.2 \
 -profile singularity \
 --reads 'your_path/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
 --fasta /scratch/Shares/rinnclass/CLASS_2022/data/genomes/GRCh38.p13.genome.fa \
--gtf /scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf \
+--gtf /scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf \
 --pseudo_aligner salmon \
 --gencode \
 --email your_email@colorado.edu \
@@ -176,6 +176,7 @@ process {
 ```
 
 RUN.SH (DOES NOT REQUIRE DESIGN FILE) for NF_CORE 1.4.2
+
 ```{bash }
 #!/bin/bash
 #SBATCH -p long
@@ -199,7 +200,7 @@ nextflow run nf-core/rnaseq -r 1.4.2 \
 -profile singularity \
 --reads 'path/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
 --fasta /scratch/Shares/rinnclass/CLASS_2022/data/genomes/GRCh38.p13.genome.fa \
---gtf /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/gencode.v32.annotation.gtf \
+--gtf /scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf \
 --pseudo_aligner salmon \
 --gencode \
 --email your_email@colorado.edu \
