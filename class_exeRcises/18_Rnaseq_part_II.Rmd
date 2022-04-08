@@ -112,7 +112,7 @@ date
 
 # creating run.sh
 Here is the run.sh in full form for nano 
-Goto /analysis/18_running_nf_core folder, nano and paste in below 
+Go to /analysis/18_running_nf_core folder, nano and paste in below 
 
 # NOTE you will need to change email and path to fastq -- use same ending path  synta
 ```{bash run.sh}
@@ -154,17 +154,16 @@ However if you were to use the new 3.4 this would be required with following for
 
 # sample,replicate,fastq_1,fastq_2,strandedness
 
+NF_Core RNAseq is now on 3.6 and this data all fails on anything 2.0 or higher.
+So we don't need this but in the future it is required in NF_CORE RNAseq
+
 We made the design file in 17 from code someone else could
 run and get the exact same design file !
 
-# move design file into NF_CORE_RUN dir
+# Let's make the following files in analysis/18_ 
 
-cd /scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ
-cp design.csv /scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN
+# NEXTFLOW.CONFIG
 
-# Below are the other files again in case needed
-
-NEXTFLOW.CONFIG
 ```{bash}
 
 process {
@@ -221,6 +220,11 @@ tail -f nextflow.out
 
 Voila you are doing RNAseq!
 
+```{r my path for fastq files}
 
 # --reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
+
+
+```
+
 
