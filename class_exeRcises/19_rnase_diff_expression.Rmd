@@ -94,6 +94,14 @@ g2s <- read_csv("g2s.csv")
 Ok, next step is to read in GENE COUNTS (not TPM) This was exported from the NF_CORE RNAseq pipeline in the salmon folder. We want "salmon_merged_gene_counts.csv
 
 This is in our results folder from 18_.Rmd
+
+# More on salmon transcript quants, this is a basic outline of how Salmon works 
+# Especially if you wanted to use it outside NF_CORE pipeline for RNAseq
+https://combine-lab.github.io/salmon/getting_started/
+
+# Here is more on output files
+https://salmon.readthedocs.io/en/latest/file_formats.html
+
 ```{r reading in salmon counts convert to matrix}
 
 # DEseq requires a matrix of raw counts so the following
