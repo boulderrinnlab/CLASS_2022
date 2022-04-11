@@ -20,7 +20,7 @@ nextflow run nf-core/rnaseq -r 1.4.2 \
 -profile singularity \
 --reads '/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
 --fasta /scratch/Shares/rinnclass/CLASS_2022/data/genomes/GRCh38.p13.genome.fa \
---gtf /scratch/Shares/rinn/genomes/Homo_sapiens/Gencode/v32/gencode.v32.annotation.gtf \
+--gtf /scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf \
 --pseudo_aligner salmon \
 --gencode \
 --email john.rinn@colorado.edu \

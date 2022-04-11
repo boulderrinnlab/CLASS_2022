@@ -13,6 +13,11 @@ options(stringsAsFactors = FALSE)
 library(tidyverse)
 library(tximport)
 library(DESeq2)
+
+#install.packages("https://cran.r-project.org/src/contrib/Archive/locfit/locfit_1.5-9.4.tar.gz", repos=NULL, type="source")
+# BiocManager::install("DESeq2")
+
+
 library(ggrepel)
 library(pheatmap)
 source("../../../util/plotting_functions.R")
