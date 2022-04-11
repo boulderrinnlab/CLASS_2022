@@ -11,11 +11,11 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE)
 library(tidyverse)
-library(tximport)
-library(ggrepel)
+# library(tximport)
+# library(ggrepel)
 library(pheatmap)
-source("../../../util/plotting_functions.R")
-source("../../../util/_setup.R")
+source("../../../../../util/plotting_functions.R")
+source("../../../../../util/_setup.R")
 
 # DEseq2 needs a specific package of 'locfit' that has to be installed first
 install.packages("https://cran.r-project.org/src/contrib/Archive/locfit/locfit_1.5-9.4.tar.gz", repos=NULL, type="source")
@@ -26,13 +26,9 @@ BiocManager::install("DESeq2")
 # now load the package
 library(DESeq2)
 
-
 ```
 
 Today we will performing differential expression on HEPG2 RNAseq data. We will focus on comparing nuclear versus cytoplasmic RNAs. We can use this data to find genes that are nuclear or cytoplasmic enriched. We can use this data to determine if the high-binding promoters are biased for nuclear or cytoplasmic RNAs. Meaning the number of binding events indicates if the RNA product is sent to the cytoplasm (typically) or the nucleus. We can also use this data to determine if lncRNAs or mRNAs have similar or different nuclear/cytoplasmic localizations.
-
-
-
 
 # We will need our samplesheet form 17_.Rmd
 # First Let's make a /analysis/19_ directory and set to working directory.
@@ -43,6 +39,7 @@ Today we will performing differential expression on HEPG2 RNAseq data. We will f
 
 samplesheet <- read_csv("/your_path/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/samplesheet.csv")
 
+samplesheet <- read_csv("samplesheet.csv")
 # ENCODE swapped labels on one sample !! 
 
 # We of course need to swap the labels for total and insoluble cytoplasmic
@@ -74,6 +71,7 @@ samplesheet$condition <- as.factor(samplesheet$condition)
 # we'll write it out for future use.
 write_rds(samplesheet, "final_samplesheet.rds")
 
+samplesheet <- read_rds("final_samplesheet.rds")
 ```
 
 # Loading in Gencode annotations
@@ -129,6 +127,7 @@ https://salmon.readthedocs.io/en/latest/file_formats.html
 
 counts <- read_csv("/your_path/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
 
+counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/preclass_NF_core_RUN/results/salmon/salmon_merged_gene_counts.csv")
 
 # adding rownames and converting to a matrix
 counts <- column_to_rownames(counts, "gene_id") %>%
@@ -221,7 +220,7 @@ rlog_counts_matrix <- assay(rlog_counts)
 write_rds(rlog_counts_matrix, "rlog_counts_all.rds")
 
 # reading back in to be sure we can start here in the future.
-rlog_counts_matrix <- read_rds("/path/log_counts_all.rds")
+rlog_counts_matrix <- read_rds("log_counts_all.rds")
 
 # Now reading in to check for start point in future
 rlog_counts_matrix <- read_rds("rlog_counts_all.rds")
