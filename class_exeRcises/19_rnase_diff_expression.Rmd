@@ -125,6 +125,8 @@ https://salmon.readthedocs.io/en/latest/file_formats.html
 # will turn this from a data.frame to matrix 
 # NOTE: now common practice always think about adding "names" after import.
 
+## NOTE ## NEVER USE TPM or any other normalized counts with DeSeq!!
+
 counts <- read_csv("/your_path/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
 
 # counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
@@ -208,9 +210,8 @@ dds <- DESeqDataSetFromMatrix(countData = counts_filtered,
 # (2) run DESeq2 function on dds object
 dds <- DESeq(dds)
 
-# (3) arrive at rlog normalized counts table!
-# blind = T means it will normalize with out the "design ~ condition"
-# seems redundant but these are the steps :)
+# (3) Normalize counts (rlog)
+# This basically is rank counts normalized to std error in replicates.
 rlog_counts <- rlog(dds, blind = TRUE)
 
 # (4) now we retrieve the values using the "assay" function that converts to rlog_counts)
@@ -278,6 +279,9 @@ write_rds(samplesheet_nuc_cyto, "samplesheet_nuc_cyto.rds")
 All the work we have done above can be skipped by 
 reading in the following files.
 
+# To learn more about DeSeq and other variations not used here:
+https://physiology.med.cornell.edu/faculty/skrabanek/lab/angsd/lecture_notes/08_practical.pdf
+
 ```{r START POINT}
 
 # Read in the raw counts
@@ -302,9 +306,13 @@ First let's cluster all the data to see how the samples relate.
 ```{r heatmap of all data}
 
 # Now we can make a heatmap of all the different fractions
+# First let's look at the rlogCounts
+hist(rlog_counts_matrix, breaks = 100, xlim = c(0,20))
 
 # First we will filter to genes that are variable across data.
-hist(rowVars(rlog_counts_matrix))
+# rowVars gives us the variance across samples
+x <- rowVars(rlog_counts_matrix)
+hist(rowVars(rlog_counts_matrix), breaks = 100, xlim = c(0,4))
 
 # Filterting out genes that don't have variance of more than 2
 rlog_var_genes_all <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 2,]
