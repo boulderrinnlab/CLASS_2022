@@ -12,26 +12,36 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE)
 library(tidyverse)
 library(tximport)
-library(DESeq2)
-
-#install.packages("https://cran.r-project.org/src/contrib/Archive/locfit/locfit_1.5-9.4.tar.gz", repos=NULL, type="source")
-# BiocManager::install("DESeq2")
-
-
 library(ggrepel)
 library(pheatmap)
 source("../../../util/plotting_functions.R")
 source("../../../util/_setup.R")
+
+# DEseq2 needs a specific package of 'locfit' that has to be installed first
+install.packages("https://cran.r-project.org/src/contrib/Archive/locfit/locfit_1.5-9.4.tar.gz", repos=NULL, type="source")
+
+# Now we can install DEseq2
+BiocManager::install("DESeq2")
+library(DESeq2)
+
+
 ```
 
 Today we will performing differential expression on HEPG2 RNAseq data. We will focus on comparing nuclear versus cytoplasmic RNAs. We can use this data to find genes that are nuclear or cytoplasmic enriched. We can use this data to determine if the high-binding promoters are biased for nuclear or cytoplasmic RNAs. Meaning the number of binding events indicates if the RNA product is sent to the cytoplasm (typically) or the nucleus. We can also use this data to determine if lncRNAs or mRNAs have similar or different nuclear/cytoplasmic localizations.
 
 
-# Reading in samplesheet form 17_.Rmd
-First let's read in th sample sheet we made in 17
+
+
+# We will need our samplesheet form 17_.Rmd
+# First Let's make a /analysis/19_ directory and set to working directory.
 
 ```{r import sample sheet}
-samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/samplesheet.csv")
+
+# First let's read in th sample sheet we made in 17
+
+samplesheet <- read_csv("/your_path/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/samplesheet.csv")
+
+# samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/samplesheet.csv")
 
 # ENCODE swapped labels on one sample !! 
 
@@ -46,10 +56,11 @@ samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/clas
 # changing the condition column to insoluble 
 # note operation assignment comes last to just change text.
 
-samplesheet[which(samplesheet$sample_name == "hepg2_R1"), "condition"] <- "insoluble_cytoplasmic_fraction"
+# First changing the total sample to homo_sapiens_insoluble_fraction
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2"), "condition"] <- "homo_sapiens_insoluble_cytoplasmic_fraction"
 
-# same for changing insoluble_cytoplasmic_fraction condition to total
-samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "total"
+# same for changing insoluble_cytoplasmic_fraction condition to homo_sapiens_hepg2
+samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction"), "condition"] <- "homo_sapiens_hepg2"
 
 # saving this to sample_sheets folder
 write.csv(samplesheet, "corrected_samplesheet.csv")
@@ -74,6 +85,7 @@ While we are at it, let's also print these out to make this go quicker in the fu
 # Importing genome annotations
 # ANIKA I apologize that we should have done this earlier to avoid loading Gencode again :()
 gencode_gtf <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
+
 # that took awhile let's make genome annotation files that can be quickly read in the future
 
 # Let's reduce this big GRanges list to just genes
@@ -113,9 +125,11 @@ https://salmon.readthedocs.io/en/latest/file_formats.html
 # will turn this from a data.frame to matrix 
 # NOTE: now common practice always think about adding "names" after import.
 
-counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
+counts <- read_csv("/your_path/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
 
-# adding rownames
+# counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
+
+# adding rownames and converting to a matrix
 counts <- column_to_rownames(counts, "gene_id") %>%
 as.matrix()
   
@@ -130,16 +144,10 @@ Making an rlog counts matrix for all samples -- can read in to start in future
 
 # First let's put the counts columns in the same order as the samplesheet
 # If they are not then we would essentially be randomizing our data later!!
-
-# REMOVING POLYA-selection SAMPLES
-# NOTE: that right now, this pipeline run contains polyA and total RNA-seq
-# we can filter to just the total RNA-seq by taking only the columns
-# that are in the samplesheet (n = 10)
 counts <- counts[,samplesheet$sample_id]
 
 # This is a handy check point to make sure the labels in 
 # sample sheet and counts are similar
-
 all(colnames(counts) == samplesheet$sample_id)
 
 # Now we know they're in the same order, and we can change the names
@@ -167,8 +175,7 @@ counts_filtered <- counts[rowSums(counts) > 1,]
 
 # In order to cache this and read it in later we'll
 # save it as an RDS
-write_rds(counts_filtered, "counts_matrix/counts_matrix.rds")
-
+write_rds(counts_filtered, "counts_matrix.rds")
 
 ```
 
@@ -188,35 +195,38 @@ Let's officially run DeSeq2!
 # We need to do this in four steps:
 
 # (1) first run DESeq2 by creating a dds object.
+# We use the function "DESeqDataSetFromMatrix"
+# With parameters of countData, colData, design
 
 dds <- DESeqDataSetFromMatrix(countData = counts_filtered,
                               # this is our counts data we read in
                               colData = samplesheet,
                               # telling DeSeq what env variable to use for sample sheet
                               design = ~ condition)
-                              # perhaps most important is condition is a factor in samplesheet (look in env)
+                              # perhaps most important is condition is a factor in samplesheet 
 
-# (2) run DESeq2 on dds object
-
+# (2) run DESeq2 function on dds object
 dds <- DESeq(dds)
 
 # (3) arrive at rlog normalized counts table!
-# bild = T means it will normalize with out the "design ~ condition"
+# blind = T means it will normalize with out the "design ~ condition"
 # seems redundant but these are the steps :)
 rlog_counts <- rlog(dds, blind = TRUE)
 
-# (4) now we retrieve the values using assay (an access function into rlog_counts)
+# (4) now we retrieve the values using the "assay" function that converts to rlog_counts)
 rlog_counts_matrix <- assay(rlog_counts)
 
 # Now we can write this out and START from here in the future.
 # create new folder 'rlog_count_matrices'
-write_rds(rlog_counts_matrix, "RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
+write_rds(rlog_counts_matrix, "rlog_counts_all.rds")
 
 # reading back in to be sure we can start here in the future.
-rlog_counts_matrix <- read_rds("path/rlog_counts_all.rds")
+rlog_counts_matrix <- read_rds("/path/log_counts_all.rds")
+
+# Now reading in to check for start point in future
+rlog_counts_matrix <- read_rds("rlog_counts_all.rds")
 
 # rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
-
 
 ```
 
@@ -230,7 +240,6 @@ Let's specialize sample sheet we can use to compare nuc/cyto samples.
 ```{R nuclear and cytoplasmic samplesheet}
 
 # Now we will filter the sample sheet to just nuclear and cytoplasmic
-
 samplesheet_nuc_cyto <- samplesheet %>%
   filter(condition %in% c("homo_sapiens_cytosolic_fraction", "homo_sapiens_nuclear_fraction"))
 # Nice now we have a reduced sample sheet that is well organized.
@@ -265,7 +274,6 @@ write_rds(samplesheet_nuc_cyto, "samplesheet_nuc_cyto.rds")
 
 ```
 
-
 # START POINT
 All the work we have done above can be skipped by 
 reading in the following files.
@@ -273,10 +281,10 @@ reading in the following files.
 ```{r START POINT}
 
 # Read in the raw counts
-counts <- read_rds("counts_matrix/counts_matrix.rds")
+counts <- read_rds("counts_matrix.rds")
 
 # All normalized counts 
-rlog_counts_matrix <- read_rds("RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
+rlog_counts_matrix <- read_rds("rlog_counts_all.rds")
 
 # full sample_sheet
 samplesheet <- read_rds("final_samplesheet.rds")
