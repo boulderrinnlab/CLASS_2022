@@ -22,6 +22,8 @@ install.packages("https://cran.r-project.org/src/contrib/Archive/locfit/locfit_1
 
 # Now we can install DEseq2
 BiocManager::install("DESeq2")
+
+# now load the package
 library(DESeq2)
 
 
@@ -40,8 +42,6 @@ Today we will performing differential expression on HEPG2 RNAseq data. We will f
 # First let's read in th sample sheet we made in 17
 
 samplesheet <- read_csv("/your_path/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/samplesheet.csv")
-
-# samplesheet <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/samplesheet.csv")
 
 # ENCODE swapped labels on one sample !! 
 
@@ -129,7 +129,6 @@ https://salmon.readthedocs.io/en/latest/file_formats.html
 
 counts <- read_csv("/your_path/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
 
-# counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
 
 # adding rownames and converting to a matrix
 counts <- column_to_rownames(counts, "gene_id") %>%
