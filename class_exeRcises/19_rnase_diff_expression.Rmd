@@ -127,7 +127,7 @@ https://salmon.readthedocs.io/en/latest/file_formats.html
 
 counts <- read_csv("/your_path/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
 
-counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/preclass_NF_core_RUN/results/salmon/salmon_merged_gene_counts.csv")
+# counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/preclass_NF_core_RUN/results/salmon/salmon_merged_gene_counts.csv")
 
 # adding rownames and converting to a matrix
 counts <- column_to_rownames(counts, "gene_id") %>%
@@ -220,9 +220,6 @@ rlog_counts_matrix <- assay(rlog_counts)
 write_rds(rlog_counts_matrix, "rlog_counts_all.rds")
 
 # reading back in to be sure we can start here in the future.
-rlog_counts_matrix <- read_rds("log_counts_all.rds")
-
-# Now reading in to check for start point in future
 rlog_counts_matrix <- read_rds("rlog_counts_all.rds")
 
 # rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
@@ -359,6 +356,11 @@ rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
   # merging PC1 and PC2 with sample sheet via sample name
 rld_prcomps <- merge(samplesheet, rld_prcomps)
 
+
+
+# install.packages("ggrepel")
+
+
 # Let's make a PCA plot
 ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate)) +
 geom_point() +
@@ -452,12 +454,12 @@ res_df <- res %>% as.data.frame() %>%
 # Nice now we have a DF with a lot of good info for each gene.
 # Let's write it out.
 
-write_rds(res_df, "nuclear_cyto_results_df.rds")
+write_rds(res_df, "results/nuclear_cyto_results_df.rds")
 
 
 ```
 
-QC plot: Volcano
+QC plot: Volcano 
 ```{r valono, MA and other plots}
 
 # Test is CYTO/Nuclear
@@ -482,11 +484,22 @@ nuclear_gene <- res_df$gene_name[which.min(res_df$log2FoldChange)]
 
 # we can find most cytoplasmic here too
 cyto_gene <- res_df$gene_name[which.max(res_df$log2FoldChange)]
-# Hmm 7SK is supossed to be nuclear -- a bit odd
+# 7SK -- a lncRNA ...
+
 
 # Making a list of nuclear genes at certain threshold
 nuclear_genes <- res_df %>% 
-  filter(log2FoldChange < -1, padj < 0.05)
+  filter(log2FoldChange < -1, padj < 0.05) %>%
+  as.data.frame()
+
+write_csv(nuclear_genes, "nuclear_genes.csv")
+
+# Cytoplasmic genes:
+cyto_genes <- res_df %>%
+  filter(log2FoldChange > 1, padj < 0.05)
+
+write_csv(cyto_genes, "cyto_genes.csv")
+
 
 ```
 
@@ -509,21 +522,21 @@ ggplot(res_df, aes(x = log10(baseMean), y = log2FoldChange)) +
 
 ggsave("figures/MA_plot_nuc_cyto.pdf")
 
+
+# Now let's look at nuclear MA plot seperate:
+ggplot(nuclear_genes, aes(x = baseMean , y = log2FoldChange)) + 
+  geom_point()
+
 ```
 
 let's see the range of pvalues in nuc-vs-cyto:
-```{R pvalues nuc-vs-cyto}
+```{R pvalues nuc-vs-cyto / FDR example}
+
+# let's look at the distribution of pvalues
 
 hist(res_df$padj)
 
-# how many genes above 0.05 padj?
-
-num_sig <- res_df$padj < 0.05
-
-# we can also look at this with summary
-summary(num_sig)
-
-# We see about 15,000 genes exhibit differential expressed.
+# we could apply a false discovery as we see a tail of distributed pvalues
 ```
 
 # DESeq with all subcellular fractions
@@ -537,7 +550,6 @@ samplesheet$condition <- factor(samplesheet$condition, levels = c("homo_sapiens_
 
 
 # creating dds based on the factors above
-
 dds <- DESeqDataSetFromMatrix(countData = counts,
                               colData = samplesheet,
                               design = ~ condition)
@@ -549,12 +561,13 @@ dds <- DESeq(dds)
 
 ```
 
-
+# What is in DDS
 Let's look a little deeper into the dds results from total vs all
 ```{r looking at results from dds }
 
 # We now have a bunch more results embedded in the dds object
 resultsNames(dds)
+
 # let's take this name to return one set of the results from DeSeq
 # all comparisions are in our dds so we can select one at a time.
 
@@ -567,7 +580,7 @@ res_df <- res %>% as.data.frame() %>%
   merge(g2s) %>%
   mutate(result_name = "condition_membrane_fraction_vs_total")
 
-# Set the x-axes the same.
+# Looking to see log2 fold change range
 summary(res_df$log2FoldChange)
 
 ```
@@ -612,10 +625,16 @@ res_shrunken_df <- data.frame("gene_id" = character(),
                               "result_name" = character())
 
 # Now we will make a forloop to populate these data.frames with each DeSeq result !
+# We will also apply a shrunken log fold change 
 
 for(i in 1:length(results_names)) {
+  # grabbing the name of the result file i
   results_name <- results_names[i]
+  # populating the res_df with results(dds)
+  # x <- results(dds, name = results_name)
   res <- results(dds, name = results_name)
+  # populating res shrunken lfc with flcShrink
+  # Y <- lfcShrink(dds, coef = results_name,  res = res)
   res_shrunken <- lfcShrink(dds, coef = results_name,  res = res)
   
   # populating data.frame 1 : temp_res_df
@@ -647,6 +666,8 @@ Cool now we have two great data frames to move forward with.
 Normally we would just move forward with shrunken logFC.
 Let's add a couple more fun colums to this res_shrunken_df
 
+# START POINT Nuclear cytoplasmic comparison
+
 ```{r signigicant nuclear and cyto}
 
 # reading in nuc_cyto results df
@@ -658,12 +679,12 @@ nuc_cyto_sig_genes <- nuc_cyto_res_df %>%
 
 # Now we filter res_shrunken for gene_id column and subcellular fraction column 
 nuc_cyto_genes_to_plot <- res_shrunken_df %>%
-  filter(gene_id %in% nuc_cyto_sig_genes$gene_id, subcellular_fraction %in% c("nuclear", "cytosolic"))
+  filter(gene_id %in% nuc_cyto_sig_genes$gene_id, result_name %in% c("condition_homo_sapiens_nuclear_fraction_vs_homo_sapiens_hepg2", "condition_homo_sapiens_cytosolic_fraction_vs_homo_sapiens_hepg2"))
   
 # We need a matrix for heatmap and converting nuc_cyto_genes/values from lines above to matrix
 lfc_matrix <- nuc_cyto_genes_to_plot %>% 
-  dplyr::select(gene_id, log2FoldChange, subcellular_fraction) %>% 
-  pivot_wider(names_from = "subcellular_fraction", values_from = "log2FoldChange") %>%
+  dplyr::select(gene_id, log2FoldChange, result_name) %>% 
+  pivot_wider(names_from = "result_name", values_from = "log2FoldChange") %>%
   column_to_rownames("gene_id") %>%
   as.matrix()
 
