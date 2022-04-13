@@ -382,7 +382,7 @@ counts_nuc_cyto <- counts[, samplesheet_nuc_cyto$sample_name]
 
 # This is a good way to triple check everything is in order.
 
-stopifnot(all(rownames(samplesheet_nuc_cyto) == colnames(counts_nuc_cyto)))
+rownames(samplesheet_nuc_cyto) == colnames(counts_nuc_cyto)
 # Great this evaluated to true and thus moved on -- we would get an error message otherwise.
 
 # or the other way we have been doing this:
@@ -525,6 +525,7 @@ ggsave("figures/MA_plot_nuc_cyto.pdf")
 
 # Now let's look at nuclear MA plot seperate:
 ggplot(nuclear_genes, aes(x = baseMean , y = log2FoldChange)) + 
+  xlim(0, 50000) +
   geom_point()
 
 ```
@@ -557,7 +558,6 @@ dds <- DESeqDataSetFromMatrix(countData = counts,
 
 # Run the DESeq stats
 dds <- DESeq(dds)
-
 
 ```
 
