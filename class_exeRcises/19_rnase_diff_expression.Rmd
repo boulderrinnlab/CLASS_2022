@@ -600,6 +600,8 @@ results_names
 # We don't care about the intercept, so we can leave that out
 results_names <- results_names[-1]
 
+
+#TODO ? How does the for loop fill this data frame? 
 # First we set up a data frame for logFC results.
 res_df <- data.frame("gene_id" = character(), 
                      "baseMean" = numeric(), 

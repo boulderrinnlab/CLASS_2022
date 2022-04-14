@@ -13,9 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 library(tidyverse)
 library(GenomicRanges)
-library(ggpubr)
 source("../../../util/intersect_functions.R")
 source("../../../util/_setup.R")
+# library(ggpubr)
+
 ```
 
 # Reading in sample sheet
@@ -28,6 +29,14 @@ samplesheet <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/clas
 ```
 
 # reading in TPM values from Salmon
+# Transcripts per million 
+These are different than the raw counts needed as in put for DEseq
+Those are used for normalization and differential expression
+Also for making heatmaps (could also do with TPM as well)
+TPM and counts are used for different things but you can 
+Find diffrential expressed genes and then make a gene list
+Then plot TPM values of those gene list -- so they are inter-relatable
+
 Now let's read in the TPMs from salmon
 ```{r reading in salmon Salmon TPMs}
 
@@ -35,7 +44,7 @@ Now let's read in the TPMs from salmon
 # TPM is transcripts per million read -- so is a normalized abundance value
 salmon_tpm <- read.csv("path/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_tpm.csv")
 
-# salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_tpm.csv")
+salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/preclass_NF_core_RUN/results/salmon/salmon_merged_gene_tpm.csv")
 
 
 # since we have replicates we will take the mean TPM for each fractionation.
@@ -43,10 +52,20 @@ salmon_tpm <- read.csv("path/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmo
 # finally we are making sure the TPM table is in same order as samplesheet
 
 tpm <- salmon_tpm %>% 
+  # pivot longer here is going to take cols 2 through the rest (the samples conditions)
+  # So each gene will have 10 rows with the sample_id = experiment name/condition
+  # TPM will be TPM 
   pivot_longer(cols = 2:ncol(.), names_to = "sample_id", values_to = "tpm") %>%
+  # This will merge the sample sheet by sample_id column
   merge(samplesheet) %>%
+  # we group the data by gene_id condition thus there are 2 values in 5 condition
   group_by(gene_id, condition) %>%
+  # taking the mean by using summarize function (this is the mean of 2 res in each condition)
   summarize(tpm = mean(tpm, na.rm = T)) %>%
+  # bringing the table back to "normal" with pivot wider
+  # the condition will be come the cols with names_from = with a prefix tpm_condition name
+  # So we are back to 5 columns since each condition has only one mean value now
+  # Those TPM mean values are populating the rows now
   pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
 
 ```
@@ -60,9 +79,13 @@ how many DBPs are bound at each promoter
 # loading peak_feature
 promoter_features_df <- read.csv("path/12_peak_features/peak_occurence_dataframe.csv")
 
+# let's take a look and refresh our memories of this data frame we created of ChiP binding properties
+View(promoter_features_df)
+
 # promoter_features_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
 
 # Now we can merge in the TPM data to this data.frame
+# This will merge on the on teh gene_id column
 promoter_features_df <- merge(promoter_features_df, tpm)
 
 # saving this file
@@ -71,6 +94,8 @@ write.csv(promoter_features_df, "promoter_feature_df_tpm.csv")
 # let's plot the number of DBPs bound as a densuty plot.
 ggplot(promoter_features_df, aes(x = number_of_dbp)) +
   geom_density() 
+
+# Cool we see the bimodal distribution again.
 
 # Let's save
   ggsave("figures/DBP_binding_density_plot.pdf")
@@ -132,15 +157,24 @@ Let's see if this holds for this larger number of DBPs
 # x-axis = number of DBPs bound on the promoter
 # y-axis = expression level of that gene.
 
+# y-axis total RNA TPM (+0.0001 to avoid 0 issues)
+       # x-axis is number of DBPs
 ggplot(promoter_features_df, 
             aes(y = log2(tpm_homo_sapiens_hepg2 + 0.001), x = number_of_dbp, color = gene_type)) + 
   geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_hepg2 < 0.001),
              shape = 17, alpha = 0.7) +
+  
+  # Adding a generative additive model 
   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+  # this adds the statistics from the gam to the figure
   stat_cor() +
+  # this is just to make it look nice.
   scale_x_continuous(expand = c(0,0)) +
+  # adding colors manually
   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+  # title
   ggtitle("Expression vs. promoter binding events") + 
+  # labeling axes
   xlab(expression('Number of TFs')) +
   ylab(expression(log[2](TPM))) 
   # saving figure
@@ -164,8 +198,7 @@ are bound by many DBPs (up to 400!).
 Let's see if the binding versus expression holds in the nuclear fraction
 ```{r binding versus nuclear expression}
 
-# Now let's make a similar plot for nuclear RNA abundance versus #DBPs boud to their promoter
-
+# Now let's make a similar plot for nuclear RNA abundance versus #DBPs bound to their promoter
 ggplot(promoter_features_df, 
             aes(y = log2(tpm_homo_sapiens_nuclear_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
   geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_nuclear_fraction < 0.001),
@@ -220,6 +253,8 @@ Next we will directly test the lncRNA vs mRNA expression levels in total RNA.
 
 # We can see this from the trend lines that lncRNAs are less expressed,
 # but here's another way of looking at that.
+
+# the main function here is color by gene_type in promoter_features_df
 ggplot(promoter_features_df, aes(x = log2(tpm_homo_sapiens_hepg2 + 0.01), color = gene_type))+
   geom_density()
 
@@ -316,6 +351,7 @@ write_csv(hepg2_df,"hepg2_df.csv")
 hepg2_df <- read_csv("hepg2_df.csv")
   
 # Let's merge the k562 reservoirs in with HEPG2_df
+# Merges on Gene_id
 hepg2_k562_promoter_features_df <- merge(hepg2_df, k562_df)
 
 # Now saving
@@ -323,6 +359,7 @@ write_csv(hepg2_k562_promoter_features_df, "hepg2_k562_promoter_features_df.csv"
 
 # Make a table of reservoir status
 res_status <- hepg2_k562_promoter_features_df %>% 
+  #  !! another useful combination of group_by and summarize !!
   group_by(hepg2_reservoir, k562_reservoir, k562_conservative_reservoir) %>%
   summarize(count = n())
 
