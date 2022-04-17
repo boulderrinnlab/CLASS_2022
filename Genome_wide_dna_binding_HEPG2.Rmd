@@ -3,6 +3,8 @@ title: "Genome_wide_bindng_HEPG2"
 author: "JR"
 date: "4/17/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -78,18 +80,23 @@ for(i in 1:length(consensus_peaks)) {
 # Loading in files via listing and rtracklayer import
 consensus_fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks", full.names = T)
 
+# importing
 consensus_peaks <- lapply(consensus_fl, rtracklayer::import)
 
 # cleaning up file names
 names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks/|_consensus_peaks.bed","", consensus_fl)
 
 # Filtering consensus peaks to those DBPs with at least 250 peaks
-
 num_peaks_threshold <- 250
-
 num_peaks <- sapply(consensus_peaks, length)
-
 filtered_consensus_peaks <- consensus_peaks[num_peaks > num_peaks_threshold]
+
+# Result: these were the DBPs that were filtered out.
+filtered_dbps <- consensus_peaks[num_peaks < num_peaks_threshold]
+names(filtered_dbps)
+
+# We have this many remaining DBPs
+length(filtered_consensus_peaks)
 
 ```
 
@@ -97,7 +104,18 @@ filtered_consensus_peaks <- consensus_peaks[num_peaks > num_peaks_threshold]
 
 ```{r peak number and coverage per DBP}
 
+# Let's start with loading in the number of peaks each DBP has -- using length.
+num_peaks_df <- data.frame("dbp" = names(filtered_consensus_peaks),
+                           "num_peaks" = sapply(filtered_consensus_peaks, length))
 
+# total genomic coverage of peaks for each dbp
+num_peaks_df$total_peak_length <- sapply(filtered_consensus_peaks, function(x) sum(width(x)))
+
+# TODO make promoter annotations from 
+
+promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_peaks, type = "counts")
+
+num_peaks_df$peaks_overlapping_promoters <- rowSums(promoter_peak_counts)
 
 
 
@@ -106,23 +124,8 @@ filtered_consensus_peaks <- consensus_peaks[num_peaks > num_peaks_threshold]
 
 
 
-# let's take a look
-summary(consensus_peaks)
-# note CTCF went from 30,000 some peaks to 28,640 that overlap in all 8 replicates
-
-num_peaks <- sapply(consensus_peaks, length)
 
 
-# let's see how wide the peaks are for one example
-hist(width(consensus_peaks[[37]]), breaks = 1000)
-
-# let's add a limit to the x-axis so we cna see this better
-hist(width(consensus_peaks[[37]]), breaks = 1000, xlim = c(0, 300))
-# we see that there aren't any peaks shorter than 175 
-# phew the peaks are mostly bigger than 100 bp.
-
-
-```
 
 
 
