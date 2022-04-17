@@ -68,6 +68,7 @@ for(i in 1:length(consensus_peaks)) {
                             "_consensus_peaks.bed"))
 }
 
+
 ```
 
 # loading in consensus peaks to prevent rerunning create_consensus_peaks function
