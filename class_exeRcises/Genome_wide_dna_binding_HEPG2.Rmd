@@ -1,0 +1,139 @@
+---
+title: "Genome_wide_bindng_HEPG2"
+author: "JR"
+date: "4/17/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Goal:
+Here we aim to download all available DNA binding protein (DBP) profiles in a single cell state (measured by ChIPseq) . This will allow us to investigate the binding propeties of hundreds of DBPs in the same cellular context or background. We aim to address several questions: (i) What are the number of peaks and genome coverage for each DBP? (ii) What are the binding preferences for promoters, gene-bodiies and intergenic genomic regions? (iii) What are the similarities and differences across DBPs based on their genome-wide binding profiles genome-wide? (iv) What properties or preferences do promoters have for binding events. (iv) Are there reservoir promoters in HepG2 as defined in k562 previously? (v) How does binding to a promoter affect the transcriptional output of that promoter?
+
+To address these questions we have currated a set of X,000 ChIPseq data sets comprised of 486 DBPs in HEPG2 cells from the ENCODE consotrium. We required duplicate ChIPseq experiments for a given DBP and other criterion that can be found here :
+
+https://www.encodeproject.org/report/?type=Experiment&status=released&assay_slims=DNA+binding&biosample_ontology.term_name=HepG2&assay_title=TF+ChIP-seq&biosample_ontology.classification=cell+line&files.read_length=100&files.read_length=76&files.read_length=75&files.read_length=36&assay_title=Control+ChIP-seq&assay_title=Histone+ChIP-seq&files.run_type=single-ended
+
+# These samples were selected on the following criterion:
+
+1) "chromatin" interaction data, then DNA binding data, cell line HEPG2, "TF-Chip-seq". 
+2) We furhter selected "TF Chip seq", Control chip seq and histone chip seq. 
+3) We selected several read lengths to get the most DNA binding proteins (DBPs)
+4) Read lengths: 100, 76, 75, 36
+5) ONLY SINGLE END READS (this eliminates 54 samples)
+
+# Experimental data was downloading by (ENCODE report.tsv):
+
+https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=DNA+binding&biosample_ontology.term_name=HepG2&assay_title=TF+ChIP-seq&biosample_ontology.classification=cell+line&files.read_length=100&files.read_length=76&files.read_length=75&files.read_length=36&assay_title=Control+ChIP-seq&assay_title=Histone+ChIP-seq&files.run_type=single-ended
+
+# The FASTQ files were downloaded with:
+
+"https://www.encodeproject.org/metadata/?status=released&assay_slims=DNA+binding&biosample_ontology.term_name=HepG2&assay_title=TF+ChIP-seq&biosample_ontology.classification=cell+line&files.read_length=100&files.read_length=76&files.read_length=75&files.read_length=36&assay_title=Control+ChIP-seq&assay_title=Histone+ChIP-seq&files.run_type=single-ended&type=Experiment"
+
+# MD5sums were checked with all passing (see encode_file_info function to reterive MD5Sum values that are not available 
+# from the encode portal (/util)
+
+
+### Processing data:
+
+We processed all the read alignments and peak calling using the NF_CORE ChIPseq pipeline: 
+(chipseq -r 1.2.1)
+
+## Next we created consensus peaks that overlap in both replicates
+Our strategy was to take peaks in each replicate and find all overlapping peak windows.
+We then took the union length of the overlapping range in each peak window.
+
+```{r Creating Consensus Peaks}
+library(tidyverse)
+library(GenomicRanges)
+source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+
+
+# create_consensu_peaks requires an annotation .GTF file - loading in Gencode v32 annotations.
+
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/genomes/gencode.v32.annotation.gtf")
+
+# Creating consensus peaks function to create a .bed file of overlapping peaks in each replicate.
+# /util/intersect_functions.R
+
+create_consensus_peaks <- create_consensus_peaks(broadpeakfilepath = "/scratch/Shares/rinnclass/CLASS_2022/data/test_work/all_peak_files")
+
+# exporting consensus peaks .bed files
+
+for(i in 1:length(consensus_peaks)) {
+ rtracklayer::export(consensus_peaks[[i]],
+                    paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks/",
+                            names(consensus_peaks)[i],
+                            "_consensus_peaks.bed"))
+}
+
+
+```
+
+# loading in consensus peaks to prevent rerunning create_consensus_peaks function
+
+```{r loading in consensus_peaks and filtering to minimum of 250 peaks}
+
+# Loading in files via listing and rtracklayer import
+consensus_fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks", full.names = T)
+
+consensus_peaks <- lapply(consensus_fl, rtracklayer::import)
+
+# cleaning up file names
+names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/consensus_peaks/|_consensus_peaks.bed","", consensus_fl)
+
+# Filtering consensus peaks to those DBPs with at least 250 peaks
+
+num_peaks_threshold <- 250
+
+num_peaks <- sapply(consensus_peaks, length)
+
+filtered_consensus_peaks <- consensus_peaks[num_peaks > num_peaks_threshold]
+
+```
+
+# Now we will determine the peak number and genome coverage for each DBP.
+
+```{r peak number and coverage per DBP}
+
+
+
+
+
+```
+
+
+
+# let's take a look
+summary(consensus_peaks)
+# note CTCF went from 30,000 some peaks to 28,640 that overlap in all 8 replicates
+
+num_peaks <- sapply(consensus_peaks, length)
+
+
+# let's see how wide the peaks are for one example
+hist(width(consensus_peaks[[37]]), breaks = 1000)
+
+# let's add a limit to the x-axis so we cna see this better
+hist(width(consensus_peaks[[37]]), breaks = 1000, xlim = c(0, 300))
+# we see that there aren't any peaks shorter than 175 
+# phew the peaks are mostly bigger than 100 bp.
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
