@@ -118,8 +118,6 @@ num_peaks_df$total_peak_length <- sapply(filtered_consensus_peaks, function(x) s
 # Plotting distribution of peak number per dbp
 hist(num_peaks_df$total_peak_length)
 
-# TODO saving figures
-
 ```
 
 # Now we will create promoter annotations for lncRNA and mRNA and both.
@@ -289,7 +287,15 @@ write_csv(peak_occurence_df, "analysis/results/peak_occurence_dataframe.csv")
 ```
 
 
+# WHERE DO YOU WANT TO GO FROM HERE ?
 
+
+
+# Bimodal promoter plot
+
+# Meta plots?
+
+# Binding versus expression 
 
 
 
