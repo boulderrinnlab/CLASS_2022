@@ -207,7 +207,7 @@ subset_rmsk <- function(rmsk_gr, rep_level = "family") {
 #' @param downstream
 #'To add downstream sequence to feature subset
 
-get_promoter_regions <- function(gencode_gr, biotype, upstream = 3e3, downstream = 3e3) {
+get_promoter_regions <- function(gencode_gr, biotype, upstream = 2500, downstream = 2500) {
   
   genes <- gencode_gr[gencode_gr$type == "gene"]
   genes <- genes[genes$gene_type %in% biotype]

@@ -21,7 +21,7 @@ source("util/_setup.R")
 
 # Analysis of peak features for each DBP
 
-We've previous made a dataframe containing a number of features for each DNA binding protein and we will create some plots to examine these relationships here.
+We've previous made a dataframe containing a number of features for each DNA binding protein and we will create some plots to examine these relationships here. KEep writting results
 
 ```{r import, message=FALSE}
 # reading in num_peaks_df
@@ -48,6 +48,8 @@ ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   xlab("Number of peaks") +
   ggtitle("Peak count vs. total bases covered")
 ```
+
+#### small text
 
 ```{r promoter-overlaps, message=FALSE}
 # Plotting number of peaks versus peaks overlapping promoters

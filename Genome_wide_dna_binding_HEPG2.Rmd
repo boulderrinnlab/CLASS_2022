@@ -192,12 +192,21 @@ write_csv(num_peaks_df, "analysis/results/num_peaks_df.csv")
 
 # Plotting peak annotation features for DBPs
 
+First we will plot the distribution of the number of peaks per DBP
 ```{r plotting peak annotation features}
 
 num_peaks_df <- read_csv("analysis/results/num_peaks_df.csv")
 # Distriubtion of peak numbers of all 460 DBPs
 ggplot(num_peaks_df, aes(x = num_peaks)) + 
   geom_histogram(bins = 70)
+summary(num_peaks_df$num_peaks)
+```
+The median number of peaks is nearly 16,000, but most DBPs tend to have many fewer binding events. The distribution looks like an expotential decay. Surprisingly, one DBP has nearly 150,000 peaks.
+
+# Plotting the total genome coverage of each DBPs ChIP peaks
+
+Here we want to see the relationship between the number of peaks and amount of genome covered
+```{r num peaks versus genome coverage}
 
 # Plotting number of peaks versus total genome coverage
 ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
@@ -208,7 +217,17 @@ ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   xlab("Number of peaks") +
   ggtitle("Peak count vs. total bases covered")
 ggsave("analysis/figures/peak_num_vs_coverage.pdf")
+```
+We observe a somewhat linear relationship between peak number and genome coverage
+Thus, more peaks = more genome coverage. This could be interpreted as the peak sizes
+are typically uniform and thus linearly increase genome coverage
 
+# Plotting number of peaks versus overlaps with promoters
+
+Here we are comparing the number of peaks for a given DBP 
+to the total number of promoters those peaks overlap
+
+```{r peak number versus promoter overlaps}
 
 # Plotting number of peaks versus peaks overlapping promoters
 ggplot(num_peaks_df,
@@ -225,7 +244,19 @@ ggplot(num_peaks_df,
   xlim(0,60100)
 
 ggsave("analysis/figures/3_peak_num_vs_promoter_coverage.pdf")
+```
+There is not a great linear fit across all the data. We observe that 
+below 20,000 peaks there seems to be a linear relationship however
+as the peak number increases fewer promoters are overlapping. This 
+suggests that after 20,000 peaks most promoters are covered and now
+the peaks are elsewhere.
 
+
+# Peaks per DBP overlaps with genebody
+Here we want to see how many of the peaks for each DBP
+overlap genebodys. 
+
+```{R peaks overlapping genebody}
 
 # Plotting peak overlaps with genebody
 ggplot(num_peaks_df,
@@ -242,10 +273,20 @@ ggplot(num_peaks_df,
   xlim(0,60100)
 
 ggsave("analysis/figures/4_peak_num_vs_gene_body_coverage.pdf")
+```
+We observe that there is a very linear relationship between peak number and genebody overlap.
+This means that the more peaks you have the more likely you are to overlap a genebody. One
+way to think about this is that genebody overlaps explains most of the peaks -- or most peaks
+overlap genebodys. We would expect dots (DBPs) that are below the line are binding outside genebodys.
+
+However, one artifact could be if genebodys take up most of the genome this would also make a linear trend.
+
+# Determing how much of the genome is comprised of genebodies.
+
+```{r perentage of genome that is genebodys}
 
 # there is a large amount of data explained (almost all by genebodys)
 # Let's see what percentage of the genome genebodys cover:
-
 reduced_gene_bodies <- gencode_gr[gencode_gr$type == "gene"] %>%
   GenomicRanges::reduce() %>%
   width() %>%
@@ -255,6 +296,10 @@ reduced_gene_bodies <- gencode_gr[gencode_gr$type == "gene"] %>%
 reduced_gene_bodies/3.2e9
 
 ```
+So we observe that genebodys do cover a lot of the genome. Since they 
+represent a majority of the genome we would expect a linear relationship.
+Nonetheless we conclude that most peaks overlap genebodys.
+
 
 # Counting the number of overlaps at each promoter
 
@@ -280,7 +325,77 @@ peak_occurence_df <- data.frame("gene_id" = colnames(promoter_peak_occurence),
 # exporting
 write_csv(peak_occurence_df, "analysis/results/peak_occurence_dataframe.csv")
 
+```
 
+
+# Plotting
+Here we are going to plot the distribution of the number of DBPs on a given promoter
+
+```{r DBPs per promoter}
+
+ggplot(peak_occurence_df, aes(x = number_of_dbp)) +
+geom_density(alpha = 0.2, color = "#424242", fill = "#424242") +
+  
+  theme_paperwhite() +
+  xlab(expression("Number of DBPs")) +
+  ylab(expression("Density")) +
+  ggtitle("Promoter binding events",
+          subtitle = "mRNA and lncRNA genes") 
+
+ggsave("figures/num_binding_events_per_promoter.pdf")
+
+```
+!COOL Result -- maybe !
+We observe a bimodal distribution of binding at promoters.
+This indicates that there are two types of promoters:
+1) Those that have up to 70 or so DBPs bound
+2) High binders that have more than 200 DBPs
+We note a lag betweent 100-200 DBPs per promoter.
+This could indicate that this is not a preferable number of DBPs.
+
+# Multiple promoter window sizes
+
+Let's iterate over promoter window sizes and see if this effect is maintained.
+First we'll generate promoter windows of multiple 
+```{r}
+# Window sizes we want to iterate over.
+window_size <- c(10, 30, 50, 100, 500, 1000, 1500, 2000, 2500, 3000)
+
+# To test this function quickly, we'll subset gencode to a sampling of genes
+gene_samples <- gencode_gr[gencode_gr$type == "gene"]
+gene_samples <- gene_samples[gene_samples$gene_type %in% c("lncRNA", "protein_coding")]
+gene_samples <- gene_samples[sample(1:length(gene_samples), 1000)]
+
+promoter_list <- lapply(window_size, function(x) {
+  GenomicRanges::promoters(gene_samples, upstream = x, downstream = x)
+})
+names(promoter_list) <- window_size
+
+peaks_per_feature_list <- lapply(promoter_list, function(x) {
+  count_peaks_per_feature(x, filtered_consensus_peaks, type = "occurrence")
+})
+
+num_dbp_list <- lapply(peaks_per_feature_list, function(x) {
+  colSums(x)
+})
+
+
+for(i in 1:length(window_size)) {
+  num_dbp_list[[i]] <- data.frame("gene_id" = names(num_dbp_list[[i]]),
+                                  "num_dbp" = num_dbp_list[[i]],
+                                  "window_size" = window_size[[i]])
+}
+
+num_dbp_df <- bind_rows(num_dbp_list)
+
+
+ggplot(num_dbp_df, aes(x = num_dbp, color = window_size, group = window_size)) +
+geom_density(alpha = 0.2) +
+  theme_paperwhite() +
+  xlab(expression("Number of DBPs")) +
+  ylab(expression("Density")) +
+  ggtitle("Promoter binding events",
+          subtitle = "mRNA and lncRNA genes") 
 ```
 
 # WHERE DO YOU WANT TO GO FROM HERE ?
