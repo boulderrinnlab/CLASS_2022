@@ -1,45 +1,43 @@
----
-title: "Knitting example"
-author: "JR"
-date: "4/18/2022"
-output: github_document
-editor_options: 
-  chunk_output_type: console
----
+Knitting example
+================
+JR
+4/18/2022
 
 # Test run of a knit
 
-```{r setup, include=FALSE}
-library(Gviz)
-library(ggpubr)
-library(ggplot2)
-library(tidyverse)
-library(GenomicRanges)
-source("util/plotting_functions.R")
-source("util/_setup.R")
-```
-
 # Analysis of peak features for each DBP
 
-We've previous made a dataframe containing a number of features for each DNA binding protein and we will create some plots to examine these relationships here.
+We’ve previous made a dataframe containing a number of features for each
+DNA binding protein and we will create some plots to examine these
+relationships here.
 
-```{r import, message=FALSE}
+``` r
 # reading in num_peaks_df
 num_peaks_df <- read_csv("analysis/results/num_peaks_df.csv")
 ```
 
 ## Histogram of peak count per DBP
 
-```{r peak-counts}
+``` r
 # Distriubtion of peak numbers of all 460 DBPs
 ggplot(num_peaks_df, aes(x = num_peaks)) + 
   geom_histogram(bins = 70)
+```
+
+![](Test_knit_files/figure-gfm/peak-counts-1.png)<!-- -->
+
+``` r
 summary(num_peaks_df$num_peaks)
 ```
 
-The median number of peaks is nearly 16,000, but most DBPs tend to have many fewer binding events. The distribution looks like an expotential decay. Surprisingly, one DBP has nearly 150,000 peaks.
+    ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    ##     261    5643   15736   21524   32053  144675
 
-```{r peaks-vs-coverage}
+The median number of peaks is nearly 16,000, but most DBPs tend to have
+many fewer binding events. The distribution looks like an expotential
+decay. Surprisingly, one DBP has nearly 150,000 peaks.
+
+``` r
 # Plotting number of peaks versus total genome coverage
 ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   geom_point() + 
@@ -49,7 +47,11 @@ ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   ggtitle("Peak count vs. total bases covered")
 ```
 
-```{r promoter-overlaps, message=FALSE}
+    ## `geom_smooth()` using formula 'y ~ s(x, bs = "cs")'
+
+![](Test_knit_files/figure-gfm/peaks-vs-coverage-1.png)<!-- -->
+
+``` r
 # Plotting number of peaks versus peaks overlapping promoters
 ggplot(num_peaks_df,
        aes(x = num_peaks, y = peaks_overlapping_promoters)) +
@@ -65,7 +67,15 @@ ggplot(num_peaks_df,
   xlim(0,60100)
 ```
 
-```{r genebody-overlaps, warning=FALSE, fig.width=10, fig.height=12}
+    ## Warning: Removed 23 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 23 rows containing non-finite values (stat_regline_equation).
+
+    ## Warning: Removed 23 rows containing missing values (geom_point).
+
+![](Test_knit_files/figure-gfm/promoter-overlaps-1.png)<!-- -->
+
+``` r
 # Plotting peak overlaps with genebody
 ggplot(num_peaks_df,
        aes(x = num_peaks, y = peaks_overlapping_genebody)) +
@@ -80,3 +90,5 @@ ggplot(num_peaks_df,
   ylim(0,60100) +
   xlim(0,60100)
 ```
+
+![](Test_knit_files/figure-gfm/genebody-overlaps-1.png)<!-- -->
