@@ -396,6 +396,7 @@ geom_density(alpha = 0.2) +
   ylab(expression("Density")) +
   ggtitle("Promoter binding events",
           subtitle = "mRNA and lncRNA genes") 
+
 ```
 Awesome, we see that window size is not affecting the bimodal distribution.
 So this is an intersting result that no matter the window size we find tow populations 
@@ -533,6 +534,7 @@ If we make this cutoff, 19,550 genes are expressed. This is somewhat typical ~50
 ggplot(promoter_features_df %>% filter(!is.na(tpm)), aes(x = expressed)) +
   geom_bar() +
   geom_text(stat='count', aes(label=..count..), vjust=-1)
+
 ```
 
 # Binding versus expression of "expressed" genes
@@ -551,6 +553,178 @@ For expressed genes (TPM > 0.25), there is still a correlation between higher nu
 
 Suprisingly, there are genes which have no DBPs bound in this dataset, but are still expressed. What are the gene types of these genes? Are they transcribed by a different polymerase? Perhaps this highlights the fact that although we have a large number of DBPs in this dataset, there are still many other transcription factors not profiled. We have approximately 1/3 of the total identified human TFs (460/1200).
 
+# Determining Reservoirs
+We previously published a phenomena of promoters bound by many DBPs but 
+Do not follow the linear increase in expression at these promoters.
+We will now do this for HEPG2 cells by determining:
+
+Those promtoers with high binding (second mode) and lack expression TPM < 0.001
+
+```{r}
+
+# defining reservoirs
+promoter_features_df$hepg2_reservoir <- 
+  as.numeric(promoter_features_df$number_of_dbp > 100 & 
+               promoter_features_df$tpm < 0.001)
+
+```
+
+# merging in k562 reservoir informaiton
+
+```{r}
+
+# reading in file
+k562_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/2020_k562_promoter_peak_df.csv")
+
+# organizing data frame
+k562_df <- k562_df %>% 
+  dplyr::select(gene_id, reservoir, conservative_reservoir, tpm, expression, tf_binding, promoter_mean_tpm, promoter_median_tpm, promoter_max_tpm) %>%
+  dplyr::rename(k562_reservoir = reservoir, 
+                k562_conservative_reservoir = conservative_reservoir,
+                k562_expression = expression,
+                k562_tpm = tpm,
+                k562_tf_binding = tf_binding,
+                k562_promoter_mean_tpm =  promoter_mean_tpm,
+                k562_promoter_median_tpm = promoter_median_tpm,
+                k562_promoter_median_tpm = promoter_median_tpm,
+                k562_promoter_max_tpm = promoter_max_tpm)
+
+# Hepg2_DF
+hepg2_df <- promoter_features_df %>%
+  dplyr::select(gene_id, gene_name, tpm, number_of_dbp, hepg2_reservoir) %>%
+   dplyr::rename( hepg2_tpm = tpm)
+
+# merging data frames
+hepg2_k562_promoter_features_df <- merge(hepg2_df, k562_df)
+
+# summarizing overlaps
+res_status <- hepg2_k562_promoter_features_df %>% 
+  group_by(hepg2_reservoir, k562_reservoir, k562_conservative_reservoir) %>%
+  summarize(count = n())
+
+# summarized results
+table(res_status)
+
+```
+
+
+# Defining high binder promoters
+
+```{r}
+summary(promoter_features_df$number_of_dbp)
+
+promoter_features_df <- promoter_features_df %>%
+  mutate(binding_status = ifelse(number_of_dbp > 230, "high",
+                                 ifelse(number_of_dbp < 10, "low", "medium")),
+         expression_level = ifelse(tpm > 100, "high", ifelse(tpm > 0.25, "medium", "low")))
+promoter_features_df$binding_status <- factor(promoter_features_df$binding_status, 
+                                              levels = c("low", "medium", "high"))
+
+
+ggplot(promoter_features_df %>% filter(!is.na(expressed)), aes(x = binding_status)) +
+  geom_bar() +
+facet_wrap(~expressed)
+
+table(promoter_features_df$binding_status)
+
+
+
+```
+
+
+
+```{r}
+high_binding_promoters <- promoter_peak_occurence[,promoter_features_df %>%
+                                                    filter(binding_status == "high") %>%
+                                                    pull(gene_id)]
+low_binding_promoters <- promoter_peak_occurence[,promoter_features_df %>%
+                                                    filter(binding_status == "low") %>%
+                                                    pull(gene_id)]
+high_binding_occupancy <- rowSums(high_binding_promoters) / ncol(high_binding_promoters)
+low_binding_occupancy <- rowSums(low_binding_promoters) / ncol(low_binding_promoters)
+binding_occupancy <- data.frame(dbp = names(high_binding_occupancy),
+                                high = high_binding_occupancy,
+                                low = low_binding_occupancy) %>%
+  mutate(high_vs_low_ratio = log2((high + 0.001) / (low + 0.001)))
+
+ggplot(binding_occupancy, aes(x = high)) +
+  geom_density()
+
+ggplot(binding_occupancy, aes(x = low)) +
+  geom_density()
+```
+
+Are there some DBPs that seperate the expressed vs not expressed high binding promoters?
+
+```{r}
+high_binders <- promoter_features_df %>%
+  filter(binding_status == "high")
+
+expressed_hb <- promoter_peak_occurence[,high_binders %>%
+                                                    filter(expression_level == "high") %>%
+                                                    pull(gene_id)]
+lowly_expressed_hb <- promoter_peak_occurence[,high_binders %>%
+                                                    filter(expression_level == "low") %>%
+                                                    pull(gene_id)]
+
+ehb_occupancy <- rowSums(expressed_hb) / ncol(expressed_hb)
+lhb_occupancy <- rowSums(lowly_expressed_hb) / ncol(lowly_expressed_hb)
+names(ehb_occupancy) == names(lhb_occupancy)
+hb_binding_occupancy <- data.frame(dbp = names(ehb_occupancy),
+                                high_exp = ehb_occupancy,
+                                low_exp = lhb_occupancy ) %>%
+  mutate(high_vs_low_ratio = log2((high_exp + 0.001) / (low_exp + 0.001)))
+library(ggrepel)
+ggplot(hb_binding_occupancy, aes(x = low_exp, y = high_vs_low_ratio, label = dbp)) +
+  geom_point() +
+  geom_text_repel(data = hb_binding_occupancy %>% filter(high_vs_low_ratio < -1)) +
+  geom_text_repel(data = hb_binding_occupancy %>% filter(high_vs_low_ratio > 0.75)) +
+  geom_smooth(method = "lm")
+```
+
+Testing for the discriminators for the polII positive promoters.
+
+```{r}
+
+polII_names <- rownames(promoter_peak_occurence)[grep("POLR", rownames(promoter_peak_occurence))]
+
+# Let's add a column with PolII status to our data.frame
+polII_counts <- colSums(promoter_peak_occurence[polII_names,])
+polII_counts_df <- data.frame(gene_id = names(polII_counts),
+                              polII_status = polII_counts)
+polII_counts_df <- polII_counts_df[promoter_features_df$gene_id,]
+promoter_features_df$polII_status <- polII_counts_df$polII_status
+
+
+high_binders <- promoter_features_df %>%
+  filter(binding_status == "high")
+
+
+expressed_hb <- promoter_peak_occurence[,high_binders %>%
+                                                    filter(expression_level == "high", polII_status > 1) %>%
+                                                    pull(gene_id)]
+lowly_expressed_hb <- promoter_peak_occurence[,high_binders %>%
+                                                    filter(expression_level == "low", polII_status > 1) %>%
+                                                    pull(gene_id)]
+dim(expressed_hb)
+dim(lowly_expressed_hb)
+
+ehb_occupancy <- rowSums(expressed_hb) / ncol(expressed_hb)
+lhb_occupancy <- rowSums(lowly_expressed_hb) / ncol(lowly_expressed_hb)
+names(ehb_occupancy) == names(lhb_occupancy)
+hb_binding_occupancy <- data.frame(dbp = names(ehb_occupancy),
+                                high_exp = ehb_occupancy,
+                                low_exp = lhb_occupancy ) %>%
+  mutate(high_vs_low_ratio = log2((high_exp + 0.001) / (low_exp + 0.001)))
+library(ggrepel)
+ggplot(hb_binding_occupancy, aes(x = high_exp, y = high_vs_low_ratio, label = dbp)) +
+  geom_point() +
+  geom_text_repel(data = hb_binding_occupancy %>% filter(high_vs_low_ratio < -0.5)) +
+  geom_text_repel(data = hb_binding_occupancy %>% filter(high_vs_low_ratio > 0.75)) +
+  geom_smooth(method = "lm")
+```
+
+
 # How many genes are expressed but don't 
 ```{r number of genes expressed with 0 DBPs bound}
 
@@ -563,7 +737,6 @@ This is probably explained that there is a different TSS that is bound --
 we are using the longest isoform, but this may not be the one that is active in this data. 
 A better approach would be to do this on an isoform level.  
 # Browser visualization shows that 1,933 genes expressed with 0 DBP have earlier start site
-
 
 
 ## ATAC-seq 
@@ -620,4 +793,134 @@ We observe a slight but significant linear trend between # atac peaks and # DBPs
 This could lead us to hypothesize that 
 
 
+
+# writting out useful files made above to results
+
+```{r}
+
+write_csv(promoter_features_df, "analysis/results/tables/promoter_features_df.csv")
+write_csv(tpm, "analysis/results/tables/mean_tpm_per_condition.csv")
+write_csv(samplesheet, "analysis/results/tables/samplesheet.csv")
+write_csv2(res_status, "analysis/results/tables/reservoir_overlap_stats.csv")
+write_csv2(hepg2_k562_promoter_features_df, "analysis/results/tables/hepg2_k562_promoter_features_df.csv")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# https://github.com/boulderrinnlab/CLASS_2021/blob/in_class/analysis/09_high_binding_properties/high_binding_properties.Rmd
+library(countreg)
+library(nls.multstart)
+library(pracma)
+library(broom)
+nzibinom_guass_mixture <- function(x, mu_nb, theta_nb, pi_nb, mu_g, sd_g, w1, w2) {
+  f <- dzinbinom(x, mu = mu_nb, theta = theta_nb, pi = pi_nb) * w1 +
+    dnorm(x, mean = mu_g, sd = sd_g) * w2
+  return(f)
+}
+```
+
+Using this function, we'll do a nonlinear least squares fit to our estimated density. Note that I fiddled around a lot to find the starting values that were reasonable -- it's pretty much an art not a science to find reasonable initial paramters.
+
+```{r nls-fit}
+x <- dbp_density_df$x
+y <- dbp_density_df$dens
+set.seed(9876)
+dens_nls_fit <- nls_multstart(y ~ nzibinom_guass_mixture(x, mu_nb, 
+                                                         theta_nb, pi_nb, mu_g, sd_g, w1, w2),
+                              iter = 10000,
+                              start_lower = c(mu_nb = 4,
+                                              theta_nb = 0.5, 
+                                              pi_nb = 0.3, 
+                                              mu_g = 293, 
+                                              sd_g = 30, 
+                                              w1 = 1000, 
+                                              w2 = 30),
+                              start_upper = c(mu_nb = 20,
+                                              theta_nb = 1, 
+                                              pi_nb = 0.99, 
+                                              mu_g = 298, 
+                                              sd_g = 80, 
+                                              w1 = 3000, 
+                                              w2 = 100),
+                              algorithm = "port",
+                              lower = c(0, 0, 0, 250, 0, 0, 0),
+                              upper = c(400, 1, 0.99, 350, 200, 4000, 200),
+                              control = list(maxiter = 5000),
+                              supp_errors = "Y",
+                              convergence_count = 100)
+# Let's check out the fit.
+dens_nls_fit
+summary(dens_nls_fit)
+plot(dens_nls_fit)
+plot(dens_nls_fit, xlim = c(0,3))
+# Okay, jesus. That is the strangest residual plot I've ever seen.
+# It probably means this is not the right model.
+# I'll have to ask a statistician
+fit_res <- tidy(dens_nls_fit) %>%
+  as.data.frame() # sometimes tibbles are annoying
+# Let's add the fit to the data frame and plot it
+dbp_density_df$fit <- predict(dens_nls_fit)
+ggplot(dbp_density_df, aes(x = x, y = dens)) +
+  geom_point() +
+  geom_line(aes(y = fit), color = "#a8404c") + 
+  ggtitle("Promoter DBP count density", subtitle = "Est. density vs. mixture model fit")
+```
+
+Cool, well now that we have some of the parameters let's spice up the plot a bit by adding our selection/ definition of high binding promoters.
+
+```{r dens-plot}
+# We mostly care about the gaussian mean and standard deviation, so let's grab those values.
+(mu <- fit_res[fit_res$term == "mu_g", "estimate"])
+(sd <- fit_res[fit_res$term == "sd_g", "estimate"])
+ggplot(dbp_density_df, aes(x = x, y = dens)) +
+  geom_point() +
+  geom_line(aes(y = fit), color = "#a8404c") + 
+  geom_vline(xintercept = mu, lty = 2, color = "#424242") +
+  geom_vline(xintercept = mu + 1*sd, lty = 1, color = "#424242") +
+  geom_vline(xintercept = mu - 1*sd, lty = 1, color = "#424242") +
+  ggtitle("Promoter DBP count density", subtitle = "Est. density vs. mixture model fit")
+```
+
+### Define binding level
+
+Okay, now let's annotate the binding level in our data.frame.
+
+```{r define-binding-level}
+# Max "high binders"
+round(mu + sd)
+# Min "high binders"
+round(mu - sd)
+```
 
