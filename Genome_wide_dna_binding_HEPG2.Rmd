@@ -398,19 +398,27 @@ geom_density(alpha = 0.2) +
           subtitle = "mRNA and lncRNA genes") 
 ```
 Awesome, we see that window size is not affecting the bimodal distribution.
+So this is an intersting result that no matter the window size we find tow populations 
+of promoters: "normal" and high affinity promoters.
 
 # Binding properties versus total RNA expression.
+Let's take a look at HEPG2 RNAseq downloaded from ENCODE.
+We will start by loading in that data and then looking at the distribution
+of gene expression and where to filter.
 
-```{r}
-
+```{r loading in total RNAseq data for HEPG2}
 salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/preclass_NF_core_RUN/results/salmon/salmon_merged_gene_tpm.csv")
 
 samplesheet <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/final_samplesheet.rds")
 
-
-
 g2s <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/g2s.csv") %>%
   dplyr::select(gene_id, gene_name)
+```
+
+# Organizing the loaded data into a nice data frame of TPM values.
+
+```{r syncing sample sheet and gene_name for total RNA tpm values}
+# First we will take the mean TPM between replicates for total RNA (Homo_sapiens_hepg2).
 
 tpm <- salmon_tpm %>% 
   pivot_longer(cols = 2:ncol(.), names_to = "sample_id", values_to = "tpm") %>%
@@ -419,7 +427,6 @@ tpm <- salmon_tpm %>%
   summarize(tpm = mean(tpm, na.rm = T)) %>%
   filter(condition == "homo_sapiens_hepg2") %>%
   merge(g2s)
-
 
 # Let's look at how many DBPs have a matching gene symbol in the gene expression dataset.
 dbp_names <- tolower(num_peaks_df$dbp)
@@ -431,140 +438,186 @@ dbp_names[!(dbp_names %in% tolower(tpm$gene_name))]
 dbp_expression <- tpm %>% filter(tolower(gene_name) %in% dbp_names) %>%
   mutate(gene_name = tolower(gene_name))
 
-
-
+# Final set of DBPs we can use between ENCODE names and TPM names from Salmon
+# Making a data frame of DBPs we can use and TPM and overlaps
 dbp_expression_vs_peak_number <- dbp_expression %>%
   left_join(num_peaks_df %>% dplyr::rename(gene_name = dbp) %>%
               mutate(gene_name = tolower(gene_name)))
+```
 
+# As a first check of the data let's see how TPM relates to number of peaks
+A resonalble hypothesis is that higher abundant proteins may have more peaks.
+
+```{r plotting TPM versus number of peaks}
 ggplot(dbp_expression_vs_peak_number, aes(x = tpm, y = num_peaks)) +
   geom_point() +
   scale_y_log10() +
   xlim(0,50) +
   geom_smooth()
 ```
-
 It seems that there's no correlation between the expression level of the gene and the number of peaks bound by the resulting protein. This makes sense due to the fact that mRNA levels and protein levels are only weakly correlated. 
 
-```{r}
-ggplot(dbp_expression_vs_peak_number, aes(x = tpm, y = total_peak_length)) +
-  geom_point() +
-    scale_y_log10() +
-  xlim(0,50)
-```
+# Loading in peak occurence DF we made above. 
+This data frame has all our peak info per DBP and we will merge TPM data and other features.
+This way we have all the inforamtion we need for each promoter (rows)
 
-It seems that this is also true for the peak length (number of bases covered).
-
-
-```{r}
-
+```{r Merging TPM into promter peak occurence }
+# Loading in promoter peak occurence DF we made above (as matrix and converted to datframe)
+# Around line 330
 promoter_features_df <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
 
+# Merging int TPM values.
 promoter_features_df <- promoter_features_df %>%
   left_join(tpm)
+```
 
+# Plotting number of DBPs (TFs) bound to a promoter versus expression of that promoter.
 
+```{r Merging TPM into promter peak occurence }
 ggplot(promoter_features_df, 
             aes(y = log2(tpm + 0.001), x = number_of_dbp, color = gene_type)) + 
 geom_point(data = promoter_features_df %>% filter(tpm < 0.001),
              shape = 17, alpha = 0.7) +
   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
- 
   stat_cor() +
-  # this is just to make it look nice.
   scale_x_continuous(expand = c(0,0)) +
-  # adding colors manually
   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
-  # title
   ggtitle("Expression vs. promoter binding events") + 
-  # labeling axes
-  xlab(expression('Number of TFs')) +
+  xlab(expression('Number of DBPs')) +
   ylab(expression(log[2](TPM))) 
+ggsave("analysis/figures/binding_versus_expression_all.pdf")
+
 ```
 
-Let's look at the distribution of expression values.
+We find two patterns of promoter binding versus expression:
+1) Expression is linear with respect to number of binding events 
+This is similar to what has been published by Mele et al. Genome Research
+2) There is a population of promoters that are NOT expresed across the range of bound DBPs
 
-```{r}
+# Filtering by expression value.
+We saw abov that although there is a linear trend the expression values are very low
+at promoters with less than 100 DBPs bound. Somewhere around TPM of 0.04 which is very low!
+
+Let's look at the distribution of expression values to determine where to filter.
+It seems common to filter as "expressed" if there is at least one TPM.
+
+# Plotting distribution of TPMS
+
+```{r Distribution of TPMs}
+
+#TODO start saving figures
+
 ggplot(promoter_features_df, aes(x = tpm)) +
   geom_density() +
   xlim(0,2.5)
+
 ```
 We see that most genes have very low expression and we see an inflection point in the density plot at around 0.25 TPM. Therefore, we'll call any gene with > 0.25 TPM as expressed.
 
-```{r}
+# Filtering to "expressed genes" > 0.25 TPM
+We will add this to promoter_features_df.
+
+```{r filtering "expressed" genes to > 0.25 TPM}
+
+# making "expressed" col by filtering > .25
 promoter_features_df <- promoter_features_df %>%
   mutate(expressed = tpm > 0.25)
 table(promoter_features_df$expressed)
+
 ```
+If we make this cutoff, 19,550 genes are expressed. This is somewhat typical ~50% of genes.
 
-If we make this cutoff, 19,550 genes are expressed.
+# Plotting number of expressed and not expressed genes
+```{r number of genes "expressed" > 0.25 TPM}
 
-```{r}
 ggplot(promoter_features_df %>% filter(!is.na(tpm)), aes(x = expressed)) +
   geom_bar() +
   geom_text(stat='count', aes(label=..count..), vjust=-1)
 ```
 
-Let's look at the relationship between the number of TFs on a promoter and the expression only for expressed genes.
+# Binding versus expression of "expressed" genes
+Let's look at the relationship between the number of TFs on a promoter 
+and the expression only for expressed genes.
+```{r binding versus "expressed" genes}
 
-```{r}
 ggplot(promoter_features_df %>% filter(expressed == TRUE), 
             aes(y = log2(tpm), x = number_of_dbp, color = gene_type)) + 
   geom_bin_2d() +
   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
   stat_cor()
-```
 
-For expressed genes (TPM > 1), there is still a correlation between higher numbers of DBPs on the promoter and the expression level. This trend carries through even very high numbers of DBPs (> 200). And more so for mRNAs than lncRNAs.
+```
+For expressed genes (TPM > 0.25), there is still a correlation between higher numbers of DBPs on the promoter and the expression level. This trend carries through even very high numbers of DBPs (> 200). And more so for mRNAs than lncRNAs.
 
 Suprisingly, there are genes which have no DBPs bound in this dataset, but are still expressed. What are the gene types of these genes? Are they transcribed by a different polymerase? Perhaps this highlights the fact that although we have a large number of DBPs in this dataset, there are still many other transcription factors not profiled. We have approximately 1/3 of the total identified human TFs (460/1200).
 
-```{r}
-ggplot(promoter_features_df %>% filter(number_of_dbp == 0, !is.na(tpm)), aes(x = expressed)) +
-  geom_bar() +
-  geom_text(stat='count', aes(label=..count..), vjust=-1) 
+# How many genes are expressed but don't 
+```{r number of genes expressed with 0 DBPs bound}
+
+ggplot(promoter_features_df %>% 
+         filter(number_of_dbp == 0, !is.na(tpm)), aes(x = expressed)) +
+          geom_bar() +
+          geom_text(stat='count', aes(label=..count..), vjust=-1) 
 ```
-This is probably explained that there is a different TSS that is bound -- we are using the longest isoform
-but this may not be the one that is active in this data. A better approach would be to do this on an isoform
-level.  
+This is probably explained that there is a different TSS that is bound -- 
+we are using the longest isoform, but this may not be the one that is active in this data. 
+A better approach would be to do this on an isoform level.  
+# Browser visualization shows that 1,933 genes expressed with 0 DBP have earlier start site
+
+
 
 ## ATAC-seq 
 
 Let's look to see if there are differences in the number of ATAC-seq peaks over the promoters.
 
-```{r}
+```{r Downloading ATACseq for HEPG2 in encode adding to promter features }
+# Download data:
 # wget https://www.encodeproject.org/files/ENCFF536RJV/@@download/ENCFF536RJV.bed.gz
+
+# Converting downloaded data to "bed" format via read.table
 atac_peaks <- read.table("data/ENCFF536RJV.bed.gz",
                          col.names = c("chrom", "start", "end", "name", "score", 
                                        "strand", "signal_value", "pval", 
                                        "qval", "summit"))
 
+# Crateing GRanges of ATAC peaks
 atac_peaks_gr <- GRanges(seqnames = atac_peaks$chrom,
                          ranges = IRanges(start = atac_peaks$start,
                                           end = atac_peaks$end))
 atac_peaks_list <- list(atac_peaks_gr)
 names(atac_peaks_list) <- "atac"
-# Look for overlaps with promoters
+
+# ATAC peaks that overlap with promoters
 atac_promoter_ov <- count_peaks_per_feature(lncrna_mrna_promoters, atac_peaks_list, type = "counts")
 atac_promoter_df <- atac_promoter_ov %>% 
   t() %>%
   as.data.frame() %>%
   rownames_to_column("gene_id")
+```
 
+# Plotting the distribution of ATAC peaks overlapping promoters.
+
+```{r Downloading ATACseq for HEPG2 in encode adding to promter features }
 ggplot(atac_promoter_df, aes(x = atac)) +
   geom_density(adjust = 1.9)
+```
+We observe that there is a distribution of 1 or less and another peak around 
+5 ATAC peaks overlapping a promoter.
 
+```{r  adding overlaps to promter features }
 promoter_features_df <- promoter_features_df %>%
   left_join(atac_promoter_df)
+```
 
+# Plotting ATAC peak overlaps versus number of DBPS bound
+```{r  adding overlaps to promter features }
 ggplot(promoter_features_df %>% filter(number_of_dbp > 100), aes(x = number_of_dbp, y = atac)) +
   geom_bin_2d() +
   geom_smooth() +
   stat_cor()
-
-ggplot(promoter_features_df %>% filter(number_of_dbp > 100), aes(x = factor(atac), y = number_of_dbp)) +
-  geom_violin()
-
 ```
+We observe a slight but significant linear trend between # atac peaks and # DBPs bound.
+This could lead us to hypothesize that 
+
 
 
