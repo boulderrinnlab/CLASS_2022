@@ -506,8 +506,6 @@ It seems common to filter as "expressed" if there is at least one TPM.
 
 ```{r Distribution of TPMs}
 
-#TODO start saving figures
-
 ggplot(promoter_features_df, aes(x = tpm)) +
   geom_density() +
   xlim(0,2.5)
@@ -560,9 +558,12 @@ We will now do this for HEPG2 cells by determining:
 
 Those promtoers with high binding (second mode) and lack expression TPM < 0.001
 
-```{r}
+```{r defining Hepg2 reservoirs}
 
-# defining reservoirs
+# reservoir defines as:
+# greater than 100 DBPs bound at promoter
+# less than 0.001 Tpm
+
 promoter_features_df$hepg2_reservoir <- 
   as.numeric(promoter_features_df$number_of_dbp > 100 & 
                promoter_features_df$tpm < 0.001)
@@ -573,7 +574,7 @@ promoter_features_df$hepg2_reservoir <-
 
 ```{r}
 
-# reading in file
+# reading in file defining k562 reservoir 
 k562_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/data/2020_k562_promoter_peak_df.csv")
 
 # organizing data frame
@@ -607,66 +608,105 @@ table(res_status)
 
 ```
 
-
 # Defining high binder promoters
 
-```{r}
+```{r defining high binding promoters}
+# look at distribution of binding events
 summary(promoter_features_df$number_of_dbp)
 
+# based on this deifining > 230 as high, 11-229 as medium and 10 or less as low
 promoter_features_df <- promoter_features_df %>%
   mutate(binding_status = ifelse(number_of_dbp > 230, "high",
                                  ifelse(number_of_dbp < 10, "low", "medium")),
          expression_level = ifelse(tpm > 100, "high", ifelse(tpm > 0.25, "medium", "low")))
 promoter_features_df$binding_status <- factor(promoter_features_df$binding_status, 
                                               levels = c("low", "medium", "high"))
+```
 
+# High, medium and low binding promoters expression level 
+We will determine those genes that are expressed as > 0.25 TPM per above.
+Then plot the binding status of the promoters accordingly.
+
+```{r binding category versus expression}
 
 ggplot(promoter_features_df %>% filter(!is.na(expressed)), aes(x = binding_status)) +
   geom_bar() +
 facet_wrap(~expressed)
 
+# number of expressed in each binding category
 table(promoter_features_df$binding_status)
-
-
 
 ```
 
+# Subsecting promoter peak occurence by high and low binding promoters from above.
 
-
-```{r}
+```{r Subsecting promoter peak occurence for high and low binding promoters}
+# promoters with more than 230 DBPs from peak occurence matrix
 high_binding_promoters <- promoter_peak_occurence[,promoter_features_df %>%
                                                     filter(binding_status == "high") %>%
                                                     pull(gene_id)]
+
+# promoters with less than 10 DBPs from peak occurence matrix
 low_binding_promoters <- promoter_peak_occurence[,promoter_features_df %>%
                                                     filter(binding_status == "low") %>%
                                                     pull(gene_id)]
+
+# percentage (occupancy) of promoters bound by each DBP
 high_binding_occupancy <- rowSums(high_binding_promoters) / ncol(high_binding_promoters)
+
 low_binding_occupancy <- rowSums(low_binding_promoters) / ncol(low_binding_promoters)
+
+# combining into data.frame
 binding_occupancy <- data.frame(dbp = names(high_binding_occupancy),
                                 high = high_binding_occupancy,
                                 low = low_binding_occupancy) %>%
+  # ratio of occupancy on high versus low binding promoters
   mutate(high_vs_low_ratio = log2((high + 0.001) / (low + 0.001)))
+```
 
+# PLotting density of occupancy of DBPs on high and low binding promoters 
+
+
+```{r plotting density of occupancy on high and low binding promoters}
+
+# TODO not sure what this means 
+
+# Density of DBPs occupancy on high binders
 ggplot(binding_occupancy, aes(x = high)) +
   geom_density()
 
+# Density of DBPs occupancy on low binders
 ggplot(binding_occupancy, aes(x = low)) +
   geom_density()
 ```
+We observe that on high binders most proteins that are bound are
+bound to 75% or more of high binding promoters. Thus, if a DBP is 
+bound to a high binder it is bound to most of them or they have similar populations.
 
-Are there some DBPs that seperate the expressed vs not expressed high binding promoters?
+In contrast, for lowly bound promoters very few DBPs are in common. Most DBPs are bond to 
+less than 5% of lowly bound promoters.
 
-```{r}
+
+# Are there some DBPs that seperate the expressed vs not expressed high binding promoters?
+This analysis will point us towards a possible repressor of high binding promoters
+that results in lower expression despite high binding.
+
+```{r DBPs that discern high-bindgers versus other promoters}
+# subsecting promter_features to highly expressed and high binding status
 high_binders <- promoter_features_df %>%
   filter(binding_status == "high")
 
+# DBPs on high binders (hb)  and highly expressed 
 expressed_hb <- promoter_peak_occurence[,high_binders %>%
                                                     filter(expression_level == "high") %>%
                                                     pull(gene_id)]
+
+# DBPs on highbinders (hb) that are lowly expressed 
 lowly_expressed_hb <- promoter_peak_occurence[,high_binders %>%
                                                     filter(expression_level == "low") %>%
                                                     pull(gene_id)]
 
+# Percentage of DBP representation on expressed versus lowly expressed high binding promters
 ehb_occupancy <- rowSums(expressed_hb) / ncol(expressed_hb)
 lhb_occupancy <- rowSums(lowly_expressed_hb) / ncol(lowly_expressed_hb)
 names(ehb_occupancy) == names(lhb_occupancy)
@@ -674,18 +714,32 @@ hb_binding_occupancy <- data.frame(dbp = names(ehb_occupancy),
                                 high_exp = ehb_occupancy,
                                 low_exp = lhb_occupancy ) %>%
   mutate(high_vs_low_ratio = log2((high_exp + 0.001) / (low_exp + 0.001)))
+```
+
+# Plotting DBP occupance on expressed versus lowly expressed high binding promoters
+
+```{r Plotting DBPs enriched on low expressed high binders (vice versa)}
+
 library(ggrepel)
+
 ggplot(hb_binding_occupancy, aes(x = low_exp, y = high_vs_low_ratio, label = dbp)) +
   geom_point() +
   geom_text_repel(data = hb_binding_occupancy %>% filter(high_vs_low_ratio < -1)) +
   geom_text_repel(data = hb_binding_occupancy %>% filter(high_vs_low_ratio > 0.75)) +
   geom_smooth(method = "lm")
+
 ```
+Interesting, we see that EZH2 is associated with low expression promoters despite high binding. this makes sense since EZH2 is a repressor of gene expression. However is only 
+on a few of the lowly expressed high binding promoters (~10%).
 
-Testing for the discriminators for the polII positive promoters.
+Conversely, High binding - high expression promoters are neriches with euchromatic complexes. This makes sense as these DBPs are known to be associated with active genes.
 
-```{r}
 
+# Testing for the discriminators for the polII positive promoters.
+Based on the results above we hypothesize that Pol II would be a good 
+indicator of expression versus non expressed high binders.
+
+```{r Defining Pol II high binding promters that are expressed or not}
 polII_names <- rownames(promoter_peak_occurence)[grep("POLR", rownames(promoter_peak_occurence))]
 
 # Let's add a column with PolII status to our data.frame
@@ -695,23 +749,31 @@ polII_counts_df <- data.frame(gene_id = names(polII_counts),
 polII_counts_df <- polII_counts_df[promoter_features_df$gene_id,]
 promoter_features_df$polII_status <- polII_counts_df$polII_status
 
-
+# Defining high binding 
 high_binders <- promoter_features_df %>%
   filter(binding_status == "high")
+```
 
 
+```{r Defining how many types of Pol II at high binding promters}
+
+# at least one Pol II bound high binder and highly expressed and Pol II low expressed
 expressed_hb <- promoter_peak_occurence[,high_binders %>%
                                                     filter(expression_level == "high", polII_status > 1) %>%
                                                     pull(gene_id)]
 lowly_expressed_hb <- promoter_peak_occurence[,high_binders %>%
                                                     filter(expression_level == "low", polII_status > 1) %>%
                                                     pull(gene_id)]
-dim(expressed_hb)
-dim(lowly_expressed_hb)
 
+# percentage of promoters with Pol II and expressed high binders
 ehb_occupancy <- rowSums(expressed_hb) / ncol(expressed_hb)
+
+# percentage of promoters with Pol II and lowly expressed high binders
 lhb_occupancy <- rowSums(lowly_expressed_hb) / ncol(lowly_expressed_hb)
+
+#TODO this is whre I left off .... defining names for expressed high binders
 names(ehb_occupancy) == names(lhb_occupancy)
+
 hb_binding_occupancy <- data.frame(dbp = names(ehb_occupancy),
                                 high_exp = ehb_occupancy,
                                 low_exp = lhb_occupancy ) %>%
@@ -724,8 +786,8 @@ ggplot(hb_binding_occupancy, aes(x = high_exp, y = high_vs_low_ratio, label = db
   geom_smooth(method = "lm")
 ```
 
+# How many genes are expressed but don't have any DBPs bound
 
-# How many genes are expressed but don't 
 ```{r number of genes expressed with 0 DBPs bound}
 
 ggplot(promoter_features_df %>% 
@@ -734,14 +796,12 @@ ggplot(promoter_features_df %>%
           geom_text(stat='count', aes(label=..count..), vjust=-1) 
 ```
 This is probably explained that there is a different TSS that is bound -- 
-we are using the longest isoform, but this may not be the one that is active in this data. 
-A better approach would be to do this on an isoform level.  
-# Browser visualization shows that 1,933 genes expressed with 0 DBP have earlier start site
+we are using the longest isoform, but this may not be the one that is active in this data. A better approach would be to do this on an isoform level.  
+
 
 
 ## ATAC-seq 
-
-Let's look to see if there are differences in the number of ATAC-seq peaks over the promoters.
+Let's look to see if there are differences in the number of ATAC-seq peaks over the promoters with different amounts of DBPs.
 
 ```{r Downloading ATACseq for HEPG2 in encode adding to promter features }
 # Download data:
@@ -804,123 +864,5 @@ write_csv(samplesheet, "analysis/results/tables/samplesheet.csv")
 write_csv2(res_status, "analysis/results/tables/reservoir_overlap_stats.csv")
 write_csv2(hepg2_k562_promoter_features_df, "analysis/results/tables/hepg2_k562_promoter_features_df.csv")
 
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-# https://github.com/boulderrinnlab/CLASS_2021/blob/in_class/analysis/09_high_binding_properties/high_binding_properties.Rmd
-library(countreg)
-library(nls.multstart)
-library(pracma)
-library(broom)
-nzibinom_guass_mixture <- function(x, mu_nb, theta_nb, pi_nb, mu_g, sd_g, w1, w2) {
-  f <- dzinbinom(x, mu = mu_nb, theta = theta_nb, pi = pi_nb) * w1 +
-    dnorm(x, mean = mu_g, sd = sd_g) * w2
-  return(f)
-}
-```
-
-Using this function, we'll do a nonlinear least squares fit to our estimated density. Note that I fiddled around a lot to find the starting values that were reasonable -- it's pretty much an art not a science to find reasonable initial paramters.
-
-```{r nls-fit}
-x <- dbp_density_df$x
-y <- dbp_density_df$dens
-set.seed(9876)
-dens_nls_fit <- nls_multstart(y ~ nzibinom_guass_mixture(x, mu_nb, 
-                                                         theta_nb, pi_nb, mu_g, sd_g, w1, w2),
-                              iter = 10000,
-                              start_lower = c(mu_nb = 4,
-                                              theta_nb = 0.5, 
-                                              pi_nb = 0.3, 
-                                              mu_g = 293, 
-                                              sd_g = 30, 
-                                              w1 = 1000, 
-                                              w2 = 30),
-                              start_upper = c(mu_nb = 20,
-                                              theta_nb = 1, 
-                                              pi_nb = 0.99, 
-                                              mu_g = 298, 
-                                              sd_g = 80, 
-                                              w1 = 3000, 
-                                              w2 = 100),
-                              algorithm = "port",
-                              lower = c(0, 0, 0, 250, 0, 0, 0),
-                              upper = c(400, 1, 0.99, 350, 200, 4000, 200),
-                              control = list(maxiter = 5000),
-                              supp_errors = "Y",
-                              convergence_count = 100)
-# Let's check out the fit.
-dens_nls_fit
-summary(dens_nls_fit)
-plot(dens_nls_fit)
-plot(dens_nls_fit, xlim = c(0,3))
-# Okay, jesus. That is the strangest residual plot I've ever seen.
-# It probably means this is not the right model.
-# I'll have to ask a statistician
-fit_res <- tidy(dens_nls_fit) %>%
-  as.data.frame() # sometimes tibbles are annoying
-# Let's add the fit to the data frame and plot it
-dbp_density_df$fit <- predict(dens_nls_fit)
-ggplot(dbp_density_df, aes(x = x, y = dens)) +
-  geom_point() +
-  geom_line(aes(y = fit), color = "#a8404c") + 
-  ggtitle("Promoter DBP count density", subtitle = "Est. density vs. mixture model fit")
-```
-
-Cool, well now that we have some of the parameters let's spice up the plot a bit by adding our selection/ definition of high binding promoters.
-
-```{r dens-plot}
-# We mostly care about the gaussian mean and standard deviation, so let's grab those values.
-(mu <- fit_res[fit_res$term == "mu_g", "estimate"])
-(sd <- fit_res[fit_res$term == "sd_g", "estimate"])
-ggplot(dbp_density_df, aes(x = x, y = dens)) +
-  geom_point() +
-  geom_line(aes(y = fit), color = "#a8404c") + 
-  geom_vline(xintercept = mu, lty = 2, color = "#424242") +
-  geom_vline(xintercept = mu + 1*sd, lty = 1, color = "#424242") +
-  geom_vline(xintercept = mu - 1*sd, lty = 1, color = "#424242") +
-  ggtitle("Promoter DBP count density", subtitle = "Est. density vs. mixture model fit")
-```
-
-### Define binding level
-
-Okay, now let's annotate the binding level in our data.frame.
-
-```{r define-binding-level}
-# Max "high binders"
-round(mu + sd)
-# Min "high binders"
-round(mu - sd)
 ```
 
