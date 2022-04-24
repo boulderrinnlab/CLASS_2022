@@ -604,9 +604,6 @@ res_status <- hepg2_k562_promoter_features_df %>%
   group_by(hepg2_reservoir, k562_reservoir, k562_conservative_reservoir) %>%
   summarize(count = n())
 
-# summarized results
-table(res_status)
-
 ```
 
 # Defining high binder promoters
@@ -636,7 +633,6 @@ facet_wrap(~expressed)
 
 # number of expressed in each binding category
 table(promoter_features_df$binding_status)
-
 ```
 
 # Subsecting promoter peak occurence by high and low binding promoters from above.
@@ -669,8 +665,6 @@ binding_occupancy <- data.frame(dbp = names(high_binding_occupancy),
 
 
 ```{r plotting density of occupancy on high and low binding promoters}
-
-# TODO not sure what this means 
 
 # Density of DBPs occupancy on high binders
 ggplot(binding_occupancy, aes(x = high)) +
@@ -710,7 +704,6 @@ lowly_expressed_hb <- promoter_peak_occurence[,high_binders %>%
 # Percentage of DBP representation on expressed versus lowly expressed high binding promters
 ehb_occupancy <- rowSums(expressed_hb) / ncol(expressed_hb)
 lhb_occupancy <- rowSums(lowly_expressed_hb) / ncol(lowly_expressed_hb)
-names(ehb_occupancy) == names(lhb_occupancy)
 hb_binding_occupancy <- data.frame(dbp = names(ehb_occupancy),
                                 high_exp = ehb_occupancy,
                                 low_exp = lhb_occupancy ) %>%
@@ -757,7 +750,6 @@ high_binders <- promoter_features_df %>%
 
 
 ```{r Defining how many types of Pol II at high binding promters}
-
 # at least one Pol II bound high binder and highly expressed and Pol II low expressed
 expressed_hb <- promoter_peak_occurence[,high_binders %>%
                                                     filter(expression_level == "high", polII_status > 1) %>%
@@ -772,14 +764,15 @@ ehb_occupancy <- rowSums(expressed_hb) / ncol(expressed_hb)
 # percentage of promoters with Pol II and lowly expressed high binders
 lhb_occupancy <- rowSums(lowly_expressed_hb) / ncol(lowly_expressed_hb)
 
-#TODO this is whre I left off .... defining names for expressed high binders
-names(ehb_occupancy) == names(lhb_occupancy)
-
 hb_binding_occupancy <- data.frame(dbp = names(ehb_occupancy),
                                 high_exp = ehb_occupancy,
                                 low_exp = lhb_occupancy ) %>%
   mutate(high_vs_low_ratio = log2((high_exp + 0.001) / (low_exp + 0.001)))
 library(ggrepel)
+```
+
+
+```{r plotting DBPs enriched on hihg binding and high expressed promters}
 ggplot(hb_binding_occupancy, aes(x = high_exp, y = high_vs_low_ratio, label = dbp)) +
   geom_point() +
   geom_text_repel(data = hb_binding_occupancy %>% filter(high_vs_low_ratio < -0.5)) +
@@ -845,6 +838,7 @@ promoter_features_df <- promoter_features_df %>%
 ```
 
 # Plotting ATAC peak overlaps versus number of DBPS bound
+
 ```{r  plotting ATAC promter features }
 ggplot(promoter_features_df %>% filter(number_of_dbp > 100), aes(x = number_of_dbp, y = atac)) +
   geom_bin_2d() +
