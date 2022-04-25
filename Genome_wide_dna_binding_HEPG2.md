@@ -774,7 +774,7 @@ ggplot(binding_occupancy, aes(x = high)) +
   geom_density()
 ```
 
-![](Genome_wide_dna_binding_HEPG2_files/figure-gfm/plotting%20density%20of%20occupancy%20on%20high%20and%20low%20binding%20promoters-1.png)<!-- -->
+![](Genome_wide_dna_binding_HEPG2_files/figure-gfm/plotting%20density%20of%20occupancy%20on%20high%20binding%20promoters-1.png)<!-- -->
 
 ``` r
 # Density of DBPs occupancy on low binders
@@ -782,7 +782,7 @@ ggplot(binding_occupancy, aes(x = low)) +
   geom_density()
 ```
 
-![](Genome_wide_dna_binding_HEPG2_files/figure-gfm/plotting%20density%20of%20occupancy%20on%20high%20and%20low%20binding%20promoters-2.png)<!-- -->
+![](Genome_wide_dna_binding_HEPG2_files/figure-gfm/plotting%20density%20of%20occupancy%20on%20low%20binding%20promoters-1.png)<!-- -->
 We observe that on high binders most proteins that are bound are bound
 to 75% or more of high binding promoters. Thus, if a DBP is bound to a
 high binder it is bound to most of them or they have similar

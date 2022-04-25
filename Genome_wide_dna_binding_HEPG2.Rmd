@@ -664,20 +664,20 @@ binding_occupancy <- data.frame(dbp = names(high_binding_occupancy),
 # PLotting density of occupancy of DBPs on high and low binding promoters 
 
 
-```{r plotting density of occupancy on high and low binding promoters}
-
+```{r plotting density of occupancy on high binding promoters}
 # Density of DBPs occupancy on high binders
 ggplot(binding_occupancy, aes(x = high)) +
-  geom_density()
-
-# Density of DBPs occupancy on low binders
-ggplot(binding_occupancy, aes(x = low)) +
   geom_density()
 ```
 We observe that on high binders most proteins that are bound are
 bound to 75% or more of high binding promoters. Thus, if a DBP is 
 bound to a high binder it is bound to most of them or they have similar populations.
 
+```{r plotting density of occupancy on low binding promoters}
+# Density of DBPs occupancy on low binders
+ggplot(binding_occupancy, aes(x = low)) +
+  geom_density()
+```
 In contrast, for lowly bound promoters very few DBPs are in common. Most DBPs are bond to 
 less than 5% of lowly bound promoters.
 
