@@ -716,7 +716,13 @@ promoter_features_df <- promoter_features_df %>%
          expression_level = ifelse(tpm > 100, "high", ifelse(tpm > 0.25, "medium", "low")))
 promoter_features_df$binding_status <- factor(promoter_features_df$binding_status, 
                                               levels = c("low", "medium", "high"))
+
+table(promoter_features_df$binding_status)
 ```
+
+    ## 
+    ##    low medium   high 
+    ##  13831  11477  11506
 
 # High, medium and low binding promoters expression level
 
@@ -769,27 +775,17 @@ binding_occupancy <- data.frame(dbp = names(high_binding_occupancy),
 # PLotting density of occupancy of DBPs on high and low binding promoters
 
 ``` r
-# Density of DBPs occupancy on high binders
-ggplot(binding_occupancy, aes(x = high)) +
-  geom_density()
+summary(binding_occupancy)
 ```
 
-![](Genome_wide_dna_binding_HEPG2_files/figure-gfm/plotting%20density%20of%20occupancy%20on%20high%20binding%20promoters-1.png)<!-- -->
-
-``` r
-# Density of DBPs occupancy on low binders
-ggplot(binding_occupancy, aes(x = low)) +
-  geom_density()
-```
-
-![](Genome_wide_dna_binding_HEPG2_files/figure-gfm/plotting%20density%20of%20occupancy%20on%20low%20binding%20promoters-1.png)<!-- -->
-We observe that on high binders most proteins that are bound are bound
-to 75% or more of high binding promoters. Thus, if a DBP is bound to a
-high binder it is bound to most of them or they have similar
-populations.
-
-In contrast, for lowly bound promoters very few DBPs are in common. Most
-DBPs are bond to less than 5% of lowly bound promoters.
+    ##       dbp           high              low            high_vs_low_ratio  
+    ##  ADNP   :  1   Min.   :0.00113   Min.   :0.0006507   Min.   :-0.213668  
+    ##  AFF4   :  1   1st Qu.:0.13026   1st Qu.:0.1224243   1st Qu.: 0.002489  
+    ##  AHDC1  :  1   Median :0.28498   Median :0.2719254   Median : 0.023257  
+    ##  AHR    :  1   Mean   :0.26603   Mean   :0.2615931   Mean   : 0.041844  
+    ##  AKAP8  :  1   3rd Qu.:0.40903   3rd Qu.:0.4058456   3rd Qu.: 0.061755  
+    ##  AKNA   :  1   Max.   :0.62811   Max.   :0.6350951   Max.   : 0.665559  
+    ##  (Other):454
 
 # Are there some DBPs that seperate the expressed vs not expressed high binding promoters?
 

@@ -619,6 +619,8 @@ promoter_features_df <- promoter_features_df %>%
          expression_level = ifelse(tpm > 100, "high", ifelse(tpm > 0.25, "medium", "low")))
 promoter_features_df$binding_status <- factor(promoter_features_df$binding_status, 
                                               levels = c("low", "medium", "high"))
+
+table(promoter_features_df$binding_status)
 ```
 
 # High, medium and low binding promoters expression level 
@@ -663,24 +665,9 @@ binding_occupancy <- data.frame(dbp = names(high_binding_occupancy),
 
 # PLotting density of occupancy of DBPs on high and low binding promoters 
 
-
-```{r plotting density of occupancy on high binding promoters}
-# Density of DBPs occupancy on high binders
-ggplot(binding_occupancy, aes(x = high)) +
-  geom_density()
+```{r fractional occupancy of DBPs}
+summary(binding_occupancy)
 ```
-We observe that on high binders most proteins that are bound are
-bound to 75% or more of high binding promoters. Thus, if a DBP is 
-bound to a high binder it is bound to most of them or they have similar populations.
-
-```{r plotting density of occupancy on low binding promoters}
-# Density of DBPs occupancy on low binders
-ggplot(binding_occupancy, aes(x = low)) +
-  geom_density()
-```
-In contrast, for lowly bound promoters very few DBPs are in common. Most DBPs are bond to 
-less than 5% of lowly bound promoters.
-
 
 # Are there some DBPs that seperate the expressed vs not expressed high binding promoters?
 This analysis will point us towards a possible repressor of high binding promoters
@@ -779,6 +766,61 @@ ggplot(hb_binding_occupancy, aes(x = high_exp, y = high_vs_low_ratio, label = db
   geom_text_repel(data = hb_binding_occupancy %>% filter(high_vs_low_ratio > 0.75)) +
   geom_smooth(method = "lm")
 ```
+
+# determinig which DBP(s) predict expression
+
+```{r predictors of expression (tpm)}
+binding_expression <- t(promoter_peak_occurence) %>% as.data.frame() %>% rownames_to_column("gene_id") %>%
+  left_join(promoter_features_df %>% dplyr::select(gene_id, tpm)) %>%
+  column_to_rownames("gene_id")
+
+# Hmm?
+model1 <- lm(tpm ~ ., data = binding_expression)
+library(broom)
+
+model1_res <- model1 %>% tidy() %>%
+  mutate(padj = p.adjust(p.value)) %>%
+  filter(term != "(Intercept)")
+
+predictors <- model1_res %>%
+  filter(padj < 0.05)
+
+ggplot(model1_res, aes(x = estimate, y = -log10(padj), label = term)) +
+  geom_point() +
+  geom_text_repel(data = model1_res %>% filter(abs(estimate) > 20))
+
+```
+We observe many activators are predicted to associate with active genes
+Conversely repressors associated with low expression.
+We may have found some new repressors in ZNF432 and MBD4 (metalo reponse tf)
+
+# testing predictability with a decision tree
+
+```{r decision tree }
+# Let's train a decision tree with the most significant DBPs from the linear model.
+binding_expression_features <- binding_expression[,c("tpm", predictors$term)] %>%
+  mutate(expressed = tpm > 0.25) %>%
+  dplyr::select(-tpm)
+library(tree)
+
+
+tree_binding_expr <- tree(expressed~., data = binding_expression_features)
+summary(tree_binding_expr)
+plot(tree_binding_expr)
+text(tree_binding_expr,  pretty = 0)
+
+
+# allowing for more factors
+tree_binding_expr <- tree(expressed~., data = binding_expression_features, control = tree.control(nobs = 36814,mindev = 0,minsize = 500))
+summary(tree_binding_expr)
+plot(tree_binding_expr)
+text(tree_binding_expr,  pretty = 0)
+
+
+```
+What we observe is that the best prediction of expression is the lack of HDAC2 and presence of Pol II
+This explains nearly 90% of TPM values !
+
 
 # How many genes are expressed but don't have any DBPs bound
 
