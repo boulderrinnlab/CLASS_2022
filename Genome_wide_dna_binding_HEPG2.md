@@ -890,6 +890,91 @@ ggplot(hb_binding_occupancy, aes(x = high_exp, y = high_vs_low_ratio, label = db
 
 ![](Genome_wide_dna_binding_HEPG2_files/figure-gfm/plotting%20DBPs%20enriched%20on%20hihg%20binding%20and%20high%20expressed%20promters-1.png)<!-- -->
 
+# determinig which DBP(s) predict expression
+
+``` r
+binding_expression <- t(promoter_peak_occurence) %>% as.data.frame() %>% rownames_to_column("gene_id") %>%
+  left_join(promoter_features_df %>% dplyr::select(gene_id, tpm)) %>%
+  column_to_rownames("gene_id")
+
+# Hmm?
+model1 <- lm(tpm ~ ., data = binding_expression)
+library(broom)
+
+model1_res <- model1 %>% tidy() %>%
+  mutate(padj = p.adjust(p.value)) %>%
+  filter(term != "(Intercept)")
+
+predictors <- model1_res %>%
+  filter(padj < 0.05)
+
+ggplot(model1_res, aes(x = estimate, y = -log10(padj), label = term)) +
+  geom_point() +
+  geom_text_repel(data = model1_res %>% filter(abs(estimate) > 20))
+```
+
+![](Genome_wide_dna_binding_HEPG2_files/figure-gfm/predictors%20of%20expression%20(tpm)-1.png)<!-- -->
+We observe many activators are predicted to associate with active genes
+Conversely repressors associated with low expression. We may have found
+some new repressors in ZNF432 and MBD4 (metalo reponse tf)
+
+# testing predictability with a decision tree
+
+``` r
+# Let's train a decision tree with the most significant DBPs from the linear model.
+binding_expression_features <- binding_expression[,c("tpm", predictors$term)] %>%
+  mutate(expressed = tpm > 0.25) %>%
+  dplyr::select(-tpm)
+library(tree)
+
+
+tree_binding_expr <- tree(expressed~., data = binding_expression_features)
+summary(tree_binding_expr)
+```
+
+    ## 
+    ## Regression tree:
+    ## tree(formula = expressed ~ ., data = binding_expression_features)
+    ## Variables actually used in tree construction:
+    ## [1] "HDAC2"  "POLR2A"
+    ## Number of terminal nodes:  3 
+    ## Residual mean deviance:  0.1947 = 7148 / 36710 
+    ## Distribution of residuals:
+    ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    ## -0.9054 -0.3680  0.1421  0.0000  0.1421  0.6320
+
+``` r
+plot(tree_binding_expr)
+text(tree_binding_expr,  pretty = 0)
+```
+
+![](Genome_wide_dna_binding_HEPG2_files/figure-gfm/decision%20tree-1.png)<!-- -->
+
+``` r
+# allowing for more factors
+tree_binding_expr <- tree(expressed~., data = binding_expression_features, control = tree.control(nobs = 36814,mindev = 0,minsize = 500))
+summary(tree_binding_expr)
+```
+
+    ## 
+    ## Regression tree:
+    ## tree(formula = expressed ~ ., data = binding_expression_features, 
+    ##     control = tree.control(nobs = 36814, mindev = 0, minsize = 500))
+    ## Number of terminal nodes:  79 
+    ## Residual mean deviance:  0.1862 = 6823 / 36630 
+    ## Distribution of residuals:
+    ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    ## -0.9748 -0.3417  0.0467  0.0000  0.2215  0.7381
+
+``` r
+plot(tree_binding_expr)
+text(tree_binding_expr,  pretty = 0)
+```
+
+![](Genome_wide_dna_binding_HEPG2_files/figure-gfm/decision%20tree-2.png)<!-- -->
+What we observe is that the best prediction of expression is the lack of
+HDAC2 and presence of Pol II This explains nearly 90% of TPM values !
+
 # How many genes are expressed but don’t have any DBPs bound
 
 ``` r
